@@ -1,0 +1,15 @@
+*.tmproj
+*.a
+xcuserdata/
+*.o
+Makefile
+api/
+obj/
+bin/
+bin-*/
+obj-*/
+*.swp
+*.log
+build/
+*-snapshot-*.tar.gz
+
