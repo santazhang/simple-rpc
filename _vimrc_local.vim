@@ -2,6 +2,8 @@
 
 function! StartWithNERDTree()
         NERDTree
+        " expand NERDTree
+        normal O
         " switch to code window
         :wincmd w
 endfunction
@@ -12,7 +14,7 @@ if exists(":NERDTree")
 endif
 
 " ignore patterns
-let NERDTreeIgnore=['\~$', '\.o', '\.so', '^bin-', '^obj-', '_vimrc_local.vim']
+let NERDTreeIgnore=['\~$', '_vimrc_local.vim', 'build', 'waf']
 set wildignore+=*.pyc,*~,*.o,*.so,*.class,*/.git/*,*/.hg/*,*/.svn/*,.DS_Store
 
 " set tab and spaces
