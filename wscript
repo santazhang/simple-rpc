@@ -34,17 +34,31 @@ def build(bld):
 
 
 def test(ctx):
+    """run regression tests"""
     os.system("./test/regression.py")
+
+
+def rpcgen(ctx):
+    """generate rpc code from definition files"""
+    def _exec(cmd):
+        print cmd
+        os.system(cmd)
+
+    _exec("./yapps/main.py ./rpc/rpcgen.g")
+    _exec("chmod a+x ./rpc/rpcgen.py")
+    _exec("./rpc/rpcgen.py test/rpc_regression.def")
 
 
 from waflib.Build import BuildContext
 
 
 class debug(BuildContext):
+    """build debug binaries"""
     cmd = "debug"
     variant = "debug"
 
 
 class release(BuildContext):
+    """build release binaries"""
     cmd = "release"
     variant = "release"

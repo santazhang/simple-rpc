@@ -20,8 +20,7 @@ void ServerConnection::run_async(Runnable* r) {
 void ServerConnection::begin_reply(Request* req, i32 error_code /* =... */) {
     Pthread_mutex_lock(&out_m_);
 
-    bmark_ = this->out_.set_bookmark(sizeof(reply_size_)); // will write reply size later
-    reply_size_ = 0;    // reply size does not include the size field itself.
+    bmark_ = this->out_.set_bookmark(sizeof(i32)); // will write reply size later
 
     *this << req->xid;
     *this << error_code;
@@ -30,11 +29,12 @@ void ServerConnection::begin_reply(Request* req, i32 error_code /* =... */) {
 void ServerConnection::end_reply() {
     // set reply size in packet
     if (bmark_ != NULL) {
-        out_.write_bookmark(bmark_, &reply_size_);
+        i32 reply_size = out_.get_write_counter();
+        out_.write_bookmark(bmark_, &reply_size);
+        out_.reset_write_counter();
         delete bmark_;
         bmark_ = NULL;
     }
-    reply_size_ = -1;
 
     if (!out_.empty()) {
         server_->pollmgr_->update_mode(this, Pollable::READ | Pollable::WRITE);

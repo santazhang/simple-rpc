@@ -199,6 +199,7 @@ public:
 class Marshal: public NoCopy {
 
     std::list<Chunk*> chunk_;
+    int write_counter_;
 
 public:
 
@@ -215,19 +216,25 @@ public:
         }
     };
 
+    Marshal(): write_counter_(0) {
+    }
     ~Marshal();
-
-    template<class T>
-    int write(const T& v);
-
-    template<class T>
-    int write(const std::vector<T>& v);
 
     /**
      * Note: Need to delete the bookmark manually.
      */
     Bookmark* set_bookmark(int size);
     void write_bookmark(Bookmark*, const void*);
+
+    int get_write_counter() const {
+        return write_counter_;
+    }
+    void reset_write_counter() {
+        write_counter_ = 0;
+    }
+    void incr_write_counter(int write_cnt) {
+        write_counter_ += write_cnt;
+    }
 
     int write(const void* p, int n);
     int read(void* p, int n);
@@ -249,52 +256,40 @@ public:
     }
 };
 
-template<>
-inline int Marshal::write(const i32& v) {
-    int r = this->write(&v, sizeof(v));
-    assert(sizeof(v) == r);
-    return r;
+
+inline Marshal& operator <<(Marshal& m, const i32& v) {
+    verify(m.write(&v, sizeof(v)) == sizeof(v));
+    m.incr_write_counter(sizeof(v));
+    return m;
 }
 
-template<>
-inline int Marshal::write(const i64& v) {
-    int r = this->write(&v, sizeof(v));
-    assert(sizeof(v) == r);
-    return r;
+inline Marshal& operator <<(Marshal& m, const i64& v) {
+    verify(m.write(&v, sizeof(v)) == sizeof(v));
+    m.incr_write_counter(sizeof(v));
+    return m;
 }
 
-template<>
-inline int Marshal::write(const double& v) {
-    int r = this->write(&v, sizeof(v));
-    assert(sizeof(v) == r);
-    return r;
+inline Marshal& operator <<(Marshal& m, const double& v) {
+    verify(m.write(&v, sizeof(v)) == sizeof(v));
+    m.incr_write_counter(sizeof(v));
+    return m;
 }
 
-template<>
-inline int Marshal::write(const std::string& v) {
+inline Marshal& operator <<(Marshal& m, const std::string& v) {
     i32 len = (i32) v.length();
-    int cnt = this->write(len);
-    cnt += this->write(v.c_str(), len);
-
-    assert(cnt == sizeof(i32) + len);
-
-    return cnt;
+    m << len;
+    verify(m.write(v.c_str(), len) == len);
+    m.incr_write_counter(len);
+    return m;
 }
 
 template<class T>
-inline int Marshal::write(const std::vector<T>& v) {
+inline Marshal& operator <<(Marshal& m, const std::vector<T>& v) {
     i32 len = (i32) v.size();
-    int cnt = this->write(len);
-    assert(cnt == sizeof(i32));
+    m << len;
     for (typename std::vector<T>::const_iterator it = v.begin(); it != v.end(); ++it) {
-        cnt += this->write(*it);
+        m << *it;
     }
-    return cnt;
-}
-
-template<class T>
-inline Marshal& operator <<(Marshal& m, const T& v) {
-    m.write(v);
     return m;
 }
 

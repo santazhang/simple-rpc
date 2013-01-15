@@ -46,7 +46,6 @@ class ServerConnection: public Pollable {
     int socket_;
 
     Marshal::Bookmark* bmark_;
-    i32 reply_size_;
 
     enum {
         CONNECTED, CLOSED
@@ -70,7 +69,7 @@ protected:
 public:
 
     ServerConnection(Server* server, int socket)
-            : server_(server), socket_(socket), bmark_(NULL), reply_size_(-1), status_(CONNECTED) {
+            : server_(server), socket_(socket), bmark_(NULL), status_(CONNECTED) {
         Pthread_mutex_init(&out_m_, NULL);
     }
 
@@ -97,7 +96,7 @@ public:
 
     template<class T>
     ServerConnection& operator <<(const T& v) {
-        reply_size_ += this->out_.write(v);
+        this->out_ << v;
         return *this;
     }
 
@@ -140,7 +139,7 @@ class Server: public NoCopy {
 public:
 
     Server(PollMgr* pollmgr = NULL);
-    ~Server();
+    virtual ~Server();
 
     int start(const char* bind_addr);
 

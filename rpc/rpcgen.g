@@ -109,13 +109,13 @@ def gen_struct_def(struct_def, h):
         write_ln(h, "%s %s;" % (field[0], field[1]), 4)
     write_ln(h, "};")
     write_ln(h)
-    write_ln(h, "inline rpc::Marshal& operator << (rpc::Marshal& m, const %s& o) {" % name)
+    write_ln(h, "inline rpc::Marshal& operator <<(rpc::Marshal& m, const %s& o) {" % name)
     for field in fields:
         write_ln(h, "m << o.%s;" % field[1], 4)
     write_ln(h, "return m;", 4);
     write_ln(h, "}")
     write_ln(h)
-    write_ln(h, "inline rpc::Marshal& operator >> (rpc::Marshal& m, %s& o) {" % name)
+    write_ln(h, "inline rpc::Marshal& operator >>(rpc::Marshal& m, %s& o) {" % name)
     for field in fields:
         write_ln(h, "m >> o.%s;" % field[1], 4)
     write_ln(h, "return m;", 4);
@@ -180,16 +180,16 @@ def gen_service_def(service_def, h):
             write_ln(h, "sconn->release();", 8)
         else:
             write_ln(h, "class R: public rpc::Runnable {", 8)
-            write_ln(h, "%sService* thiz_;" % svc_name, 12)
-            write_ln(h, "rpc::Request* req_;", 12)
-            write_ln(h, "rpc::ServerConnection* sconn_;", 12)
+            write_ln(h, "%sService* __thiz__;" % svc_name, 12)
+            write_ln(h, "rpc::Request* __req__;", 12)
+            write_ln(h, "rpc::ServerConnection* __sconn__;", 12)
             write_ln(h, "public:", 8)
-            write_ln(h, "R(%sService* thiz, rpc::Request* r, rpc::ServerConnection* sc): thiz_(thiz), req_(r), sconn_(sc) {}" % svc_name, 12)
+            write_ln(h, "R(%sService* thiz, rpc::Request* r, rpc::ServerConnection* sc): __thiz__(thiz), __req__(r), __sconn__(sc) {}" % svc_name, 12)
             write_ln(h, "void run() {", 12)
             call_args = []
             for in_arg in in_args:
                 write_ln(h, "%s in_%d;" % (in_arg[0], in_count), 16)
-                write_ln(h, "req_->m >> in_%d;" % in_count, 16)
+                write_ln(h, "__req__->m >> in_%d;" % in_count, 16)
                 call_args += "in_%d" % in_count,
                 in_count += 1
             for out_arg in out_args:
@@ -197,13 +197,13 @@ def gen_service_def(service_def, h):
                 call_args += "&out_%d" % out_count,
                 out_count += 1
 
-            write_ln(h, "thiz_->%s(%s);" % (func_name, ", ".join(call_args)), 16)
-            write_ln(h, "sconn_->begin_reply(req_);", 16)
+            write_ln(h, "__thiz__->%s(%s);" % (func_name, ", ".join(call_args)), 16)
+            write_ln(h, "__sconn__->begin_reply(__req__);", 16)
             for i in range(out_count):
-                write_ln(h, "*sconn_ << out_%d;" % i, 16)
-            write_ln(h, "sconn_->end_reply();", 16)
-            write_ln(h, "delete req_;", 16)
-            write_ln(h, "sconn_->release();", 16)
+                write_ln(h, "*__sconn__ << out_%d;" % i, 16)
+            write_ln(h, "__sconn__->end_reply();", 16)
+            write_ln(h, "delete __req__;", 16)
+            write_ln(h, "__sconn__->release();", 16)
             write_ln(h, "}", 12)
             write_ln(h, "};", 8)
             write_ln(h, "sconn->run_async(new R(this, req, sconn));", 8)
@@ -218,7 +218,7 @@ def gen_service_def(service_def, h):
         func_args = []
         if func_attr == "raw":
             write_ln(h, "// NOTE: remember to reply req, delete req, and sconn->release(); use sconn->run_async for heavy job", 4)
-            write_ln(h, "void %s(rpc::Request* req, rpc::ServerConnection* sconn);" % func_name, 4)
+            write_ln(h, "virtual void %s(rpc::Request* req, rpc::ServerConnection* sconn);" % func_name, 4)
             continue
 
         if in_args != None:
@@ -233,7 +233,7 @@ def gen_service_def(service_def, h):
                 if out_arg[1] != None:
                     func_arg += " %s" % out_arg[1]
                 func_args += func_arg,
-        write_ln(h, "void %s(%s);" % (func_name, ", ".join(func_args)), 4)
+        write_ln(h, "virtual void %s(%s);" % (func_name, ", ".join(func_args)), 4)
 
 
     write_ln(h)
@@ -241,9 +241,9 @@ def gen_service_def(service_def, h):
     write_ln(h)
 
     write_ln(h, "class %sProxy {" % svc_name)
-    write_ln(h, "rpc::Client* cl_;", 4)
+    write_ln(h, "rpc::Client* __cl__;", 4)
     write_ln(h, "public:")
-    write_ln(h, "%sProxy(rpc::Client* cl): cl_(cl) {}" % svc_name, 4)
+    write_ln(h, "%sProxy(rpc::Client* cl): __cl__(cl) {}" % svc_name, 4)
 
     for member in members:
 
@@ -285,40 +285,42 @@ def gen_service_def(service_def, h):
                 else:
                     call_args += "in_%d" % in_count,
                 in_count += 1
-        write_ln(h, "rpc::Future* fu = async_%s(%s);" % (func_name, ", ".join(call_args)), 8)
-        write_ln(h, "if (fu == NULL) {", 8)
+        write_ln(h, "rpc::Future* __fu__ = async_%s(%s);" % (func_name, ", ".join(call_args)), 8)
+        write_ln(h, "if (__fu__ == NULL) {", 8)
         write_ln(h, "return ENOTCONN;", 12)
         write_ln(h, "}", 8)
-        write_ln(h, "rpc::i32 __ret__ = fu->get_error_code();", 8)
+        write_ln(h, "rpc::i32 __ret__ = __fu__->get_error_code();", 8)
         write_ln(h, "if (__ret__ == 0) {", 8)
         out_count = 0
         if out_args != None:
             for out_arg in out_args:
                 if out_arg[1] != None:
-                    write_ln(h, "fu->get_reply() >> *%s;" % out_arg[1], 12)
+                    write_ln(h, "__fu__->get_reply() >> *%s;" % out_arg[1], 12)
                 else:
-                    write_ln(h, "fu->get_reply() >> *out_%d;" % out_count, 12)
+                    write_ln(h, "__fu__->get_reply() >> *out_%d;" % out_count, 12)
                 out_count += 1
         write_ln(h, "}", 8)
-        write_ln(h, "fu->release();", 8)
+        write_ln(h, "__fu__->release();", 8)
         write_ln(h, "return __ret__;", 8)
         write_ln(h, "}", 4)
         write_ln(h)
 
         write_ln(h, "rpc::Future* async_%s(%s) {" % (func_name, ", ".join(async_args)), 4)
-        write_ln(h, "rpc::Future* fu = cl_->begin_request();", 8)
-        write_ln(h, "rpc::i32 rpc_id = %sService::%s;" % (svc_name, func_name.upper()), 8)
-        write_ln(h, "*cl_ << rpc_id;", 8)
+        write_ln(h, "rpc::Future* __fu__ = __cl__->begin_request();", 8)
+        write_ln(h, "if (__fu__ != NULL) {", 8)
+        write_ln(h, "rpc::i32 __rpc_id__ = %sService::%s;" % (svc_name, func_name.upper()), 12)
+        write_ln(h, "*__cl__ << __rpc_id__;", 12)
         in_count = 0
         if in_args != None:
             for in_arg in in_args:
                 if in_arg[1] != None:
-                    write_ln(h, "*cl_ << %s;" % in_arg[1], 8)
+                    write_ln(h, "*__cl__ << %s;" % in_arg[1], 12)
                 else:
-                    write_ln(h, "*cl_ << in_%d;" % in_count, 8)
+                    write_ln(h, "*__cl__ << in_%d;" % in_count, 12)
                 in_count += 1
-        write_ln(h, "cl_->end_request();", 8)
-        write_ln(h, "return fu;", 8)
+        write_ln(h, "}", 8)
+        write_ln(h, "__cl__->end_request();", 8)
+        write_ln(h, "return __fu__;", 8)
         write_ln(h, "}", 4)
 
     write_ln(h)
@@ -382,4 +384,7 @@ def rpc_gen(rpc_fpath):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print "usage: %s <rpc-def-file>" % sys.argv[0]
+        exit(1)
     rpc_gen(sys.argv[1])

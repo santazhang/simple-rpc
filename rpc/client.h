@@ -74,7 +74,6 @@ class Client: public Pollable {
     } status_;
 
     Marshal::Bookmark* bmark_;
-    i32 request_size_;
 
     Counter xid_counter_;
     std::map<i64, Future*> pending_fu_;
@@ -84,25 +83,31 @@ class Client: public Pollable {
     // reentrant, could be called multiple times before releasing
     void close();
 
+    void invalidate_pending_futures();
+
     // prevent direct usage
     using RefCounted::release;
 
 protected:
 
-    ~Client();
+    virtual ~Client();
 
 public:
 
     Client(PollMgr* pollmgr);
 
-    // The request packet format is: <size> <xid> <rpc_id> <arg1> <arg2> ... <argN>
+    /**
+     * Start a new request. Must be paired with end_request(), even if NULL returned.
+     *
+     * The request packet format is: <size> <xid> <rpc_id> <arg1> <arg2> ... <argN>
+     */
     Future* begin_request(const FutureAttr& attr = FutureAttr());
 
     void end_request();
 
     template<class T>
     Client& operator <<(const T& v) {
-        request_size_ += this->out_.write(v);
+        this->out_ << v;
         return *this;
     }
 

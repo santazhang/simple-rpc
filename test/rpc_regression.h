@@ -11,12 +11,12 @@ struct IntValue {
     int v;
 };
 
-inline rpc::Marshal& operator << (rpc::Marshal& m, const IntValue& o) {
+inline rpc::Marshal& operator <<(rpc::Marshal& m, const IntValue& o) {
     m << o.v;
     return m;
 }
 
-inline rpc::Marshal& operator >> (rpc::Marshal& m, IntValue& o) {
+inline rpc::Marshal& operator >>(rpc::Marshal& m, IntValue& o) {
     m >> o.v;
     return m;
 }
@@ -70,21 +70,21 @@ private:
 
     void __add_vec__wrapped__(rpc::Request* req, rpc::ServerConnection* sconn) {
         class R: public rpc::Runnable {
-            MathService* thiz_;
-            rpc::Request* req_;
-            rpc::ServerConnection* sconn_;
+            MathService* __thiz__;
+            rpc::Request* __req__;
+            rpc::ServerConnection* __sconn__;
         public:
-            R(MathService* thiz, rpc::Request* r, rpc::ServerConnection* sc): thiz_(thiz), req_(r), sconn_(sc) {}
+            R(MathService* thiz, rpc::Request* r, rpc::ServerConnection* sc): __thiz__(thiz), __req__(r), __sconn__(sc) {}
             void run() {
                 std::vector<IntValue > in_0;
-                req_->m >> in_0;
+                __req__->m >> in_0;
                 rpc::i32 out_0;
-                thiz_->add_vec(in_0, &out_0);
-                sconn_->begin_reply(req_);
-                *sconn_ << out_0;
-                sconn_->end_reply();
-                delete req_;
-                sconn_->release();
+                __thiz__->add_vec(in_0, &out_0);
+                __sconn__->begin_reply(__req__);
+                *__sconn__ << out_0;
+                __sconn__->end_reply();
+                delete __req__;
+                __sconn__->release();
             }
         };
         sconn->run_async(new R(this, req, sconn));
@@ -108,110 +108,118 @@ private:
 
 public:
     // these member functions need to be implemented by user
-    void add(const rpc::i32&, const rpc::i32&, rpc::i32*);
-    void sub(const rpc::i32&, const rpc::i32&, rpc::i32*);
-    void add_vec(const std::vector<IntValue >& vec, rpc::i32* sum);
-    void div_mod(const rpc::i32&, const rpc::i32&, rpc::i32*, rpc::i32*);
+    virtual void add(const rpc::i32&, const rpc::i32&, rpc::i32*);
+    virtual void sub(const rpc::i32&, const rpc::i32&, rpc::i32*);
+    virtual void add_vec(const std::vector<IntValue >& vec, rpc::i32* sum);
+    virtual void div_mod(const rpc::i32&, const rpc::i32&, rpc::i32*, rpc::i32*);
     // NOTE: remember to reply req, delete req, and sconn->release(); use sconn->run_async for heavy job
-    void noop(rpc::Request* req, rpc::ServerConnection* sconn);
+    virtual void noop(rpc::Request* req, rpc::ServerConnection* sconn);
 
 }; // class MathService
 
 class MathProxy {
-    rpc::Client* cl_;
+    rpc::Client* __cl__;
 public:
-    MathProxy(rpc::Client* cl): cl_(cl) {}
+    MathProxy(rpc::Client* cl): __cl__(cl) {}
 
     rpc::i32 add(const rpc::i32& in_0, const rpc::i32& in_1, rpc::i32* out_0) {
-        rpc::Future* fu = async_add(in_0, in_1);
-        if (fu == NULL) {
+        rpc::Future* __fu__ = async_add(in_0, in_1);
+        if (__fu__ == NULL) {
             return ENOTCONN;
         }
-        rpc::i32 __ret__ = fu->get_error_code();
+        rpc::i32 __ret__ = __fu__->get_error_code();
         if (__ret__ == 0) {
-            fu->get_reply() >> *out_0;
+            __fu__->get_reply() >> *out_0;
         }
-        fu->release();
+        __fu__->release();
         return __ret__;
     }
 
     rpc::Future* async_add(const rpc::i32& in_0, const rpc::i32& in_1) {
-        rpc::Future* fu = cl_->begin_request();
-        rpc::i32 rpc_id = MathService::ADD;
-        *cl_ << rpc_id;
-        *cl_ << in_0;
-        *cl_ << in_1;
-        cl_->end_request();
-        return fu;
+        rpc::Future* __fu__ = __cl__->begin_request();
+        if (__fu__ != NULL) {
+            rpc::i32 __rpc_id__ = MathService::ADD;
+            *__cl__ << __rpc_id__;
+            *__cl__ << in_0;
+            *__cl__ << in_1;
+        }
+        __cl__->end_request();
+        return __fu__;
     }
 
     rpc::i32 sub(const rpc::i32& in_0, const rpc::i32& in_1, rpc::i32* out_0) {
-        rpc::Future* fu = async_sub(in_0, in_1);
-        if (fu == NULL) {
+        rpc::Future* __fu__ = async_sub(in_0, in_1);
+        if (__fu__ == NULL) {
             return ENOTCONN;
         }
-        rpc::i32 __ret__ = fu->get_error_code();
+        rpc::i32 __ret__ = __fu__->get_error_code();
         if (__ret__ == 0) {
-            fu->get_reply() >> *out_0;
+            __fu__->get_reply() >> *out_0;
         }
-        fu->release();
+        __fu__->release();
         return __ret__;
     }
 
     rpc::Future* async_sub(const rpc::i32& in_0, const rpc::i32& in_1) {
-        rpc::Future* fu = cl_->begin_request();
-        rpc::i32 rpc_id = MathService::SUB;
-        *cl_ << rpc_id;
-        *cl_ << in_0;
-        *cl_ << in_1;
-        cl_->end_request();
-        return fu;
+        rpc::Future* __fu__ = __cl__->begin_request();
+        if (__fu__ != NULL) {
+            rpc::i32 __rpc_id__ = MathService::SUB;
+            *__cl__ << __rpc_id__;
+            *__cl__ << in_0;
+            *__cl__ << in_1;
+        }
+        __cl__->end_request();
+        return __fu__;
     }
 
     rpc::i32 add_vec(const std::vector<IntValue >& vec, rpc::i32* sum) {
-        rpc::Future* fu = async_add_vec(vec);
-        if (fu == NULL) {
+        rpc::Future* __fu__ = async_add_vec(vec);
+        if (__fu__ == NULL) {
             return ENOTCONN;
         }
-        rpc::i32 __ret__ = fu->get_error_code();
+        rpc::i32 __ret__ = __fu__->get_error_code();
         if (__ret__ == 0) {
-            fu->get_reply() >> *sum;
+            __fu__->get_reply() >> *sum;
         }
-        fu->release();
+        __fu__->release();
         return __ret__;
     }
 
     rpc::Future* async_add_vec(const std::vector<IntValue >& vec) {
-        rpc::Future* fu = cl_->begin_request();
-        rpc::i32 rpc_id = MathService::ADD_VEC;
-        *cl_ << rpc_id;
-        *cl_ << vec;
-        cl_->end_request();
-        return fu;
+        rpc::Future* __fu__ = __cl__->begin_request();
+        if (__fu__ != NULL) {
+            rpc::i32 __rpc_id__ = MathService::ADD_VEC;
+            *__cl__ << __rpc_id__;
+            *__cl__ << vec;
+        }
+        __cl__->end_request();
+        return __fu__;
     }
 
     rpc::i32 div_mod(const rpc::i32& in_0, const rpc::i32& in_1, rpc::i32* out_0, rpc::i32* out_1) {
-        rpc::Future* fu = async_div_mod(in_0, in_1);
-        if (fu == NULL) {
+        rpc::Future* __fu__ = async_div_mod(in_0, in_1);
+        if (__fu__ == NULL) {
             return ENOTCONN;
         }
-        rpc::i32 __ret__ = fu->get_error_code();
+        rpc::i32 __ret__ = __fu__->get_error_code();
         if (__ret__ == 0) {
-            fu->get_reply() >> *out_0;
-            fu->get_reply() >> *out_1;
+            __fu__->get_reply() >> *out_0;
+            __fu__->get_reply() >> *out_1;
         }
-        fu->release();
+        __fu__->release();
         return __ret__;
     }
 
     rpc::Future* async_div_mod(const rpc::i32& in_0, const rpc::i32& in_1) {
-        rpc::Future* fu = cl_->begin_request();
-        rpc::i32 rpc_id = MathService::DIV_MOD;
-        *cl_ << rpc_id;
-        *cl_ << in_0;
-        *cl_ << in_1;
-        cl_->end_request();
-        return fu;
+        rpc::Future* __fu__ = __cl__->begin_request();
+        if (__fu__ != NULL) {
+            rpc::i32 __rpc_id__ = MathService::DIV_MOD;
+            *__cl__ << __rpc_id__;
+            *__cl__ << in_0;
+            *__cl__ << in_1;
+        }
+        __cl__->end_request();
+        return __fu__;
     }
 
     // raw rpc 'noop' not included

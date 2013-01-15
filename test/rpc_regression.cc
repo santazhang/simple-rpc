@@ -157,7 +157,7 @@ void marshal_perf(int argc, char* argv[]) {
 void rpc_perf_server(int argc, char* argv[]) {
     Server s;
     s.start("0.0.0.0:1987");
-    sleep(20);
+    sleep(40);
 }
 
 struct rpc_perf_client_thread_arg_type {
@@ -170,17 +170,23 @@ void* rpc_perf_client_thread(void* arg) {
     Client* cl = new Client(args->poll);
 
     cl->connect(args->server_addr);
-    const int batch_size = 100;
-    const int batch_rounds = 100;
+    const int batch_size = 1000;
+    const int batch_rounds = 1000;
     for (int batch = 0; batch < batch_rounds; batch++) {
         Future* batch_fu[batch_size];
-        for (int i = 0; i < batch_size; i++) {
+        int i;
+        for (i = 0; i < batch_size; i++) {
             batch_fu[i] = cl->begin_request();
             cl->end_request();
+            if (batch_fu[i] == NULL) {
+                break;
+            }
         }
-        for (int i = 0; i < batch_size; i++) {
-            batch_fu[i]->get_error_code();
-            batch_fu[i]->release();
+        for (int j = 0; j < i; j++) {
+            if (batch_fu[j] != NULL) {
+                batch_fu[j]->get_error_code();
+                batch_fu[j]->release();
+            }
         }
     }
     cl->close_and_release();
@@ -200,7 +206,7 @@ void rpc_perf_client(int argc, char* argv[]) {
     args.poll = new PollMgr;
     args.server_addr = argv[2];
 
-    const int n_threads = 100;
+    const int n_threads = 10;
     pthread_t threads[n_threads];
 
     for (int i = 0; i < n_threads; i++) {
@@ -236,13 +242,19 @@ void rpc_perf(int argc, char* argv[]) {
                 const int batch_rounds = 1000;
                 for (int batch = 0; batch < batch_rounds; batch++) {
                     Future* batch_fu[batch_size];
-                    for (int i = 0; i < batch_size; i++) {
+                    int i;
+                    for (i = 0; i < batch_size; i++) {
                         batch_fu[i] = cl->begin_request();
                         cl->end_request();
+                        if (batch_fu[i] == NULL) {
+                            break;
+                        }
                     }
-                    for (int i = 0; i < batch_size; i++) {
-                        batch_fu[i]->get_error_code();
-                        batch_fu[i]->release();
+                    for (int j = 0; j < i; j++) {
+                        if (batch_fu[j] != NULL) {
+                            batch_fu[j]->get_error_code();
+                            batch_fu[j]->release();
+                        }
                     }
                 }
                 cl->close_and_release();

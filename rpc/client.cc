@@ -21,27 +21,13 @@ void Future::wait() {
 }
 
 Client::Client(PollMgr* pollmgr /* =... */)
-        : sock_(-1), status_(NEW), bmark_(NULL), request_size_(-1), pollmgr_(pollmgr) {
+        : sock_(-1), status_(NEW), bmark_(NULL), pollmgr_(pollmgr) {
     Pthread_mutex_init(&pending_fu_m_, NULL);
     Pthread_mutex_init(&out_m_, NULL);
 }
 
 Client::~Client() {
-    for (map<i64, Future*>::iterator it = pending_fu_.begin(); it != pending_fu_.end(); ++it) {
-        Future* fu = it->second;
-
-        // client closed
-        fu->error_code_ = EBADF;
-        fu->ready_ = true;
-        Pthread_cond_signal(&fu->ready_cond_);
-
-        if (fu->attr_.callback != NULL) {
-            fu->attr_.callback(fu, fu->attr_.callback_arg);
-        }
-
-        // since we removed it from pending_fu_
-        fu->release();
-    }
+    invalidate_pending_futures();
 
     Pthread_mutex_destroy(&pending_fu_m_);
     Pthread_mutex_destroy(&out_m_);
@@ -49,10 +35,50 @@ Client::~Client() {
     //Log::debug("rpc::Client: destroyed");
 }
 
+void Client::invalidate_pending_futures() {
+    list<Future*> futures;
+    Pthread_mutex_lock(&pending_fu_m_);
+    for (map<i64, Future*>::iterator it = pending_fu_.begin(); it != pending_fu_.end(); ++it) {
+        futures.push_back(it->second);
+    }
+    Pthread_mutex_unlock(&pending_fu_m_);
+
+    for (list<Future*>::iterator it = futures.begin(); it != futures.end(); ++it) {
+        Pthread_mutex_lock(&pending_fu_m_);
+        map<i64, Future*>::iterator find_it = pending_fu_.find((*it)->xid_);
+        Future* fu = NULL;
+        if (find_it != pending_fu_.end()) {
+            fu = find_it->second;
+            pending_fu_.erase(find_it);
+        }
+        Pthread_mutex_unlock(&pending_fu_m_);
+
+        if (fu != NULL) {
+            fu->error_code_ = ENOTCONN;
+
+            Pthread_mutex_lock(&fu->ready_m_);
+            fu->ready_ = true;
+            Pthread_cond_signal(&fu->ready_cond_);
+            Pthread_mutex_unlock(&fu->ready_m_);
+
+            if (fu->attr_.callback != NULL) {
+                fu->attr_.callback(fu, fu->attr_.callback_arg);
+            }
+
+            // since we removed it from pending_fu_
+            fu->release();
+        }
+    }
+
+}
+
 void Client::close() {
     if (status_ == CONNECTED) {
         pollmgr_->remove(this);
         ::close(sock_);
+        status_ = CLOSED;
+
+        invalidate_pending_futures();
     }
     status_ = CLOSED;
 }
@@ -194,11 +220,11 @@ int Client::poll_mode() {
 }
 
 Future* Client::begin_request(const FutureAttr& attr /* =... */) {
+    Pthread_mutex_lock(&out_m_);
+
     if (status_ != CONNECTED) {
         return NULL;
     }
-
-    Pthread_mutex_lock(&out_m_);
 
     Future* fu = new Future(xid_counter_.next(), attr);
     Pthread_mutex_lock(&pending_fu_m_);
@@ -206,8 +232,20 @@ Future* Client::begin_request(const FutureAttr& attr /* =... */) {
     int sz = pending_fu_.size();
     Pthread_mutex_unlock(&pending_fu_m_);
 
-    bmark_ = out_.set_bookmark(sizeof(request_size_)); // will fill packet size later
-    request_size_ = 0;  // reply size does not include the size field itself.
+    // check if the client gets closed in the meantime
+    if (status_ != CONNECTED) {
+        Pthread_mutex_lock(&pending_fu_m_);
+        map<i64, Future*>::iterator it = pending_fu_.find(fu->xid_);
+        if (it != pending_fu_.end()) {
+            it->second->release();
+            pending_fu_.erase(it);
+        }
+        Pthread_mutex_unlock(&pending_fu_m_);
+
+        return NULL;
+    }
+
+    bmark_ = out_.set_bookmark(sizeof(i32)); // will fill packet size later
 
     *this << fu->xid_;
 
@@ -218,11 +256,12 @@ Future* Client::begin_request(const FutureAttr& attr /* =... */) {
 void Client::end_request() {
     // set reply size in packet
     if (bmark_ != NULL) {
-        out_.write_bookmark(bmark_, &request_size_);
+        i32 request_size = out_.get_write_counter();
+        out_.write_bookmark(bmark_, &request_size);
+        out_.reset_write_counter();
         delete bmark_;
         bmark_ = NULL;
     }
-    request_size_ = -1;
 
     if (!out_.empty()) {
         pollmgr_->update_mode(this, Pollable::READ | Pollable::WRITE);
