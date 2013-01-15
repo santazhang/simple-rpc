@@ -107,7 +107,9 @@ public:
 
     template<class T>
     Client& operator <<(const T& v) {
-        this->out_ << v;
+        if (status_ == CONNECTED) {
+            this->out_ << v;
+        }
         return *this;
     }
 

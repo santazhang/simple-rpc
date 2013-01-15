@@ -245,7 +245,7 @@ public:
     int write_to_fd(int fd);
 
     /**
-     * Check if content size >= sz
+     * Faster way to check if content_size > size.
      */
     bool content_size_gt(int size) const;
 
