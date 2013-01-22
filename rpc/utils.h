@@ -46,6 +46,7 @@ public:
         FATAL = 0, ERROR = 1, WARN = 2, INFO = 3, DEBUG = 4
     };
 
+    static void set_file(FILE* fp);
     static void set_level(int level);
     static void log(int level, const char* fmt, ...);
 

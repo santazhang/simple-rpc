@@ -69,7 +69,16 @@ FILE* Log::fp = stdout;
 pthread_mutex_t Log::m = PTHREAD_MUTEX_INITIALIZER;
 
 void Log::set_level(int level) {
+    Pthread_mutex_lock(&Log::m);
     Log::level = level;
+    Pthread_mutex_unlock(&Log::m);
+}
+
+void Log::set_file(FILE* fp) {
+    verify(fp != NULL);
+    Pthread_mutex_lock(&Log::m);
+    Log::fp = fp;
+    Pthread_mutex_unlock(&Log::m);
 }
 
 void Log::log_v(int level, const char* fmt, va_list args) {
@@ -80,6 +89,7 @@ void Log::log_v(int level, const char* fmt, va_list args) {
         fprintf(Log::fp, "%c: ", indicator[level]);
         vfprintf(Log::fp, fmt, args);
         fprintf(Log::fp, "\n");
+        fflush(Log::fp);
         Pthread_mutex_unlock(&Log::m);
     }
 }

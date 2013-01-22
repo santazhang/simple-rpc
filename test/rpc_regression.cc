@@ -176,7 +176,7 @@ void* rpc_perf_client_thread(void* arg) {
         Future* batch_fu[batch_size];
         int i;
         for (i = 0; i < batch_size; i++) {
-            batch_fu[i] = cl->begin_request();
+            batch_fu[i] = cl->begin_request(0x1987);
             cl->end_request();
             if (batch_fu[i] == NULL) {
                 break;
@@ -244,7 +244,7 @@ void rpc_perf(int argc, char* argv[]) {
                     Future* batch_fu[batch_size];
                     int i;
                     for (i = 0; i < batch_size; i++) {
-                        batch_fu[i] = cl->begin_request();
+                        batch_fu[i] = cl->begin_request(0x1987);
                         cl->end_request();
                         if (batch_fu[i] == NULL) {
                             break;
@@ -275,7 +275,7 @@ void rpc_perf(int argc, char* argv[]) {
 void rpc_test(int argc, char* argv[]) {
 
     {
-        // server not running
+        // simple rpc call
         PollMgr* poll = new PollMgr;
         for (int i = 0; i < 10; i++) {
             Server s(poll);
@@ -288,7 +288,7 @@ void rpc_test(int argc, char* argv[]) {
 
             MathProxy mcl(cl);
             for (int j = 0; j < 100; j++) {
-                int r;
+                i32 r;
                 mcl.add(4, 3, &r);
                 verify(r == 7);
                 mcl.sub(4, 3, &r);
@@ -301,12 +301,12 @@ void rpc_test(int argc, char* argv[]) {
     }
 
     {
+        // server not running
         PollMgr* poll = new PollMgr(8);
         for (int i = 0; i < 10; i++) {
             Server s(poll);
             MathService ms;
             s.reg(&ms);
-            s.start("0.0.0.0:1987");
 
             Client* cl = new Client(poll);
             cl->connect("127.0.0.1:1987");

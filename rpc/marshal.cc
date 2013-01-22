@@ -60,6 +60,7 @@ int Marshal::write(const void* p, int n) {
         }
     }
 
+    write_counter_ += n;
     return n;
 }
 

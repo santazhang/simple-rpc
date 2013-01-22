@@ -3,7 +3,7 @@
 namespace test
 
 struct IntValue {
-    int v
+    i32 v
 }
 
 service Math {

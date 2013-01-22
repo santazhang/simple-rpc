@@ -21,7 +21,7 @@ void Future::wait() {
 }
 
 Client::Client(PollMgr* pollmgr /* =... */)
-        : sock_(-1), status_(NEW), bmark_(NULL), pollmgr_(pollmgr) {
+        : pollmgr_(pollmgr), sock_(-1), status_(NEW), bmark_(NULL) {
     Pthread_mutex_init(&pending_fu_m_, NULL);
     Pthread_mutex_init(&out_m_, NULL);
 }
@@ -148,7 +148,7 @@ void Client::handle_write() {
     }
 
     Pthread_mutex_lock(&out_m_);
-    int bytes_written = out_.write_to_fd(sock_);
+    out_.write_to_fd(sock_);
     if (out_.empty()) {
         pollmgr_->update_mode(this, Pollable::READ);
     }
@@ -184,7 +184,6 @@ void Client::handle_read() {
             Future* fu = it->second;
             verify(fu->xid_ == reply_xid);
             pending_fu_.erase(it);
-            int sz = pending_fu_.size();
             Pthread_mutex_unlock(&pending_fu_m_);
 
             fu->error_code_ = error_code;
@@ -219,7 +218,7 @@ int Client::poll_mode() {
     return mode;
 }
 
-Future* Client::begin_request(const FutureAttr& attr /* =... */) {
+Future* Client::begin_request(i32 rpc_id, const FutureAttr& attr /* =... */) {
     Pthread_mutex_lock(&out_m_);
 
     if (status_ != CONNECTED) {
@@ -229,7 +228,7 @@ Future* Client::begin_request(const FutureAttr& attr /* =... */) {
     Future* fu = new Future(xid_counter_.next(), attr);
     Pthread_mutex_lock(&pending_fu_m_);
     pending_fu_[fu->xid_] = fu;
-    int sz = pending_fu_.size();
+    pending_fu_.size();
     Pthread_mutex_unlock(&pending_fu_m_);
 
     // check if the client gets closed in the meantime
@@ -248,6 +247,7 @@ Future* Client::begin_request(const FutureAttr& attr /* =... */) {
     bmark_ = out_.set_bookmark(sizeof(i32)); // will fill packet size later
 
     *this << fu->xid_;
+    *this << rpc_id;
 
     // one ref is already in pending_fu_
     return (Future *) fu->ref_copy();
@@ -256,9 +256,8 @@ Future* Client::begin_request(const FutureAttr& attr /* =... */) {
 void Client::end_request() {
     // set reply size in packet
     if (bmark_ != NULL) {
-        i32 request_size = out_.get_write_counter();
+        i32 request_size = out_.get_write_counter_and_reset();
         out_.write_bookmark(bmark_, &request_size);
-        out_.reset_write_counter();
         delete bmark_;
         bmark_ = NULL;
     }

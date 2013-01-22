@@ -1,0 +1,21 @@
+# test configuration for regression.py
+
+rpc_regression:
+    marshal-test: [debug, release, valgrind-release]
+    marshal-perf:
+        release:
+            args:
+            repeat: 3
+        valgrind-debug:
+            args: n=4
+    rpc-test: [debug, valgrind-debug]
+
+    # This test is hanging under linux
+    #rpc-perf: [release, valgrind-debug]
+
+<ohcount>: [rpc, lynx, test]
+
+<functional>:
+
+    rpc-connection:
+

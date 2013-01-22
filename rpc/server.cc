@@ -29,9 +29,8 @@ void ServerConnection::begin_reply(Request* req, i32 error_code /* =... */) {
 void ServerConnection::end_reply() {
     // set reply size in packet
     if (bmark_ != NULL) {
-        i32 reply_size = out_.get_write_counter();
+        i32 reply_size = out_.get_write_counter_and_reset();
         out_.write_bookmark(bmark_, &reply_size);
-        out_.reset_write_counter();
         delete bmark_;
         bmark_ = NULL;
     }
@@ -115,7 +114,7 @@ void ServerConnection::handle_write() {
     }
 
     Pthread_mutex_lock(&out_m_);
-    int bytes_written = out_.write_to_fd(socket_);
+    out_.write_to_fd(socket_);
     if (out_.empty()) {
         server_->pollmgr_->update_mode(this, Pollable::READ);
     }

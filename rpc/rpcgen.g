@@ -4,6 +4,12 @@ import sys
 import os
 sys.path += os.path.abspath(os.path.join(os.path.split(__file__)[0], "..")),
 
+def proper_template_type(type_info):
+    if type_info.endswith(">"):
+        return type_info + " "
+    else:
+        return type_info
+
 %%
 
 parser RpcDef:
@@ -11,7 +17,7 @@ parser RpcDef:
     ignore: '//[^\\n]+'
 
     token EOF: '$'
-    token IDENTIFIER: '[$a-zA-Z0-9_][$a-zA-Z0-9_]*'
+    token IDENTIFIER: '[$a-zA-Z0-9_:][$a-zA-Z0-9_:]*'
 
     rule rpc_def: {{ namespace = None }} [ns_decl {{ namespace = ns_decl }}] def_list EOF
         {{ return namespace, def_list }}
@@ -42,26 +48,27 @@ parser RpcDef:
         | map_type {{ return map_type }}
         | "i32" {{ return "rpc::i32" }}
         | "i64" {{ return "rpc::i64" }}
+        | ("int"|"long") {{ raise TypeError("use i32 or i64!!") }}
         | IDENTIFIER {{ return IDENTIFIER }}
 
     rule string_type: "string"
         {{ return "std::string" }}
 
     rule vector_type: "vector" "<" type_info ">"
-        {{ return "std::vector<%s >" % type_info }}
+        {{ return "std::vector<%s>" % proper_template_type(type_info) }}
 
     rule list_type: "list" "<" type_info ">"
-        {{ return "std::list<%s >" % type_info }}
+        {{ return "std::list<%s>" % proper_template_type(type_info) }}
 
     rule set_type: "set" "<" type_info ">"
-        {{ return "std::set<%s >" % type_info }}
+        {{ return "std::set<%s>" % proper_template_type(type_info) }}
 
     rule deque_type: "deque" "<" type_info ">"
-        {{ return "std::deque<%s >" % type_info }}
+        {{ return "std::deque<%s>" % proper_template_type(type_info) }}
 
     rule map_type: {{ key_type = None; value_type = None }}
         "map" "<" (type_info {{ key_type = type_info }} ) ',' (type_info {{ value_type = type_info }} ) ">"
-        {{ return "std::map<%s, %s >" % (key_type, value_type) }}
+        {{ return "std::map<%s, %s>" % (key_type, proper_template_type(value_type)) }}
 
     rule service_def: "service" IDENTIFIER "{" func_list "}"
         {{ return IDENTIFIER, func_list }}
@@ -109,6 +116,11 @@ def gen_struct_def(struct_def, h):
         write_ln(h, "%s %s;" % (field[0], field[1]), 4)
     write_ln(h, "};")
     write_ln(h)
+
+def gen_struct_marshal(struct_def, h, ns):
+    name, fields = struct_def
+    if ns != None:
+        name = ns + "::" + name;
     write_ln(h, "inline rpc::Marshal& operator <<(rpc::Marshal& m, const %s& o) {" % name)
     for field in fields:
         write_ln(h, "m << o.%s;" % field[1], 4)
@@ -121,6 +133,11 @@ def gen_struct_def(struct_def, h):
     write_ln(h, "return m;", 4);
     write_ln(h, "}")
     write_ln(h)
+
+
+def gen_struct_marshal_list(struct_def_list, h, ns):
+    for struct_def in struct_def_list:
+        gen_struct_marshal(struct_def, h, ns)
 
 def gen_struct_def_list(struct_def_list, h):
     for struct_def in struct_def_list:
@@ -241,6 +258,7 @@ def gen_service_def(service_def, h):
     write_ln(h)
 
     write_ln(h, "class %sProxy {" % svc_name)
+    write_ln(h, "protected:")
     write_ln(h, "rpc::Client* __cl__;", 4)
     write_ln(h, "public:")
     write_ln(h, "%sProxy(rpc::Client* cl): __cl__(cl) {}" % svc_name, 4)
@@ -305,11 +323,9 @@ def gen_service_def(service_def, h):
         write_ln(h, "}", 4)
         write_ln(h)
 
-        write_ln(h, "rpc::Future* async_%s(%s) {" % (func_name, ", ".join(async_args)), 4)
-        write_ln(h, "rpc::Future* __fu__ = __cl__->begin_request();", 8)
+        write_ln(h, "rpc::Future* async_%s(%s, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {" % (func_name, ", ".join(async_args)), 4)
+        write_ln(h, "rpc::Future* __fu__ = __cl__->begin_request(%sService::%s, __fu_attr__);" % (svc_name, func_name.upper()), 8)
         write_ln(h, "if (__fu__ != NULL) {", 8)
-        write_ln(h, "rpc::i32 __rpc_id__ = %sService::%s;" % (svc_name, func_name.upper()), 12)
-        write_ln(h, "*__cl__ << __rpc_id__;", 12)
         in_count = 0
         if in_args != None:
             for in_arg in in_args:
@@ -347,10 +363,20 @@ def gen_rpc_def(rpc_def, h):
         write_ln(h, "namespace %s {" % ns)
         write_ln(h)
         gen_struct_def_list(struct_def_list, h)
+        write_ln(h, "} // namespace %s" % ns)
+
+        write_ln(h)
+        write_ln(h, "// back to default namespace, we want the marshaling operators be avaialbe without using namespace %s" % ns)
+        gen_struct_marshal_list(struct_def_list, h, ns)
+
+        write_ln(h, "namespace %s {" % ns)
+        write_ln(h)
         gen_service_def_list(service_def_list, h)
         write_ln(h, "} // namespace %s" % ns)
+
     else:
         gen_struct_def_list(struct_def_list, h)
+        gen_struct_marshal_list(struct_def_list, h, "")
         gen_service_def_list(service_def_list, h)
 
 

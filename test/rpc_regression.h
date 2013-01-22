@@ -8,18 +8,23 @@
 namespace test {
 
 struct IntValue {
-    int v;
+    rpc::i32 v;
 };
 
-inline rpc::Marshal& operator <<(rpc::Marshal& m, const IntValue& o) {
+} // namespace test
+
+// back to default namespace, we want the marshaling operators be avaialbe without using namespace test
+inline rpc::Marshal& operator <<(rpc::Marshal& m, const test::IntValue& o) {
     m << o.v;
     return m;
 }
 
-inline rpc::Marshal& operator >>(rpc::Marshal& m, IntValue& o) {
+inline rpc::Marshal& operator >>(rpc::Marshal& m, test::IntValue& o) {
     m >> o.v;
     return m;
 }
+
+namespace test {
 
 class MathService: public rpc::Service {
 public:
@@ -76,7 +81,7 @@ private:
         public:
             R(MathService* thiz, rpc::Request* r, rpc::ServerConnection* sc): __thiz__(thiz), __req__(r), __sconn__(sc) {}
             void run() {
-                std::vector<IntValue > in_0;
+                std::vector<IntValue> in_0;
                 __req__->m >> in_0;
                 rpc::i32 out_0;
                 __thiz__->add_vec(in_0, &out_0);
@@ -110,7 +115,7 @@ public:
     // these member functions need to be implemented by user
     virtual void add(const rpc::i32&, const rpc::i32&, rpc::i32*);
     virtual void sub(const rpc::i32&, const rpc::i32&, rpc::i32*);
-    virtual void add_vec(const std::vector<IntValue >& vec, rpc::i32* sum);
+    virtual void add_vec(const std::vector<IntValue>& vec, rpc::i32* sum);
     virtual void div_mod(const rpc::i32&, const rpc::i32&, rpc::i32*, rpc::i32*);
     // NOTE: remember to reply req, delete req, and sconn->release(); use sconn->run_async for heavy job
     virtual void noop(rpc::Request* req, rpc::ServerConnection* sconn);
@@ -118,6 +123,7 @@ public:
 }; // class MathService
 
 class MathProxy {
+protected:
     rpc::Client* __cl__;
 public:
     MathProxy(rpc::Client* cl): __cl__(cl) {}
@@ -135,11 +141,9 @@ public:
         return __ret__;
     }
 
-    rpc::Future* async_add(const rpc::i32& in_0, const rpc::i32& in_1) {
-        rpc::Future* __fu__ = __cl__->begin_request();
+    rpc::Future* async_add(const rpc::i32& in_0, const rpc::i32& in_1, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
+        rpc::Future* __fu__ = __cl__->begin_request(MathService::ADD, __fu_attr__);
         if (__fu__ != NULL) {
-            rpc::i32 __rpc_id__ = MathService::ADD;
-            *__cl__ << __rpc_id__;
             *__cl__ << in_0;
             *__cl__ << in_1;
         }
@@ -160,11 +164,9 @@ public:
         return __ret__;
     }
 
-    rpc::Future* async_sub(const rpc::i32& in_0, const rpc::i32& in_1) {
-        rpc::Future* __fu__ = __cl__->begin_request();
+    rpc::Future* async_sub(const rpc::i32& in_0, const rpc::i32& in_1, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
+        rpc::Future* __fu__ = __cl__->begin_request(MathService::SUB, __fu_attr__);
         if (__fu__ != NULL) {
-            rpc::i32 __rpc_id__ = MathService::SUB;
-            *__cl__ << __rpc_id__;
             *__cl__ << in_0;
             *__cl__ << in_1;
         }
@@ -172,7 +174,7 @@ public:
         return __fu__;
     }
 
-    rpc::i32 add_vec(const std::vector<IntValue >& vec, rpc::i32* sum) {
+    rpc::i32 add_vec(const std::vector<IntValue>& vec, rpc::i32* sum) {
         rpc::Future* __fu__ = async_add_vec(vec);
         if (__fu__ == NULL) {
             return ENOTCONN;
@@ -185,11 +187,9 @@ public:
         return __ret__;
     }
 
-    rpc::Future* async_add_vec(const std::vector<IntValue >& vec) {
-        rpc::Future* __fu__ = __cl__->begin_request();
+    rpc::Future* async_add_vec(const std::vector<IntValue>& vec, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
+        rpc::Future* __fu__ = __cl__->begin_request(MathService::ADD_VEC, __fu_attr__);
         if (__fu__ != NULL) {
-            rpc::i32 __rpc_id__ = MathService::ADD_VEC;
-            *__cl__ << __rpc_id__;
             *__cl__ << vec;
         }
         __cl__->end_request();
@@ -210,11 +210,9 @@ public:
         return __ret__;
     }
 
-    rpc::Future* async_div_mod(const rpc::i32& in_0, const rpc::i32& in_1) {
-        rpc::Future* __fu__ = __cl__->begin_request();
+    rpc::Future* async_div_mod(const rpc::i32& in_0, const rpc::i32& in_1, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
+        rpc::Future* __fu__ = __cl__->begin_request(MathService::DIV_MOD, __fu_attr__);
         if (__fu__ != NULL) {
-            rpc::i32 __rpc_id__ = MathService::DIV_MOD;
-            *__cl__ << __rpc_id__;
             *__cl__ << in_0;
             *__cl__ << in_1;
         }

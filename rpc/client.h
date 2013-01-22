@@ -85,7 +85,7 @@ class Client: public Pollable {
 
     void invalidate_pending_futures();
 
-    // prevent direct usage
+    // prevent direct usage, use close_and_release() instead
     using RefCounted::release;
 
 protected:
@@ -101,7 +101,7 @@ public:
      *
      * The request packet format is: <size> <xid> <rpc_id> <arg1> <arg2> ... <argN>
      */
-    Future* begin_request(const FutureAttr& attr = FutureAttr());
+    Future* begin_request(i32 rpc_id, const FutureAttr& attr = FutureAttr());
 
     void end_request();
 
@@ -119,7 +119,6 @@ public:
         close();
         release();
     }
-
 
     int fd() {
         return sock_;
