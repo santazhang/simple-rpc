@@ -50,7 +50,7 @@ def rpcgen(ctx):
 
     _exec("./yapps/main.py ./rpc/rpcgen.g")
     _exec("chmod a+x ./rpc/rpcgen.py")
-    _exec("./rpc/rpcgen.py test/rpc_regression.def")
+    _exec("./rpc/rpcgen.py test/rpc_regression.i")
 
 
 from waflib.Build import BuildContext
