@@ -9,9 +9,7 @@ rpc_regression:
         valgrind-debug:
             args: n=4
     rpc-test: [debug, valgrind-debug]
-
-    # This test is hanging under linux
-    #rpc-perf: [release, valgrind-debug]
+    rpc-perf: [release, valgrind-debug]
 
 <ohcount>: [rpc, lynx, test]
 

@@ -17,6 +17,7 @@ Marshal::~Marshal() {
 }
 
 Marshal::Bookmark* Marshal::set_bookmark(int size) {
+    verify(write_counter_ == 0);
 
     // invariant: head of chunk list is not fully read (otherwise it's a waste of memory)
     assert(chunk_.empty() || !chunk_.front()->fully_read());

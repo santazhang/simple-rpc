@@ -155,8 +155,18 @@ void marshal_perf(int argc, char* argv[]) {
 }
 
 void rpc_perf_server(int argc, char* argv[]) {
+    printf("usage: %s %s [bind_port=2013]\n", argv[0], argv[1]);
+
     Server s;
-    s.start("0.0.0.0:1987");
+    MathService ms;
+    s.reg(&ms);
+
+    string bind_port = "2013";
+    if (argc > 2) {
+        bind_port = argv[2];
+    }
+
+    s.start((string("0.0.0.0:") + bind_port).c_str());
     sleep(40);
 }
 
@@ -176,7 +186,7 @@ void* rpc_perf_client_thread(void* arg) {
         Future* batch_fu[batch_size];
         int i;
         for (i = 0; i < batch_size; i++) {
-            batch_fu[i] = cl->begin_request(0x1987);
+            batch_fu[i] = cl->begin_request(MathService::NOOP);
             cl->end_request();
             if (batch_fu[i] == NULL) {
                 break;
@@ -225,6 +235,8 @@ void rpc_perf(int argc, char* argv[]) {
         PollMgr* poll = new PollMgr(8);
 
         Server* s = new Server(poll);
+        MathService ms;
+        s->reg(&ms);
         s->start("0.0.0.0:1987");
 
         ThreadPool* tpoll = new ThreadPool;
@@ -244,7 +256,7 @@ void rpc_perf(int argc, char* argv[]) {
                     Future* batch_fu[batch_size];
                     int i;
                     for (i = 0; i < batch_size; i++) {
-                        batch_fu[i] = cl->begin_request(0x1987);
+                        batch_fu[i] = cl->begin_request(MathService::NOOP);
                         cl->end_request();
                         if (batch_fu[i] == NULL) {
                             break;

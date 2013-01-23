@@ -1,4 +1,4 @@
-// this file is generated from 'rpc_regression.def'
+// this file is generated from 'rpc_regression.i'
 // make sure you have included server.h and client.h before including this file
 
 #pragma once

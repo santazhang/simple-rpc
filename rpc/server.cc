@@ -84,7 +84,7 @@ void ServerConnection::handle_read() {
     for (list<Request*>::iterator iter = complete_requests.begin(); iter != complete_requests.end(); ++iter) {
         Request* req = *iter;
 
-        if (!req->m.content_size_gt(sizeof(sizeof(i32)) - 1)) {
+        if (!req->m.content_size_gt(sizeof(i32) - 1)) {
             // rpc id not provided
             begin_reply(req, EINVAL);
             end_reply();
