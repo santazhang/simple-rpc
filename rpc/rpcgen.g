@@ -17,7 +17,7 @@ parser RpcDef:
     ignore: '//[^\\n]+'
 
     token EOF: '$'
-    token IDENTIFIER: '[$a-zA-Z0-9_:][$a-zA-Z0-9_:]*'
+    token IDENTIFIER: '[a-zA-Z_:][a-zA-Z0-9_:]*'
 
     rule rpc_def: {{ namespace = None }} [ns_decl {{ namespace = ns_decl }}] def_list EOF
         {{ return namespace, def_list }}

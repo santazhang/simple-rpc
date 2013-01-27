@@ -43,7 +43,7 @@ class RpcDefScanner(runtime.Scanner):
         ('\\s+', re.compile('\\s+')),
         ('//[^\\n]+', re.compile('//[^\\n]+')),
         ('EOF', re.compile('$')),
-        ('IDENTIFIER', re.compile('[$a-zA-Z0-9_:][$a-zA-Z0-9_:]*')),
+        ('IDENTIFIER', re.compile('[a-zA-Z_:][a-zA-Z0-9_:]*')),
     ]
     def __init__(self, str,*args,**kw):
         runtime.Scanner.__init__(self,None,{'\\s+':None,'//[^\\n]+':None,},str,*args,**kw)

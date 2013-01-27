@@ -157,26 +157,33 @@ void PollMgr::PollThread::poll_loop() {
             Pollable* poll = *it;
             int fd = poll->fd();
 
+            Pthread_mutex_lock(&m_);
+            if (mode_.find(fd) == mode_.end()) {
+                // NOTE: only remove the fd when it is not immediately added again
+                // if the same fd is used again, mode_ will contains its info
 #ifdef USE_KQUEUE
 
-            struct kevent ev;
+                struct kevent ev;
 
-            bzero(&ev, sizeof(ev));
-            ev.ident = fd;
-            ev.flags = EV_DELETE;
-            ev.filter = EVFILT_READ;
-            kevent(poll_fd_, &ev, 1, NULL, 0, NULL);
+                bzero(&ev, sizeof(ev));
+                ev.ident = fd;
+                ev.flags = EV_DELETE;
+                ev.filter = EVFILT_READ;
+                kevent(poll_fd_, &ev, 1, NULL, 0, NULL);
 
-            bzero(&ev, sizeof(ev));
-            ev.ident = fd;
-            ev.flags = EV_DELETE;
-            ev.filter = EVFILT_WRITE;
-            kevent(poll_fd_, &ev, 1, NULL, 0, NULL);
+                bzero(&ev, sizeof(ev));
+                ev.ident = fd;
+                ev.flags = EV_DELETE;
+                ev.filter = EVFILT_WRITE;
+                kevent(poll_fd_, &ev, 1, NULL, 0, NULL);
 
 #else
-            struct epoll_event ev;
-            epoll_ctl(poll_fd_, EPOLL_CTL_DEL, fd, &ev);
+                struct epoll_event ev;
+                epoll_ctl(poll_fd_, EPOLL_CTL_DEL, fd, &ev);
 #endif
+            }
+            Pthread_mutex_unlock(&m_);
+
             poll->release();
         }
     }
