@@ -137,6 +137,16 @@ int Marshal::write_to_fd(int fd) {
     return n_write;
 }
 
+string Marshal::dump() const {
+    string s;
+    s.reserve(this->content_size());
+    for (list<Chunk*>::const_iterator it = chunk_.begin(); it != chunk_.end(); ++it) {
+        s += string((*it)->content_ptr(), (*it)->content_size());
+    }
+    assert(s.length() == this->content_size());
+    return s;
+}
+
 int Marshal::read_from_marshal(Marshal& m, int n) {
     assert(chunk_.empty() || !chunk_.front()->fully_read());
     assert(m.chunk_.empty() || !m.chunk_.front()->fully_read());

@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <pthread.h>
+#include <inttypes.h>
 
 /**
  * Use assert() when the test is only intended for debugging.

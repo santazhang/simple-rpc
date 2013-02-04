@@ -3,6 +3,7 @@
 #include <list>
 #include <vector>
 #include <string>
+#include <map>
 
 #include <inttypes.h>
 #include <string.h>
@@ -49,6 +50,10 @@ public:
 
     ~Chunk() {
         delete[] data_;
+    }
+
+    const char* content_ptr() const {
+        return &data_[read_idx_];
     }
 
     int content_size() const {
@@ -219,6 +224,10 @@ public:
     Marshal()
             : write_counter_(0) {
     }
+    Marshal(const std::string& data)
+            : write_counter_(0) {
+        chunk_.push_back(new Chunk(&data[0], data.length()));
+    }
     ~Marshal();
 
     /**
@@ -241,6 +250,8 @@ public:
     int read_from_fd(int fd);
     int write_to_fd(int fd);
 
+    std::string dump() const;
+
     /**
      * Faster way to check if content_size > size.
      */
@@ -251,6 +262,18 @@ public:
     bool empty() const {
         return !content_size_gt(0);
     }
+
+    void write_i32(const rpc::i32& v) {
+        verify(write(&v, sizeof(v)) == sizeof(v));
+    }
+
+    void write_string(const std::string& v) {
+        rpc::i32 len = (rpc::i32) v.length();
+        write_i32(len);
+        if (len > 0) {
+            verify(write(v.c_str(), len) == len);
+        }
+    }
 };
 
 } // namespace rpc
@@ -258,7 +281,7 @@ public:
 // define marshaling operators in default namespace, so we can use them without using namespace rpc
 
 inline rpc::Marshal& operator <<(rpc::Marshal& m, const rpc::i32& v) {
-    verify(m.write(&v, sizeof(v)) == sizeof(v));
+    m.write_i32(v);
     return m;
 }
 
@@ -273,11 +296,7 @@ inline rpc::Marshal& operator <<(rpc::Marshal& m, const double& v) {
 }
 
 inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::string& v) {
-    rpc::i32 len = (rpc::i32) v.length();
-    m << len;
-    if (len > 0) {
-        verify(m.write(v.c_str(), len) == len);
-    }
+    m.write_string(v);
     return m;
 }
 
@@ -297,6 +316,16 @@ inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::list<T>& v) {
     m << len;
     for (typename std::list<T>::const_iterator it = v.begin(); it != v.end(); ++it) {
         m << *it;
+    }
+    return m;
+}
+
+template<class K, class V>
+inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::map<K, V>& v) {
+    rpc::i32 len = (rpc::i32) v.size();
+    m << len;
+    for (typename std::map<K, V>::const_iterator it = v.begin(); it != v.end(); ++it) {
+        m << it->first << it->second;
     }
     return m;
 }
@@ -330,7 +359,7 @@ template<class T>
 inline rpc::Marshal& operator >>(rpc::Marshal& m, std::vector<T>& v) {
     rpc::i32 len;
     verify(m.read(&len, sizeof(len)) == sizeof(len));
-    v.resize(0);
+    v.clear();
     v.reserve(len);
     for (rpc::i32 i = 0; i < len; i++) {
         T elem;
@@ -344,11 +373,25 @@ template<class T>
 inline rpc::Marshal& operator >>(rpc::Marshal& m, std::list<T>& v) {
     rpc::i32 len;
     verify(m.read(&len, sizeof(len)) == sizeof(len));
-    v.resize(0);
+    v.clear();
     for (rpc::i32 i = 0; i < len; i++) {
         T elem;
         m >> elem;
         v.push_back(elem);
+    }
+    return m;
+}
+
+template<class K, class V>
+inline rpc::Marshal& operator >>(rpc::Marshal& m, std::map<K, V>& v) {
+    rpc::i32 len;
+    verify(m.read(&len, sizeof(len)) == sizeof(len));
+    v.clear();
+    for (rpc::i32 i = 0; i < len; i++) {
+        K key;
+        V value;
+        m >> key >> value;
+        v[key] = value;
     }
     return m;
 }
