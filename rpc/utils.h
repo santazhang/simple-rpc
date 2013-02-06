@@ -142,8 +142,8 @@ public:
     void push(const T& e) {
         Pthread_mutex_lock(&m_);
         q_.push_back(e);
-        Pthread_mutex_unlock(&m_);
         Pthread_cond_signal(&not_empty_);
+        Pthread_mutex_unlock(&m_);
     }
 
     T pop() {
