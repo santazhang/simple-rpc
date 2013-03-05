@@ -226,8 +226,8 @@ bool Marshal::content_size_gt(int size) const {
     return size_visited > size;
 }
 
-int Marshal::content_size() const {
-    int size = 0;
+size_t Marshal::content_size() const {
+    size_t size = 0;
     for (list<Chunk*>::const_iterator it = chunk_.begin(); it != chunk_.end(); ++it) {
         size += (*it)->content_size();
     }

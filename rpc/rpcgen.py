@@ -23,6 +23,7 @@ class RpcDefScanner(runtime.Scanner):
         ('";"', re.compile(';')),
         ('"\\("', re.compile('\\(')),
         ('"service"', re.compile('service')),
+        ('"abstract"', re.compile('abstract')),
         ("','", re.compile(',')),
         ('"map"', re.compile('map')),
         ('"deque"', re.compile('deque')),
@@ -42,7 +43,7 @@ class RpcDefScanner(runtime.Scanner):
         ('"namespace"', re.compile('namespace')),
         ('\\s+', re.compile('\\s+')),
         ('//[^\\n]+', re.compile('//[^\\n]+')),
-        ('EOF', re.compile('$')),
+        ('EOF', re.compile('($|%%)')),
         ('IDENTIFIER', re.compile('[a-zA-Z_:][a-zA-Z0-9_:]*')),
     ]
     def __init__(self, str,*args,**kw):
@@ -53,7 +54,7 @@ class RpcDef(runtime.Parser):
     def rpc_def(self, _parent=None):
         _context = self.Context(_parent, self._scanner, 'rpc_def', [])
         namespace = None
-        if self._peek('"namespace"', 'EOF', '"struct"', '"service"', context=_context) == '"namespace"':
+        if self._peek('"namespace"', 'EOF', '"struct"', '"abstract"', '"service"', context=_context) == '"namespace"':
             ns_decl = self.ns_decl(_context)
             namespace = ns_decl
         def_list = self.def_list(_context)
@@ -69,12 +70,12 @@ class RpcDef(runtime.Parser):
     def def_list(self, _parent=None):
         _context = self.Context(_parent, self._scanner, 'def_list', [])
         struct_def_list = []; service_def_list = []
-        while self._peek('"struct"', '"service"', 'EOF', context=_context) != 'EOF':
-            _token = self._peek('"struct"', '"service"', context=_context)
+        while self._peek('"struct"', '"abstract"', '"service"', 'EOF', context=_context) != 'EOF':
+            _token = self._peek('"struct"', '"abstract"', '"service"', context=_context)
             if _token == '"struct"':
                 struct_def = self.struct_def(_context)
                 struct_def_list += struct_def,
-            else: # == '"service"'
+            else: # in ['"abstract"', '"service"']
                 service_def = self.service_def(_context)
                 service_def_list += service_def,
         return  struct_def_list, service_def_list
@@ -193,12 +194,16 @@ class RpcDef(runtime.Parser):
 
     def service_def(self, _parent=None):
         _context = self.Context(_parent, self._scanner, 'service_def', [])
+        abstract = False
+        if self._peek('"abstract"', '"service"', context=_context) == '"abstract"':
+            self._scan('"abstract"', context=_context)
+            abstract = True
         self._scan('"service"', context=_context)
         IDENTIFIER = self._scan('IDENTIFIER', context=_context)
         self._scan('"{"', context=_context)
         func_list = self.func_list(_context)
         self._scan('"}"', context=_context)
-        return IDENTIFIER, func_list
+        return IDENTIFIER, func_list, abstract
 
     def func_list(self, _parent=None):
         _context = self.Context(_parent, self._scanner, 'func_list', [])
@@ -318,7 +323,7 @@ def gen_struct_def_list(struct_def_list, h):
 def gen_service_def(service_def, h):
     global g_rpc_counter
 
-    svc_name, members = service_def
+    svc_name, members, abstract = service_def
     write_ln(h, "class %sService: public rpc::Service {" % svc_name)
     write_ln(h, "public:")
     write_ln(h, "enum {", 4)
@@ -342,6 +347,10 @@ def gen_service_def(service_def, h):
 
     for member in members:
         func_name, func_attr, in_args, out_args = member[0], member[1], member[2], member[3]
+        if in_args == None:
+            in_args = []
+        if out_args == None:
+            out_args = []
         func_args = []
         if func_attr == "raw":
             continue
@@ -407,7 +416,10 @@ def gen_service_def(service_def, h):
         func_args = []
         if func_attr == "raw":
             write_ln(h, "// NOTE: remember to reply req, delete req, and sconn->release(); use sconn->run_async for heavy job", 4)
-            write_ln(h, "virtual void %s(rpc::Request* req, rpc::ServerConnection* sconn);" % func_name, 4)
+            if abstract:
+                write_ln(h, "virtual void %s(rpc::Request* req, rpc::ServerConnection* sconn) = 0;" % func_name, 4)
+            else:
+                write_ln(h, "virtual void %s(rpc::Request* req, rpc::ServerConnection* sconn);" % func_name, 4)
             continue
 
         if in_args != None:
@@ -422,7 +434,10 @@ def gen_service_def(service_def, h):
                 if out_arg[1] != None:
                     func_arg += " %s" % out_arg[1]
                 func_args += func_arg,
-        write_ln(h, "virtual void %s(%s);" % (func_name, ", ".join(func_args)), 4)
+        if abstract:
+            write_ln(h, "virtual void %s(%s) = 0;" % (func_name, ", ".join(func_args)), 4)
+        else:
+            write_ln(h, "virtual void %s(%s);" % (func_name, ", ".join(func_args)), 4)
 
 
     write_ln(h)
@@ -438,8 +453,6 @@ def gen_service_def(service_def, h):
     for member in members:
 
         func_name, func_attr, in_args, out_args = member[0], member[1], member[2], member[3]
-        if func_attr == "raw":
-            continue
 
         write_ln(h)
         func_args = []
@@ -495,7 +508,8 @@ def gen_service_def(service_def, h):
         write_ln(h, "}", 4)
         write_ln(h)
 
-        write_ln(h, "rpc::Future* async_%s(%s, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {" % (func_name, ", ".join(async_args)), 4)
+        async_args += "",
+        write_ln(h, "rpc::Future* async_%s(%sconst rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {" % (func_name, ", ".join(async_args)), 4)
         write_ln(h, "rpc::Future* __fu__ = __cl__->begin_request(%sService::%s, __fu_attr__);" % (svc_name, func_name.upper()), 8)
         write_ln(h, "if (__fu__ != NULL) {", 8)
         in_count = 0
@@ -510,13 +524,6 @@ def gen_service_def(service_def, h):
         write_ln(h, "__cl__->end_request();", 8)
         write_ln(h, "return __fu__;", 8)
         write_ln(h, "}", 4)
-
-    write_ln(h)
-
-    for member in members:
-        func_name, func_attr = member[0], member[1]
-        if func_attr == "raw":
-            write_ln(h, "// raw rpc '%s' not included" % func_name, 4)
 
     write_ln(h)
     write_ln(h, "}; // class %sProxy" % svc_name)
@@ -564,7 +571,8 @@ def range2(v):
 
 def rpc_gen(rpc_fpath):
     f = open(rpc_fpath)
-    rpc_def = parse("rpc_def", f.read())
+    f_content = f.read()
+    rpc_def = parse("rpc_def", f_content)
     f.close()
     h_fpath = os.path.splitext(rpc_fpath)[0] + '.h'
     h = open(h_fpath, 'w')
@@ -578,6 +586,15 @@ def rpc_gen(rpc_fpath):
     write_ln(h)
 
     gen_rpc_def(rpc_def, h)
+    write_ln(h)
+
+    raw_copy = False
+    for l in f_content.split("\n"):
+        if raw_copy:
+            write_ln(h, l)
+        if "%%" in l:
+            raw_copy = True
+
     h.close()
 
 

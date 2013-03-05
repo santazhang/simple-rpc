@@ -61,7 +61,11 @@ public:
     }
 
     ~PollThread() {
-        for (set<Pollable*>::iterator it = poll_set_.begin(); it != poll_set_.end(); ++it) {
+        Pthread_mutex_lock(&m_);
+        set<Pollable*> poll_set_copy = poll_set_;
+        Pthread_mutex_unlock(&m_);
+
+        for (set<Pollable*>::iterator it = poll_set_copy.begin(); it != poll_set_copy.end(); ++it) {
             remove(*it);
         }
 
@@ -79,7 +83,7 @@ public:
 PollMgr::PollMgr(int n_threads /* =... */)
         : n_(n_threads) {
     poll_threads_ = new PollThread[n_];
-    Log::debug("rpc::PollMgr: start with %d thread", n_);
+    //Log::debug("rpc::PollMgr: start with %d thread", n_);
 }
 
 PollMgr::~PollMgr() {
@@ -179,6 +183,8 @@ void PollMgr::PollThread::poll_loop() {
 
 #else
                 struct epoll_event ev;
+                memset(&ev, 0, sizeof(ev));
+
                 epoll_ctl(poll_fd_, EPOLL_CTL_DEL, fd, &ev);
 #endif
             }
@@ -237,6 +243,8 @@ void PollMgr::PollThread::add(Pollable* poll) {
 #else
 
     struct epoll_event ev;
+    memset(&ev, 0, sizeof(ev));
+
     ev.data.ptr = poll;
     ev.events = EPOLLIN | EPOLLET | EPOLLRDHUP; // EPOLLERR and EPOLLHUP are included by default
     if (poll_mode & Pollable::WRITE) {
@@ -328,6 +336,8 @@ void PollMgr::PollThread::update_mode(Pollable* poll, int new_mode) {
 #else
 
         struct epoll_event ev;
+        memset(&ev, 0, sizeof(ev));
+
         ev.data.ptr = poll;
         ev.events = EPOLLET | EPOLLRDHUP;
         if (new_mode & Pollable::READ) {

@@ -10,13 +10,21 @@ namespace rpc {
 class Future;
 class Client;
 
-struct FutureAttr {
-    void (*callback)(Future* fu, void* callback_arg);
-    void* callback_arg;
+class Future;
 
-    FutureAttr()
-            : callback(NULL), callback_arg(NULL) {
-    }
+
+// callback should be fast, otherwise it hurts rpc performance
+class FutureCallback {
+public:
+    virtual ~FutureCallback() { }
+    virtual void run(Future* fu) = 0;
+};
+
+
+// callback will be automatically released by client
+struct FutureAttr {
+    FutureAttr(FutureCallback* cb = NULL) : callback(cb) { }
+    FutureCallback* callback;
 };
 
 class Future: public RefCounted {
@@ -128,6 +136,26 @@ public:
     void handle_read();
     void handle_write();
     void handle_error();
+
+};
+
+class ClientPool {
+
+    // refcopy
+    rpc::PollMgr* pollmgr_;
+
+    // guard cache_
+    pthread_mutex_t m_;
+    std::map<std::string, rpc::Client*> cache_;
+
+public:
+
+    ClientPool(rpc::PollMgr* pollmgr = NULL);
+    ~ClientPool();
+
+    // return cached client connection
+    // on error, return NULL
+    rpc::Client* get_client(const std::string& addr);
 
 };
 

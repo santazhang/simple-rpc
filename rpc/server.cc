@@ -64,7 +64,7 @@ void ServerConnection::handle_read() {
             Request* req = new Request;
             verify(req->m.read_from_marshal(in_, packet_size) == packet_size);
 
-            if (packet_size < sizeof(i64)) {
+            if (packet_size < (int) sizeof(i64)) {
                 Log::warn("rpc::ServerConnection: got an incomplete packet, xid not included");
 
                 // Since we don't have xid, we don't know how to notify client about the failure.
@@ -264,7 +264,7 @@ void Server::server_loop(struct addrinfo* svr_addr) {
 
 int Server::start(const char* bind_addr) {
     string addr(bind_addr);
-    int idx = addr.find(":");
+    size_t idx = addr.find(":");
     if (idx == string::npos) {
         Log::error("rpc::Server: bad bind address: %s", bind_addr);
         errno = EINVAL;

@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <set>
 
 #include <inttypes.h>
 #include <string.h>
@@ -56,7 +57,7 @@ public:
         return &data_[read_idx_];
     }
 
-    int content_size() const {
+    size_t content_size() const {
         assert(write_idx_ <= size_);
         assert(read_idx_ <= write_idx_);
 
@@ -257,7 +258,7 @@ public:
      */
     bool content_size_gt(int size) const;
 
-    int content_size() const;
+    size_t content_size() const;
 
     bool empty() const {
         return !content_size_gt(0);
@@ -315,6 +316,16 @@ inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::list<T>& v) {
     rpc::i32 len = (rpc::i32) v.size();
     m << len;
     for (typename std::list<T>::const_iterator it = v.begin(); it != v.end(); ++it) {
+        m << *it;
+    }
+    return m;
+}
+
+template<class T>
+inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::set<T>& v) {
+    rpc::i32 len = (rpc::i32) v.size();
+    m << len;
+    for (typename std::set<T>::const_iterator it = v.begin(); it != v.end(); ++it) {
         m << *it;
     }
     return m;
@@ -378,6 +389,19 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, std::list<T>& v) {
         T elem;
         m >> elem;
         v.push_back(elem);
+    }
+    return m;
+}
+
+template<class T>
+inline rpc::Marshal& operator >>(rpc::Marshal& m, std::set<T>& v) {
+    rpc::i32 len;
+    verify(m.read(&len, sizeof(len)) == sizeof(len));
+    v.clear();
+    for (rpc::i32 i = 0; i < len; i++) {
+        T elem;
+        m >> elem;
+        v.insert(elem);
     }
     return m;
 }

@@ -122,7 +122,7 @@ public:
  * Thread safe queue.
  */
 template<class T>
-class Queue {
+class Queue: public NoCopy {
     std::list<T> q_;
     pthread_cond_t not_empty_;
     pthread_mutex_t m_;
@@ -158,7 +158,7 @@ public:
     }
 };
 
-class ThreadPool {
+class ThreadPool: public NoCopy {
     int n_;
     pthread_t* th_;
     Queue<Runnable*>* q_;
@@ -174,20 +174,21 @@ public:
     void run_async(Runnable*);
 };
 
-class Counter {
+class Counter: public NoCopy {
     i64 next_;
     pthread_mutex_t m_;
 public:
-    Counter()
-            : next_(0) {
+    Counter(i64 start = 0)
+            : next_(start) {
         Pthread_mutex_init(&m_, NULL);
     }
     ~Counter() {
         Pthread_mutex_destroy(&m_);
     }
-    i64 next() {
+    i64 next(i64 step = 1) {
         Pthread_mutex_lock(&m_);
-        i64 r = next_++;
+        i64 r = next_;
+        next_ += step;
         Pthread_mutex_unlock(&m_);
         return r;
     }

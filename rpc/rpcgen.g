@@ -16,7 +16,7 @@ parser RpcDef:
     ignore: '\\s+'
     ignore: '//[^\\n]+'
 
-    token EOF: '$'
+    token EOF: "($|%%)"
     token IDENTIFIER: '[a-zA-Z_:][a-zA-Z0-9_:]*'
 
     rule rpc_def: {{ namespace = None }} [ns_decl {{ namespace = ns_decl }}] def_list EOF
@@ -70,8 +70,8 @@ parser RpcDef:
         "map" "<" (type_info {{ key_type = type_info }} ) ',' (type_info {{ value_type = type_info }} ) ">"
         {{ return "std::map<%s, %s>" % (key_type, proper_template_type(value_type)) }}
 
-    rule service_def: "service" IDENTIFIER "{" func_list "}"
-        {{ return IDENTIFIER, func_list }}
+    rule service_def: {{abstract = False}} ["abstract" {{abstract = True}}] "service" IDENTIFIER "{" func_list "}"
+        {{ return IDENTIFIER, func_list, abstract }}
 
     rule func_list: {{ func_list = [] }}
         (func_def {{ func_list += func_def, }} )+
@@ -146,7 +146,7 @@ def gen_struct_def_list(struct_def_list, h):
 def gen_service_def(service_def, h):
     global g_rpc_counter
 
-    svc_name, members = service_def
+    svc_name, members, abstract = service_def
     write_ln(h, "class %sService: public rpc::Service {" % svc_name)
     write_ln(h, "public:")
     write_ln(h, "enum {", 4)
@@ -170,6 +170,10 @@ def gen_service_def(service_def, h):
 
     for member in members:
         func_name, func_attr, in_args, out_args = member[0], member[1], member[2], member[3]
+        if in_args == None:
+            in_args = []
+        if out_args == None:
+            out_args = []
         func_args = []
         if func_attr == "raw":
             continue
@@ -235,7 +239,10 @@ def gen_service_def(service_def, h):
         func_args = []
         if func_attr == "raw":
             write_ln(h, "// NOTE: remember to reply req, delete req, and sconn->release(); use sconn->run_async for heavy job", 4)
-            write_ln(h, "virtual void %s(rpc::Request* req, rpc::ServerConnection* sconn);" % func_name, 4)
+            if abstract:
+                write_ln(h, "virtual void %s(rpc::Request* req, rpc::ServerConnection* sconn) = 0;" % func_name, 4)
+            else:
+                write_ln(h, "virtual void %s(rpc::Request* req, rpc::ServerConnection* sconn);" % func_name, 4)
             continue
 
         if in_args != None:
@@ -250,7 +257,10 @@ def gen_service_def(service_def, h):
                 if out_arg[1] != None:
                     func_arg += " %s" % out_arg[1]
                 func_args += func_arg,
-        write_ln(h, "virtual void %s(%s);" % (func_name, ", ".join(func_args)), 4)
+        if abstract:
+            write_ln(h, "virtual void %s(%s) = 0;" % (func_name, ", ".join(func_args)), 4)
+        else:
+            write_ln(h, "virtual void %s(%s);" % (func_name, ", ".join(func_args)), 4)
 
 
     write_ln(h)
@@ -266,8 +276,6 @@ def gen_service_def(service_def, h):
     for member in members:
 
         func_name, func_attr, in_args, out_args = member[0], member[1], member[2], member[3]
-        if func_attr == "raw":
-            continue
 
         write_ln(h)
         func_args = []
@@ -323,7 +331,8 @@ def gen_service_def(service_def, h):
         write_ln(h, "}", 4)
         write_ln(h)
 
-        write_ln(h, "rpc::Future* async_%s(%s, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {" % (func_name, ", ".join(async_args)), 4)
+        async_args += "",
+        write_ln(h, "rpc::Future* async_%s(%sconst rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {" % (func_name, ", ".join(async_args)), 4)
         write_ln(h, "rpc::Future* __fu__ = __cl__->begin_request(%sService::%s, __fu_attr__);" % (svc_name, func_name.upper()), 8)
         write_ln(h, "if (__fu__ != NULL) {", 8)
         in_count = 0
@@ -338,13 +347,6 @@ def gen_service_def(service_def, h):
         write_ln(h, "__cl__->end_request();", 8)
         write_ln(h, "return __fu__;", 8)
         write_ln(h, "}", 4)
-
-    write_ln(h)
-
-    for member in members:
-        func_name, func_attr = member[0], member[1]
-        if func_attr == "raw":
-            write_ln(h, "// raw rpc '%s' not included" % func_name, 4)
 
     write_ln(h)
     write_ln(h, "}; // class %sProxy" % svc_name)
@@ -392,7 +394,8 @@ def range2(v):
 
 def rpc_gen(rpc_fpath):
     f = open(rpc_fpath)
-    rpc_def = parse("rpc_def", f.read())
+    f_content = f.read()
+    rpc_def = parse("rpc_def", f_content)
     f.close()
     h_fpath = os.path.splitext(rpc_fpath)[0] + '.h'
     h = open(h_fpath, 'w')
@@ -406,6 +409,15 @@ def rpc_gen(rpc_fpath):
     write_ln(h)
 
     gen_rpc_def(rpc_def, h)
+    write_ln(h)
+
+    raw_copy = False
+    for l in f_content.split("\n"):
+        if raw_copy:
+            write_ln(h, l)
+        if "%%" in l:
+            raw_copy = True
+
     h.close()
 
 

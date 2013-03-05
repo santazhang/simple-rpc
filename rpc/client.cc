@@ -62,7 +62,11 @@ void Client::invalidate_pending_futures() {
             Pthread_mutex_unlock(&fu->ready_m_);
 
             if (fu->attr_.callback != NULL) {
-                fu->attr_.callback(fu, fu->attr_.callback_arg);
+                fu->attr_.callback->run(fu);
+
+                // automatically cleanup the callback
+                delete fu->attr_.callback;
+                fu->attr_.callback = NULL;
             }
 
             // since we removed it from pending_fu_
@@ -85,9 +89,9 @@ void Client::close() {
 
 int Client::connect(const char* addr) {
     string addr_str(addr);
-    int idx = addr_str.find(":");
+    size_t idx = addr_str.find(":");
     if (idx == string::npos) {
-        Log::error("rpc::Client: bad bind address: %s", addr);
+        Log::error("rpc::Client: bad connect address: %s", addr);
         errno = EINVAL;
         return -1;
     }
@@ -195,7 +199,11 @@ void Client::handle_read() {
             Pthread_mutex_unlock(&fu->ready_m_);
 
             if (fu->attr_.callback != NULL) {
-                fu->attr_.callback(fu, fu->attr_.callback_arg);
+                fu->attr_.callback->run(fu);
+
+                // automatically cleanup the callback
+                delete fu->attr_.callback;
+                fu->attr_.callback = NULL;
             }
 
             // since we removed it from pending_fu_
@@ -267,6 +275,47 @@ void Client::end_request() {
     }
 
     Pthread_mutex_unlock(&out_m_);
+}
+
+ClientPool::ClientPool(PollMgr* pollmgr) {
+    Pthread_mutex_init(&m_, NULL);
+
+    if (pollmgr == NULL) {
+        pollmgr_ = new PollMgr(1);
+    } else {
+        pollmgr_ = (PollMgr *) pollmgr->ref_copy();
+    }
+}
+
+ClientPool::~ClientPool() {
+    for (map<string, Client*>::iterator it = cache_.begin(); it != cache_.end(); ++it) {
+        it->second->close_and_release();
+    }
+
+    pollmgr_->release();
+
+    Pthread_mutex_destroy(&m_);
+}
+
+Client* ClientPool::get_client(const string& addr) {
+    Client* cl = NULL;
+    Pthread_mutex_lock(&m_);
+    map<string, Client*>::iterator it = cache_.find(addr);
+    if (it != cache_.end()) {
+        cl = it->second;
+    } else {
+        cl = new Client(this->pollmgr_);
+        if (cl->connect(addr.c_str()) != 0) {
+            // connect failure
+            cl->close_and_release();
+            cl = NULL;
+        } else {
+            // connect success
+            cache_[addr] = cl;
+        }
+    }
+    Pthread_mutex_unlock(&m_);
+    return cl;
 }
 
 }
