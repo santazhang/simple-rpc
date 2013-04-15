@@ -146,6 +146,16 @@ public:
         Pthread_mutex_unlock(&m_);
     }
 
+    void pop_all(std::list<T>* fill) {
+        Pthread_mutex_lock(&m_);
+        while (q_.empty()) {
+            Pthread_cond_wait(&not_empty_, &m_);
+        }
+        *fill = q_;
+        q_.clear();
+        Pthread_mutex_unlock(&m_);
+    }
+
     T pop() {
         Pthread_mutex_lock(&m_);
         while (q_.empty()) {
@@ -195,6 +205,8 @@ public:
 };
 
 int set_nonblocking(int fd, bool nonblocking);
+
+uint32_t crc32c(const char* data, size_t n);
 
 }
 

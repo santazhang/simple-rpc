@@ -2,7 +2,7 @@
 
 import sys
 import os
-sys.path += os.path.abspath(os.path.join(os.path.split(__file__)[0], "..")),
+sys.path += os.path.abspath(os.path.join(os.path.split(__file__)[0], "../pylib")),
 
 def proper_template_type(type_info):
     if type_info.endswith(">"):
@@ -92,10 +92,9 @@ class RpcDef(runtime.Parser):
     def field_list(self, _parent=None):
         _context = self.Context(_parent, self._scanner, 'field_list', [])
         field_list = []
-        while 1:
+        while self._peek('"}"', '"i32"', '"i64"', '"int"', '"long"', 'IDENTIFIER', '"string"', '"vector"', '"list"', '"set"', '"deque"', '"map"', context=_context) != '"}"':
             field_def = self.field_def(_context)
             field_list += field_def,
-            if self._peek('"i32"', '"i64"', '"int"', '"long"', 'IDENTIFIER', '"string"', '"vector"', '"list"', '"set"', '"deque"', '"map"', '"}"', context=_context) not in ['"i32"', '"i64"', '"int"', '"long"', 'IDENTIFIER', '"string"', '"vector"', '"list"', '"set"', '"deque"', '"map"']: break
         return field_list
 
     def field_def(self, _parent=None):
@@ -208,10 +207,9 @@ class RpcDef(runtime.Parser):
     def func_list(self, _parent=None):
         _context = self.Context(_parent, self._scanner, 'func_list', [])
         func_list = []
-        while 1:
+        while self._peek('IDENTIFIER', '"}"', '"fast"', '"raw"', context=_context) != '"}"':
             func_def = self.func_def(_context)
             func_list += func_def,
-            if self._peek('IDENTIFIER', '"fast"', '"raw"', '"}"', context=_context) not in ['IDENTIFIER', '"fast"', '"raw"']: break
         return func_list
 
     def func_def(self, _parent=None):

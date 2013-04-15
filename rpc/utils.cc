@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include "utils.h"
+#include "crc32c.h"
 
 namespace rpc {
 
@@ -146,6 +147,10 @@ int set_nonblocking(int fd, bool nonblocking) {
         }
     }
     return ret;
+}
+
+uint32_t crc32c(const char* data, size_t n) {
+    return leveldb::crc32c::Value(data, n);
 }
 
 }

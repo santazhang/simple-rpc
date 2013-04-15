@@ -1,19 +1,15 @@
 APPNAME="simple-rpc"
 VERSION="0.1"
 
-
 import os
 import shutil
 from waflib import Logs
 
-
 def options(opt):
     opt.load("compiler_cxx")
 
-
 def configure(conf):
     conf.load("compiler_cxx")
-
 
 def build(bld):
     def _depend(target, source, action):
@@ -21,8 +17,7 @@ def build(bld):
             Logs.pprint('PINK', action)
             os.system(action)
 
-    _depend("./rpc/rpcgen.py", "./rpc/rpcgen.g", "./yapps/main.py ./rpc/rpcgen.g ; chmod a+x ./rpc/rpcgen.py")
-
+    _depend("./rpc/rpcgen.py", "./rpc/rpcgen.g", "./pylib/yapps/main.py ./rpc/rpcgen.g ; chmod a+x ./rpc/rpcgen.py")
     bld.stlib(source=bld.path.ant_glob("rpc/*.cc"), target="rpc", includes="rpc", lib="pthread")
 
     def _prog(source, target):

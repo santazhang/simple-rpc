@@ -133,6 +133,13 @@ class Server: public NoCopy {
 
     pthread_t loop_th_;
 
+#ifdef PERF_TEST
+    // for performance reporting
+    pthread_t perf_th_;
+    static void* start_perf_loop(void *arg);
+    void perf_loop();
+#endif // PERF_TEST
+
     static void* start_server_loop(void* arg);
     void server_loop(struct addrinfo* svr_addr);
 

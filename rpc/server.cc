@@ -1,4 +1,5 @@
 #include <string>
+#include <sstream>
 
 #include <sys/select.h>
 #include <errno.h>
@@ -6,6 +7,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <netinet/tcp.h>
 
 #include "server.h"
 
@@ -169,6 +171,9 @@ int ServerConnection::poll_mode() {
 Server::Server(PollMgr* pollmgr /* =... */)
         : threadpool_(new ThreadPool), server_sock_(-1), status_(NEW) {
 
+    // get rid of eclipse warning
+    memset(&loop_th_, 0, sizeof(loop_th_));
+
     if (pollmgr == NULL) {
         pollmgr_ = new PollMgr(8);
     } else {
@@ -184,6 +189,11 @@ Server::~Server() {
         status_ = STOPPING;
         // wait till accepting thread done
         Pthread_join(loop_th_, NULL);
+
+#ifdef PERF_TEST
+        Pthread_join(perf_th_, NULL);
+#endif // PERF_TSET
+
         verify(server_sock_ == -1 && status_ == STOPPED);
     }
 
@@ -262,6 +272,39 @@ void Server::server_loop(struct addrinfo* svr_addr) {
     status_ = STOPPED;
 }
 
+#ifdef PERF_TEST
+
+void* Server::start_perf_loop(void *arg) {
+    Server* svr = (Server *) arg;
+    svr->perf_loop();
+    pthread_exit(NULL);
+    return NULL;
+}
+
+void Server::perf_loop() {
+    while (status_ == RUNNING) {
+        Log::debug("perf loop");
+        ostringstream in_ostr;
+        const int in_stat_size = sizeof(_perf_rpc_in_packet_size) / sizeof(_perf_rpc_in_packet_size[0]);
+
+        for (int i = 0; i < in_stat_size; i++) {
+            in_ostr << " " << _perf_rpc_in_packet_size[i];
+        }
+        Log::debug("in:  %s", in_ostr.str().c_str());
+
+        ostringstream out_ostr;
+        const int out_stat_size = sizeof(_perf_rpc_out_packet_size) / sizeof(_perf_rpc_out_packet_size[0]);
+        for (int i = 0; i < out_stat_size; i++) {
+            out_ostr << " " << _perf_rpc_out_packet_size[i];
+        }
+        Log::debug("out: %s", out_ostr.str().c_str());
+        sleep(1);
+    }
+    Log::debug("perf loop finished");
+}
+
+#endif // PERF_TEST
+
 int Server::start(const char* bind_addr) {
     string addr(bind_addr);
     size_t idx = addr.find(":");
@@ -293,7 +336,8 @@ int Server::start(const char* bind_addr) {
         }
 
         const int yes = 1;
-        setsockopt(server_sock_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
+        verify(setsockopt(server_sock_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == 0);
+        verify(setsockopt(server_sock_, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(yes)) == 0);
 
         if (bind(server_sock_, rp->ai_addr, rp->ai_addrlen) == 0) {
             break;
@@ -322,6 +366,12 @@ int Server::start(const char* bind_addr) {
     start_server_loop_args->gai_result = result;
     start_server_loop_args->svr_addr = rp;
     Pthread_create(&loop_th_, NULL, Server::start_server_loop, start_server_loop_args);
+
+#ifdef PERF_TEST
+    memset(_perf_rpc_in_packet_size, 0, sizeof(_perf_rpc_in_packet_size));
+    memset(_perf_rpc_out_packet_size, 0, sizeof(_perf_rpc_out_packet_size));
+    Pthread_create(&perf_th_, NULL, Server::start_perf_loop, this);
+#endif // PERF_TEST
 
     return 0;
 }

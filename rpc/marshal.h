@@ -12,7 +12,14 @@
 
 #include "utils.h"
 
+//#define PERF_TEST
+
 namespace rpc {
+
+#ifdef PERF_TEST
+extern int _perf_rpc_in_packet_size[1024];
+extern int _perf_rpc_out_packet_size[1024];
+#endif // PERF_TEST
 
 class Marshal;
 
@@ -127,6 +134,14 @@ public:
         int r = ::write(fd, data_ + read_idx_, write_idx_ - read_idx_);
         if (r > 0) {
             read_idx_ += r;
+
+#ifdef PERF_TEST
+            static int idx = 0;
+            const int out_stat_size = sizeof(_perf_rpc_out_packet_size) / sizeof(_perf_rpc_out_packet_size[0]);
+            _perf_rpc_out_packet_size[idx++ % out_stat_size] = r;
+            // not thread safe, but ok, since we only need to collect a few samples
+#endif // PERF_TEST
+
         }
 
         assert(write_idx_ <= size_);
@@ -143,6 +158,13 @@ public:
         int r = ::read(fd, data_ + write_idx_, size_ - write_idx_);
         if (r > 0) {
             write_idx_ += r;
+
+#ifdef PERF_TEST
+            static int idx = 0;
+            const int in_stat_size = sizeof(_perf_rpc_in_packet_size) / sizeof(_perf_rpc_in_packet_size[0]);
+            _perf_rpc_in_packet_size[idx++ % in_stat_size] = r;
+            // not thread safe, but ok, since we only need to collect a few samples
+#endif // PERF_TEST
         }
 
         assert(write_idx_ <= size_);

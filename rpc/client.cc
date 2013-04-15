@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <netinet/tcp.h>
 
 #include "client.h"
 
@@ -20,7 +21,7 @@ void Future::wait() {
     Pthread_mutex_unlock(&ready_m_);
 }
 
-Client::Client(PollMgr* pollmgr /* =... */)
+Client::Client(PollMgr* pollmgr)
         : pollmgr_(pollmgr), sock_(-1), status_(NEW), bmark_(NULL) {
     Pthread_mutex_init(&pending_fu_m_, NULL);
     Pthread_mutex_init(&out_m_, NULL);
@@ -117,7 +118,8 @@ int Client::connect(const char* addr) {
         }
 
         const int yes = 1;
-        setsockopt(sock_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
+        verify(setsockopt(sock_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == 0);
+        verify(setsockopt(sock_, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(yes)) == 0);
 
         if (::connect(sock_, rp->ai_addr, rp->ai_addrlen) == 0) {
             break;

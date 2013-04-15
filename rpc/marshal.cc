@@ -4,6 +4,11 @@ using namespace std;
 
 namespace rpc {
 
+#ifdef PERF_TEST
+int _perf_rpc_in_packet_size[1024];
+int _perf_rpc_out_packet_size[1024];
+#endif // PERF_TEST
+
 /**
  * 8kb minimum chunk size.
  * NOTE: this value directly affects how many read/write syscall will be issued.

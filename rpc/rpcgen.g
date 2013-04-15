@@ -2,7 +2,7 @@
 
 import sys
 import os
-sys.path += os.path.abspath(os.path.join(os.path.split(__file__)[0], "..")),
+sys.path += os.path.abspath(os.path.join(os.path.split(__file__)[0], "../pylib")),
 
 def proper_template_type(type_info):
     if type_info.endswith(">"):
@@ -33,7 +33,7 @@ parser RpcDef:
         {{ return IDENTIFIER, field_list }}
 
     rule field_list: {{ field_list = [] }}
-        (field_def {{ field_list += field_def,}} )+
+        (field_def {{ field_list += field_def,}} )*
         {{ return field_list }}
 
     rule field_def: type_info IDENTIFIER
@@ -74,7 +74,7 @@ parser RpcDef:
         {{ return IDENTIFIER, func_list, abstract }}
 
     rule func_list: {{ func_list = [] }}
-        (func_def {{ func_list += func_def, }} )+
+        (func_def {{ func_list += func_def, }} )*
         {{ return func_list }}
 
     rule func_def: {{ in_args = None; out_args = None; f_attr = None}}
