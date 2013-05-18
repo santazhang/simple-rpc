@@ -21,5 +21,5 @@ def build(bld):
     bld.stlib(source=bld.path.ant_glob("rpc/*.cc"), target="simplerpc", includes="rpc", lib="pthread")
 
     def _prog(source, target):
-        bld.program(source=source, target=target, includes=".", use=["lynx", "rpc"], lib=["pthread"])
+        bld.program(source=source, target=target, includes=".", use="lynx rpc", lib="pthread")
 
