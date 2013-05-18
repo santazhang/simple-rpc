@@ -26,6 +26,7 @@
 #define Pthread_cond_init(c, attr) verify(pthread_cond_init(c, attr) == 0)
 #define Pthread_cond_destroy(c) verify(pthread_cond_destroy(c) == 0)
 #define Pthread_cond_signal(c) verify(pthread_cond_signal(c) == 0)
+#define Pthread_cond_broadcast(c) verify(pthread_cond_broadcast(c) == 0)
 #define Pthread_cond_wait(c, m) verify(pthread_cond_wait(c, m) == 0)
 #define Pthread_create(th, attr, func, arg) verify(pthread_create(th, attr, func, arg) == 0)
 #define Pthread_join(th, attr) verify(pthread_join(th, attr) == 0)
@@ -202,6 +203,59 @@ public:
         Pthread_mutex_unlock(&m_);
         return r;
     }
+};
+
+class Mutex {
+public:
+    Mutex()         { Pthread_mutex_init(&m_, NULL); }
+    ~Mutex()        { Pthread_mutex_destroy(&m_); }
+
+    void lock()     { Pthread_mutex_lock(&m_); }
+    void unlock()   { Pthread_mutex_unlock(&m_); }
+
+private:
+    friend class ConditionVar;
+
+    pthread_mutex_t m_;
+
+    // Non-copyable, non-assignable
+    Mutex(Mutex &);
+    Mutex& operator=(Mutex&);
+};
+
+class ScopedLock {
+public:
+    explicit ScopedLock(Mutex* lock) : m_(lock) { m_->lock(); }
+    ~ScopedLock()   { m_->unlock(); }
+
+private:
+    Mutex* m_;
+
+    // Non-copyable, non-assignable
+    ScopedLock(ScopedLock&);
+    ScopedLock& operator=(ScopedLock&);
+};
+
+class ConditionVar {
+public:
+    ConditionVar()          { Pthread_cond_init(&cv_, NULL); }
+    ~ConditionVar()         { Pthread_cond_destroy(&cv_); }
+
+    void wait(Mutex* mutex) { Pthread_cond_wait(&cv_, &(mutex->m_)); }
+    void signal()           { Pthread_cond_signal(&cv_); }
+    void signalAll()        { Pthread_cond_broadcast(&cv_); }
+
+    void timedWait(Mutex* mutex, const struct timespec* timeout) {
+        pthread_cond_timedwait(&cv_, &(mutex->m_), timeout);
+    }
+
+
+private:
+    pthread_cond_t cv_;
+
+    // Non-copyable, non-assignable
+    ConditionVar(ConditionVar&);
+    ConditionVar& operator=(ConditionVar&);
 };
 
 int set_nonblocking(int fd, bool nonblocking);

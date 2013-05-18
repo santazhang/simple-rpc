@@ -18,7 +18,7 @@ def build(bld):
             os.system(action)
 
     _depend("./rpc/rpcgen.py", "./rpc/rpcgen.g", "./pylib/yapps/main.py ./rpc/rpcgen.g ; chmod a+x ./rpc/rpcgen.py")
-    bld.stlib(source=bld.path.ant_glob("rpc/*.cc"), target="rpc", includes="rpc", lib="pthread")
+    bld.stlib(source=bld.path.ant_glob("rpc/*.cc"), target="simplerpc", includes="rpc", lib="pthread")
 
     def _prog(source, target):
         bld.program(source=source, target=target, includes=".", use=["lynx", "rpc"], lib=["pthread"])
