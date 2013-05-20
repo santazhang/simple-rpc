@@ -13,6 +13,9 @@ def configure(conf):
 
 def build(bld):
     def _depend(target, source, action):
+        if source != None and os.path.exists(source) == False:
+            Logs.pprint('RED', "'%s' not found!" % source)
+            exit(1)
         if os.path.exists(target) == False or os.stat(target).st_mtime < os.stat(source).st_mtime:
             Logs.pprint('PINK', action)
             os.system(action)
