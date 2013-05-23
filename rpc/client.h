@@ -54,6 +54,13 @@ public:
         Pthread_cond_init(&ready_cond_, NULL);
     }
 
+    bool ready() {
+        Pthread_mutex_lock(&ready_m_);
+        bool r = ready_;
+        Pthread_mutex_unlock(&ready_m_);
+        return r;
+    }
+
     // wait till reply done
     void wait();
 
