@@ -20,6 +20,21 @@ public:
     virtual void run(Future* fu) = 0;
 };
 
+// helper macros for quickly generating temporary future callback objects
+#define NEW_FUTURE_CALLBACK_COMBINE1(x, y) x##y
+#define NEW_FUTURE_CALLBACK_COMBINE(x, y) NEW_FUTURE_CALLBACK_COMBINE1(x, y)
+
+#define NEW_FUTURE_CALLBACK1(type1, arg1, fu_var, future_callback_body) \
+    new( \
+        class NEW_RUNNABLE_COMBINE(__FU_CB__, __LINE__): public FutureCallback { \
+        public: \
+            NEW_RUNNABLE_COMBINE(__FU_CB__, __LINE__)(type1 arg1): arg1(arg1) {} \
+            void run(Future* fu_var) { future_callback_body; } \
+        private: \
+            type1 arg1; \
+        } \
+    )(arg1)
+
 
 // callback will be automatically released by client
 struct FutureAttr {
