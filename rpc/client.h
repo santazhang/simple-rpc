@@ -26,9 +26,9 @@ public:
 
 #define NEW_FUTURE_CALLBACK1(type1, arg1, fu_var, future_callback_body) \
     new( \
-        class NEW_RUNNABLE_COMBINE(__FU_CB__, __LINE__): public FutureCallback { \
+        class NEW_FUTURE_CALLBACK_COMBINE(__FU_CB__, __LINE__): public FutureCallback { \
         public: \
-            NEW_RUNNABLE_COMBINE(__FU_CB__, __LINE__)(type1 arg1): arg1(arg1) {} \
+            NEW_FUTURE_CALLBACK_COMBINE(__FU_CB__, __LINE__)(type1 arg1): arg1(arg1) {} \
             void run(Future* fu_var) { future_callback_body; } \
         private: \
             type1 arg1; \
