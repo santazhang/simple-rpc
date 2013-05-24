@@ -7,9 +7,15 @@ from waflib import Logs
 
 def options(opt):
     opt.load("compiler_cxx")
+    opt.add_option("--debug", action="store_true", default=False, help="enable debug support")
 
 def configure(conf):
     conf.load("compiler_cxx")
+    if conf.options.debug:
+        Logs.pprint("PINK", "debug support enabled")
+        conf.env.append_value("CXXFLAGS", ["-ggdb", "-Wall"])
+    else:
+        conf.env.append_value("CXXFLAGS", ["-O3", "-fno-omit-frame-pointer", "-Wall"])
 
 def build(bld):
     def _depend(target, source, action):
