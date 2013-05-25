@@ -258,6 +258,11 @@ public:
         Pthread_mutex_unlock(&m_);
         return r;
     }
+    void reset(i64 start = 0) {
+        Pthread_mutex_lock(&m_);
+        next_ = start;
+        Pthread_mutex_unlock(&m_);
+    }
 };
 
 class Mutex {
