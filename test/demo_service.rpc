@@ -1,0 +1,22 @@
+namespace demo
+
+struct point3 {
+    double x
+    double y
+    double z
+}
+
+service Math {
+    is_prime(i32 n; i32 flag)
+    fast dot_prod(point3 p1, point3 p2; double v)
+}
+
+%%
+
+namespace demo {
+
+inline void MathService::dot_prod(const point3& p1, const point3& p2, double* v) {
+    *v = p1.x * p2.x + p1.y * p2.y + p1.z * p2.z;
+}
+
+}

@@ -1,4 +1,4 @@
-APPNAME="simple-rpc"
+serverAPPNAME="simple-rpc"
 VERSION="0.1"
 
 import os
@@ -26,9 +26,14 @@ def build(bld):
             Logs.pprint('PINK', action)
             os.system(action)
 
-    _depend("./rpc/rpcgen.py", "./rpc/rpcgen.g", "./pylib/yapps/main.py ./rpc/rpcgen.g ; chmod a+x ./rpc/rpcgen.py")
+    _depend("rpc/rpcgen.py", "rpc/rpcgen.g", "pylib/yapps/main.py rpc/rpcgen.g ; chmod a+x rpc/rpcgen.py")
+    _depend("test/demo_service.h", "test/demo_service.rpc", "rpc/rpcgen.py test/demo_service.rpc")
+
     bld.stlib(source=bld.path.ant_glob("rpc/*.cc"), target="simplerpc", includes="rpc", lib="pthread")
 
     def _prog(source, target):
-        bld.program(source=source, target=target, includes=".", use="lynx rpc", lib="pthread")
+        bld.program(source=source, target=target, includes=".", use="simplerpc", lib="pthread")
+
+    _prog("test/demo_client.cc", "demo_client")
+    _prog("test/demo_server.cc test/demo_service.cc", "demo_server")
 
