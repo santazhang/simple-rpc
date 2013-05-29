@@ -77,60 +77,48 @@ public:
     virtual void run() = 0;
 };
 
-// helper macros for quickly generating temporary runnable objects
-#define NEW_RUNNABLE_COMBINE1(x, y) x##y
-#define NEW_RUNNABLE_COMBINE(x, y) NEW_RUNNABLE_COMBINE1(x, y)
 
-#define NEW_RUNNABLE1(type1, arg1, run_func_body) \
-    new( \
-        class NEW_RUNNABLE_COMBINE(__R__, __LINE__): public Runnable { \
-        public: \
-            NEW_RUNNABLE_COMBINE(__R__, __LINE__)(type1 arg1): arg1(arg1) {} \
-            void run() { run_func_body; } \
-        private: \
-            type1 arg1; \
-        } \
-    )(arg1)
+#define RUNNABLE_CLASS1(cls, type1, arg1, run_func_body) \
+    class cls: public Runnable { \
+    public: \
+        cls(type1 arg1): arg1(arg1) {} \
+        void run() { run_func_body; } \
+    private: \
+        type1 arg1; \
+    };
 
-#define NEW_RUNNABLE2(type1, arg1, type2, arg2, run_func_body) \
-    new( \
-        class NEW_RUNNABLE_COMBINE(__R__, __LINE__): public Runnable { \
-        public: \
-            NEW_RUNNABLE_COMBINE(__R__, __LINE__)(type1 arg1, type2 arg2): arg1(arg1), arg2(arg2) {} \
-            void run() { run_func_body; } \
-        private: \
-            type1 arg1; \
-            type2 arg2; \
-        } \
-    )(arg1, arg2)
+#define RUNNABLE_CLASS2(cls, type1, arg1, type2, arg2, run_func_body) \
+    class cls: public Runnable { \
+    public: \
+        cls(type1 arg1, type2 arg2): arg1(arg1), arg2(arg2) {} \
+        void run() { run_func_body; } \
+    private: \
+        type1 arg1; \
+        type2 arg2; \
+    };
 
-#define NEW_RUNNABLE3(type1, arg1, type2, arg2, type3, arg3, run_func_body) \
-    new( \
-        class NEW_RUNNABLE_COMBINE(__R__, __LINE__): public Runnable { \
-        public: \
-            NEW_RUNNABLE_COMBINE(__R__, __LINE__)(type1 arg1, type2 arg2, type3 arg3): arg1(arg1), arg2(arg2), arg3(arg3) {} \
-            void run() { run_func_body; } \
-        private: \
-            type1 arg1; \
-            type2 arg2; \
-            type3 arg3; \
-        } \
-    )(arg1, arg2, arg3)
+#define RUNNABLE_CLASS3(cls, type1, arg1, type2, arg2, type3, arg3, run_func_body) \
+    class cls: public Runnable { \
+    public: \
+        cls(type1 arg1, type2 arg2, type3 arg3): arg1(arg1), arg2(arg2), arg3(arg3) {} \
+        void run() { run_func_body; } \
+    private: \
+        type1 arg1; \
+        type2 arg2; \
+        type3 arg3; \
+    };
 
-#define NEW_RUNNABLE4(type1, arg1, type2, arg2, type3, arg3, type4, arg4, run_func_body) \
-    new( \
-        class NEW_RUNNABLE_COMBINE(__R__, __LINE__): public Runnable { \
-        public: \
-            NEW_RUNNABLE_COMBINE(__R__, __LINE__)(type1 arg1, type2 arg2, type3 arg3, type4 arg4): arg1(arg1), arg2(arg2), arg3(arg3), arg4(arg4) {} \
-            void run() { run_func_body; } \
-        private: \
-            type1 arg1; \
-            type2 arg2; \
-            type3 arg3; \
-            type4 arg4; \
-        } \
-    )(arg1, arg2, arg3, arg4)
-
+#define RUNNABLE_CLASS4(cls, type1, arg1, type2, arg2, type3, arg3, type4, arg4, run_func_body) \
+    class cls: public Runnable { \
+    public: \
+        cls(type1 arg1, type2 arg2, type3 arg3, type4 arg4): arg1(arg1), arg2(arg2), arg3(arg3), arg4(arg4) {} \
+        void run() { run_func_body; } \
+    private: \
+        type1 arg1; \
+        type2 arg2; \
+        type3 arg3; \
+        type4 arg4; \
+    };
 
 /**
  * Note: All sub class of RefCounted *MUST* have protected destructor!
