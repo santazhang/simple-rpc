@@ -88,6 +88,8 @@ public:
 class Client: public Pollable {
     Marshal in_, out_;
 
+    ThreadPool* thrpool_;
+
     /**
      * NOT a refcopy! This is intend to avoid circular reference, which prevents everything to be released correctly.
      */
@@ -119,7 +121,7 @@ protected:
 
 public:
 
-    Client(PollMgr* pollmgr);
+    Client(PollMgr* pollmgr, ThreadPool* thrpool = NULL);
 
     /**
      * Start a new request. Must be paired with end_request(), even if NULL returned.
@@ -157,6 +159,8 @@ public:
 };
 
 class ClientPool {
+
+    ThreadPool thrpool_;
 
     // refcopy
     rpc::PollMgr* pollmgr_;
