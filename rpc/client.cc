@@ -209,16 +209,25 @@ void Client::handle_read() {
             Pthread_cond_signal(&fu->ready_cond_);
             Pthread_mutex_unlock(&fu->ready_m_);
 
-            if (fu->attr_.callback != NULL) {
-                fu->attr_.callback->run(fu);
+            RUNNABLE_CLASS1(R, Future*, fu, {
+                if (fu->attr_.callback != NULL) {
+                    fu->attr_.callback->run(fu);
 
-                // automatically cleanup the callback
-                delete fu->attr_.callback;
-                fu->attr_.callback = NULL;
+                    // automatically cleanup the callback
+                    delete fu->attr_.callback;
+                    fu->attr_.callback = NULL;
+                }
+
+                // since we removed it from pending_fu_
+                fu->release();
+            });
+
+            if (thrpool_ != NULL) {
+                thrpool_->run_async(new R(fu));
+            } else {
+                R r(fu);
+                r.run();
             }
-
-            // since we removed it from pending_fu_
-            fu->release();
 
         } else {
             // packet incomplete or no more packets to process
