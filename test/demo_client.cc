@@ -13,10 +13,16 @@ using namespace demo;
 
 
 int main(int argc, char* argv[]) {
+    const char* svr_addr = "127.0.0.1:1987";
+    printf("usage: %s [svr_addr=%s]\n", argv[0], svr_addr);
+    if (argc > 1) {
+        svr_addr = argv[1];
+    }
+
     srand(getpid());
     PollMgr* poll = new PollMgr;
     Client* cl = new Client(poll);
-    verify(cl->connect("127.0.0.1:1987") == 0);
+    verify(cl->connect(svr_addr) == 0);
     MathProxy mp(cl);
     for (i32 n = 1; n <= 10; n++) {
         i32 flag;
@@ -54,8 +60,9 @@ int main(int argc, char* argv[]) {
                 (*rpc_counter_)++;
                 FutureAttr attr;
                 attr.callback = new CB(cl_, rpc_counter_);
+#if 1
                 Future* fu2 = MathProxy(cl_).async_is_prime(rand(), attr);
-/*
+#else
                 point3 p1, p2;
                 p1.x = 0.0;
                 p1.y = 0.0;
@@ -64,8 +71,10 @@ int main(int argc, char* argv[]) {
                 p2.y = 0.0;
                 p2.z = 0.0;
                 Future* fu2 = MathProxy(cl_).async_dot_prod(p1, p2, attr);
-*/
-                fu2->release();
+#endif
+                if (fu2 != NULL) {
+                    fu2->release();
+                }
             }
         private:
             Client* cl_;
@@ -74,8 +83,9 @@ int main(int argc, char* argv[]) {
 
         FutureAttr attr;
         attr.callback = new CB(cl, &rpc_counter);
+#if 1
         Future* fu = MathProxy(cl).async_is_prime(rand(), attr);
-/*
+#else
         point3 p1, p2;
         p1.x = 0.0;
         p1.y = 0.0;
@@ -84,11 +94,13 @@ int main(int argc, char* argv[]) {
         p2.y = 0.0;
         p2.z = 0.0;
         Future* fu = MathProxy(cl).async_dot_prod(p1, p2, attr);
-*/
-        fu->release();
+#endif
+        if (fu != NULL) {
+            fu->release();
+        }
     }
 
-    while (1) {
+    for (int i = 0; i < 10; i++) {
         Log::debug("clock tick, about %d rpc done", rpc_counter);
         sleep(1);
     }
