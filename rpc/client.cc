@@ -54,21 +54,14 @@ Client::~Client() {
 void Client::invalidate_pending_futures() {
     list<Future*> futures;
     Pthread_mutex_lock(&pending_fu_m_);
-    for (map<i64, Future*>::iterator it = pending_fu_.begin(); it != pending_fu_.end(); ++it) {
-        futures.push_back(it->second);
+    while (pending_fu_.empty() == false) {
+        futures.push_back(pending_fu_.begin()->second);
+        pending_fu_.erase(pending_fu_.begin());
     }
     Pthread_mutex_unlock(&pending_fu_m_);
 
     for (list<Future*>::iterator it = futures.begin(); it != futures.end(); ++it) {
-        Pthread_mutex_lock(&pending_fu_m_);
-        map<i64, Future*>::iterator find_it = pending_fu_.find((*it)->xid_);
-        Future* fu = NULL;
-        if (find_it != pending_fu_.end()) {
-            fu = find_it->second;
-            pending_fu_.erase(find_it);
-        }
-        Pthread_mutex_unlock(&pending_fu_m_);
-
+        Future* fu = *it;
         if (fu != NULL) {
             fu->error_code_ = ENOTCONN;
             fu->notify_ready();
