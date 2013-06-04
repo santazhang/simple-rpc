@@ -217,6 +217,9 @@ Future* Client::begin_request(i32 rpc_id, const FutureAttr& attr /* =... */) {
     Pthread_mutex_lock(&out_m_);
 
     if (status_ != CONNECTED) {
+        if (attr.callback != NULL) {
+            delete attr.callback;
+        }
         return NULL;
     }
 
