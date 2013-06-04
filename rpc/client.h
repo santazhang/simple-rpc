@@ -53,7 +53,7 @@ class Future: public RefCounted {
     // Private destructor as required by RefCounted.
     ~Future() {
         if (attr_.callback != NULL) {
-            delete attr_.callbacl;
+            delete attr_.callback;
         }
         Pthread_mutex_destroy(&ready_m_);
         Pthread_cond_destroy(&ready_cond_);
