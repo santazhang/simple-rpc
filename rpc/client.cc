@@ -281,9 +281,7 @@ ClientPool::~ClientPool() {
     for (map<string, Client*>::iterator it = cache_.begin(); it != cache_.end(); ++it) {
         it->second->close_and_release();
     }
-
     pollmgr_->release();
-
     Pthread_mutex_destroy(&m_);
 }
 
@@ -301,7 +299,7 @@ Client* ClientPool::get_client(const string& addr) {
             cl = NULL;
         } else {
             // connect success
-            cache_[addr] = cl;
+            cache_.insert(make_pair(addr, cl));
         }
     }
     Pthread_mutex_unlock(&m_);
