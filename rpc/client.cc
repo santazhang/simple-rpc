@@ -181,20 +181,20 @@ void Client::handle_read() {
 
             Pthread_mutex_lock(&pending_fu_m_);
             map<i64, Future*>::iterator it = pending_fu_.find(reply_xid);
-            verify(it != pending_fu_.end());
+            if (it != pending_fu_.end()) {
+                Future* fu = it->second;
+                verify(fu->xid_ == reply_xid);
+                pending_fu_.erase(it);
+                Pthread_mutex_unlock(&pending_fu_m_);
 
-            Future* fu = it->second;
-            verify(fu->xid_ == reply_xid);
-            pending_fu_.erase(it);
-            Pthread_mutex_unlock(&pending_fu_m_);
+                fu->error_code_ = error_code;
+                fu->reply_.read_from_marshal(in_, packet_size - sizeof(reply_xid) - sizeof(error_code));
 
-            fu->error_code_ = error_code;
-            fu->reply_.read_from_marshal(in_, packet_size - sizeof(reply_xid) - sizeof(error_code));
+                fu->notify_ready();
 
-            fu->notify_ready();
-
-            // since we removed it from pending_fu_
-            fu->release();
+                // since we removed it from pending_fu_
+                fu->release();
+            }
 
         } else {
             // packet incomplete or no more packets to process

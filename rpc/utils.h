@@ -138,9 +138,15 @@ protected:
 
 public:
 
-    RefCounted()
-            : refcnt_(1) {
+    RefCounted(): refcnt_(1) {
         Pthread_mutex_init(&m_, NULL);
+    }
+
+    int ref_count() {
+        Pthread_mutex_lock(&m_);
+        int r = refcnt_;
+        Pthread_mutex_unlock(&m_);
+        return r;
     }
 
     RefCounted* ref_copy() {
