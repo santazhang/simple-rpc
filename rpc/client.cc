@@ -21,8 +21,23 @@ void Future::wait() {
     Pthread_mutex_unlock(&ready_m_);
 }
 
-Client::Client(PollMgr* pollmgr, ThreadPool* thrpool /* =? */)
-        : thrpool_(thrpool), pollmgr_(pollmgr), sock_(-1), status_(NEW), bmark_(NULL) {
+void Future::notify_ready() {
+    Pthread_mutex_lock(&ready_m_);
+    ready_ = true;
+    Pthread_cond_signal(&ready_cond_);
+    Pthread_mutex_unlock(&ready_m_);
+
+    if (attr_.callback != NULL) {
+        attr_.callback->run(this);
+
+        // automatically cleanup the callback
+        delete attr_.callback;
+        attr_.callback = NULL;
+    }
+}
+
+
+Client::Client(PollMgr* pollmgr): pollmgr_(pollmgr), sock_(-1), status_(NEW), bmark_(NULL) {
     Pthread_mutex_init(&pending_fu_m_, NULL);
     Pthread_mutex_init(&out_m_, NULL);
 }
@@ -56,31 +71,10 @@ void Client::invalidate_pending_futures() {
 
         if (fu != NULL) {
             fu->error_code_ = ENOTCONN;
+            fu->notify_ready();
 
-            Pthread_mutex_lock(&fu->ready_m_);
-            fu->ready_ = true;
-            Pthread_cond_signal(&fu->ready_cond_);
-            Pthread_mutex_unlock(&fu->ready_m_);
-
-            RUNNABLE_CLASS1(R, Future*, fu, {
-                if (fu->attr_.callback != NULL) {
-                    fu->attr_.callback->run(fu);
-
-                    // automatically cleanup the callback
-                    delete fu->attr_.callback;
-                    fu->attr_.callback = NULL;
-                }
-
-                // since we removed it from pending_fu_
-                fu->release();
-            });
-
-            if (thrpool_ != NULL) {
-                thrpool_->run_async(new R(fu));
-            } else {
-                R r(fu);
-                r.run();
-            }
+            // since we removed it from pending_fu_
+            fu->release();
         }
     }
 
@@ -204,30 +198,10 @@ void Client::handle_read() {
             fu->error_code_ = error_code;
             fu->reply_.read_from_marshal(in_, packet_size - sizeof(reply_xid) - sizeof(error_code));
 
-            Pthread_mutex_lock(&fu->ready_m_);
-            fu->ready_ = true;
-            Pthread_cond_signal(&fu->ready_cond_);
-            Pthread_mutex_unlock(&fu->ready_m_);
+            fu->notify_ready();
 
-            RUNNABLE_CLASS1(R, Future*, fu, {
-                if (fu->attr_.callback != NULL) {
-                    fu->attr_.callback->run(fu);
-
-                    // automatically cleanup the callback
-                    delete fu->attr_.callback;
-                    fu->attr_.callback = NULL;
-                }
-
-                // since we removed it from pending_fu_
-                fu->release();
-            });
-
-            if (thrpool_ != NULL) {
-                thrpool_->run_async(new R(fu));
-            } else {
-                R r(fu);
-                r.run();
-            }
+            // since we removed it from pending_fu_
+            fu->release();
 
         } else {
             // packet incomplete or no more packets to process
@@ -297,7 +271,7 @@ void Client::end_request() {
     Pthread_mutex_unlock(&out_m_);
 }
 
-ClientPool::ClientPool(PollMgr* pollmgr) {
+ClientPool::ClientPool(PollMgr* pollmgr /* =? */) {
     Pthread_mutex_init(&m_, NULL);
 
     if (pollmgr == NULL) {
@@ -324,7 +298,7 @@ Client* ClientPool::get_client(const string& addr) {
     if (it != cache_.end()) {
         cl = it->second;
     } else {
-        cl = new Client(this->pollmgr_, &this->thrpool_);
+        cl = new Client(this->pollmgr_);
         if (cl->connect(addr.c_str()) != 0) {
             // connect failure
             cl->close_and_release();

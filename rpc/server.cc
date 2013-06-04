@@ -168,8 +168,8 @@ int ServerConnection::poll_mode() {
     return mode;
 }
 
-Server::Server(PollMgr* pollmgr /* =... */)
-        : threadpool_(new ThreadPool), server_sock_(-1), status_(NEW) {
+Server::Server(PollMgr* pollmgr /* =... */, ThreadPool* thrpool /* =? */)
+        : server_sock_(-1), status_(NEW) {
 
     // get rid of eclipse warning
     memset(&loop_th_, 0, sizeof(loop_th_));
@@ -180,11 +180,16 @@ Server::Server(PollMgr* pollmgr /* =... */)
         pollmgr_ = (PollMgr *) pollmgr->ref_copy();
     }
 
+    if (thrpool == NULL) {
+        threadpool_ = new ThreadPool;
+    } else {
+        threadpool_ = (ThreadPool *) thrpool->ref_copy();
+    }
+
     Pthread_mutex_init(&sconns_m_, NULL);
 }
 
 Server::~Server() {
-
     if (status_ == RUNNING) {
         status_ = STOPPING;
         // wait till accepting thread done
@@ -206,7 +211,7 @@ Server::~Server() {
     }
 
     pollmgr_->release();
-    delete threadpool_;
+    threadpool_->release();
     Pthread_mutex_destroy(&sconns_m_);
 
     for (map<i32, Handler*>::iterator it = handlers_.begin(); it != handlers_.end(); ++it) {

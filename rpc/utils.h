@@ -212,7 +212,7 @@ public:
     }
 };
 
-class ThreadPool: public NoCopy {
+class ThreadPool: public RefCounted {
     int n_;
     pthread_t* th_;
     Queue<Runnable*>* q_;
@@ -220,9 +220,11 @@ class ThreadPool: public NoCopy {
     static void* start_thread_pool(void*);
     void run_thread(int tid);
 
+protected:
+    ~ThreadPool();
+
 public:
     ThreadPool(int n = 64);
-    ~ThreadPool();
 
     // NOTE: Runnable* will be deleted after execution.
     void run_async(Runnable*);

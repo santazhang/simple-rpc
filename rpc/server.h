@@ -145,7 +145,7 @@ class Server: public NoCopy {
 
 public:
 
-    Server(PollMgr* pollmgr = NULL);
+    Server(PollMgr* pollmgr = NULL, ThreadPool* thrpool = NULL);
     virtual ~Server();
 
     int start(const char* bind_addr);

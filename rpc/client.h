@@ -56,6 +56,8 @@ class Future: public RefCounted {
         Pthread_cond_destroy(&ready_cond_);
     }
 
+    void notify_ready();
+
 public:
 
     Future(i64 xid, const FutureAttr& attr = FutureAttr())
@@ -88,10 +90,8 @@ public:
 class Client: public Pollable {
     Marshal in_, out_;
 
-    ThreadPool* thrpool_;
-
     /**
-     * NOT a refcopy! This is intend to avoid circular reference, which prevents everything to be released correctly.
+     * NOT a refcopy! This is intended to avoid circular reference, which prevents everything from being released correctly.
      */
     PollMgr* pollmgr_;
 
@@ -121,7 +121,7 @@ protected:
 
 public:
 
-    Client(PollMgr* pollmgr, ThreadPool* thrpool = NULL);
+    Client(PollMgr* pollmgr);
 
     /**
      * Start a new request. Must be paired with end_request(), even if NULL returned.
@@ -159,8 +159,6 @@ public:
 };
 
 class ClientPool {
-
-    ThreadPool thrpool_;
 
     // refcopy
     rpc::PollMgr* pollmgr_;
