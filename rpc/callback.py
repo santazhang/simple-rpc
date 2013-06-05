@@ -10,13 +10,14 @@ def GenDecl(N):
 
 
 def GenIthBase(i):
-    base   = [ "template<%s>",                      # decls
-               "class Callback<%s> {",              # types
+    base   = [ "template<%s>",                             # decls
+               "class Callback<%s> {",                     # types
                "public:",
                "  virtual ~Callback() {}",
                "",
-               "  virtual Res operator()(%s) = 0;", # params
-               "  virtual bool once() const = 0;",
+               "  virtual Res run(%s) = 0;",               # params
+               "  Res operator()(%s) { return this->run(%s); }",  # params_decl, params_ins
+               "  virtual bool once() const { return false; }",
                "};",
                "",
                ""]
@@ -24,13 +25,18 @@ def GenIthBase(i):
     decls  = [ "typename Res" ]
     types  = [ "Res" ]
     params = [ ]
+    params_decl = [ ]
+    params_ins = [ ]
     for arg in range(1,i+1):
         arg_str = "Arg%d" % arg
         decls.append("typename %s" % arg_str)
         types.append(arg_str)
         params.append(arg_str)
+        params_decl.append(arg_str + " " + arg_str.lower())
+        params_ins.append(arg_str.lower())
 
-    expanded = (','.join(decls), ','.join(types), ','.join(params))
+    expanded = (','.join(decls), ','.join(types), ','.join(params),
+                ', '.join(params_decl), ', '.join(params_ins))
     return '\n'.join(base) % expanded
 
 
@@ -49,7 +55,7 @@ def GenIthInstance(i):
                "",
                "  virtual ~%s() {}",                        #8 class name
                "",
-               "  virtual Res operator()(%s) {",            #9 not-bound decl
+               "  virtual Res run(%s) {",                   #9 not-bound decl
                "    %s",                                    #10 () body
                "  }",
                "",
@@ -79,7 +85,7 @@ def GenIthInstance(i):
                "",
                "  virtual ~%s() {}",                        #8 class name
                "",
-               "  virtual void operator()(%s) {",           #9 not-bound decl
+               "  virtual void run(%s) {",                  #9 not-bound decl
                "    %s",                                    #10 () body
                "  }",
                "",
@@ -107,7 +113,7 @@ def GenIthInstance(i):
                "}",
                "" ]
 
-    # Possible bodies for operator()()
+    # Possible bodies for run()
     one    = [     "Res ret = ((*obj_).*target_func_)(%s);", # bound + unbound
                "    delete this;",
                "    return ret;" ]

@@ -9,6 +9,8 @@
 #include <pthread.h>
 #include <inttypes.h>
 
+#include "callback.h"
+
 /**
  * Use assert() when the test is only intended for debugging.
  * Use verify() when the test is crucial for both debug and release binary.
@@ -70,13 +72,7 @@ protected:
 inline NoCopy::~NoCopy() {
 }
 
-class Runnable {
-public:
-    virtual ~Runnable() {
-    }
-    virtual void run() = 0;
-};
-
+typedef Callback<void> Runnable;
 
 #define RUNNABLE_CLASS1(cls, type1, arg1, run_func_body) \
     class cls: public rpc::Runnable { \

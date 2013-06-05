@@ -67,6 +67,17 @@ TEST(Many, Simple) {
   delete cb;
 }
 
+// For threadpool interface run()
+TEST(Run, Simple) {
+  Counter c;
+  Callback<void>* cb = makeCallableMany(&Counter::inc, &c);
+  EXPECT_FALSE(cb->once());
+  cb->run();
+  cb->run();
+  EXPECT_EQ(c.count(), 2);
+  delete cb;
+}
+
 } // unnamed namespace
 
 int main(int argc, char *argv[]) {

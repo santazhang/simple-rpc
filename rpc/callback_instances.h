@@ -13,8 +13,9 @@ class Callback<Res> {
 public:
   virtual ~Callback() {}
 
-  virtual Res operator()() = 0;
-  virtual bool once() const = 0;
+  virtual Res run() = 0;
+  Res operator()() { return this->run(); }
+  virtual bool once() const { return false; }
 };
 
 template<typename Res,typename Arg1>
@@ -22,8 +23,9 @@ class Callback<Res,Arg1> {
 public:
   virtual ~Callback() {}
 
-  virtual Res operator()(Arg1) = 0;
-  virtual bool once() const = 0;
+  virtual Res run(Arg1) = 0;
+  Res operator()(Arg1 arg1) { return this->run(arg1); }
+  virtual bool once() const { return false; }
 };
 
 template<typename Res,typename Arg1,typename Arg2>
@@ -31,8 +33,9 @@ class Callback<Res,Arg1,Arg2> {
 public:
   virtual ~Callback() {}
 
-  virtual Res operator()(Arg1,Arg2) = 0;
-  virtual bool once() const = 0;
+  virtual Res run(Arg1,Arg2) = 0;
+  Res operator()(Arg1 arg1, Arg2 arg2) { return this->run(arg1, arg2); }
+  virtual bool once() const { return false; }
 };
 
 template<typename Res,typename Arg1,typename Arg2,typename Arg3>
@@ -40,8 +43,9 @@ class Callback<Res,Arg1,Arg2,Arg3> {
 public:
   virtual ~Callback() {}
 
-  virtual Res operator()(Arg1,Arg2,Arg3) = 0;
-  virtual bool once() const = 0;
+  virtual Res run(Arg1,Arg2,Arg3) = 0;
+  Res operator()(Arg1 arg1, Arg2 arg2, Arg3 arg3) { return this->run(arg1, arg2, arg3); }
+  virtual bool once() const { return false; }
 };
 
 template<typename Target, typename Res>
@@ -58,7 +62,7 @@ public:
 
   virtual ~CallableOnce_0_0() {}
 
-  virtual Res operator()() {
+  virtual Res run() {
     Res ret = ((*obj_).*target_func_)();
     delete this;
     return ret;
@@ -88,7 +92,7 @@ public:
 
   virtual ~CallableOnce_0_0() {}
 
-  virtual void operator()() {
+  virtual void run() {
     ((*obj_).*target_func_)();
     delete this;
   }
@@ -127,7 +131,7 @@ public:
 
   virtual ~CallableMany_0_0() {}
 
-  virtual Res operator()() {
+  virtual Res run() {
     return ((*obj_).*target_func_)();
   }
 
@@ -164,7 +168,7 @@ public:
 
   virtual ~CallableOnce_1_0() {}
 
-  virtual Res operator()(Arg1 arg1) {
+  virtual Res run(Arg1 arg1) {
     Res ret = ((*obj_).*target_func_)(arg1);
     delete this;
     return ret;
@@ -194,7 +198,7 @@ public:
 
   virtual ~CallableOnce_1_0() {}
 
-  virtual void operator()(Arg1 arg1) {
+  virtual void run(Arg1 arg1) {
     ((*obj_).*target_func_)(arg1);
     delete this;
   }
@@ -233,7 +237,7 @@ public:
 
   virtual ~CallableMany_1_0() {}
 
-  virtual Res operator()(Arg1 arg1) {
+  virtual Res run(Arg1 arg1) {
     return ((*obj_).*target_func_)(arg1);
   }
 
@@ -273,7 +277,7 @@ public:
 
   virtual ~CallableOnce_1_1() {}
 
-  virtual Res operator()() {
+  virtual Res run() {
     Res ret = ((*obj_).*target_func_)(bind1_);
     delete this;
     return ret;
@@ -305,7 +309,7 @@ public:
 
   virtual ~CallableOnce_1_1() {}
 
-  virtual void operator()() {
+  virtual void run() {
     ((*obj_).*target_func_)(bind1_);
     delete this;
   }
@@ -348,7 +352,7 @@ public:
 
   virtual ~CallableMany_1_1() {}
 
-  virtual Res operator()() {
+  virtual Res run() {
     return ((*obj_).*target_func_)(bind1_);
   }
 
@@ -387,7 +391,7 @@ public:
 
   virtual ~CallableOnce_2_0() {}
 
-  virtual Res operator()(Arg1 arg1, Arg2 arg2) {
+  virtual Res run(Arg1 arg1, Arg2 arg2) {
     Res ret = ((*obj_).*target_func_)(arg1, arg2);
     delete this;
     return ret;
@@ -417,7 +421,7 @@ public:
 
   virtual ~CallableOnce_2_0() {}
 
-  virtual void operator()(Arg1 arg1, Arg2 arg2) {
+  virtual void run(Arg1 arg1, Arg2 arg2) {
     ((*obj_).*target_func_)(arg1, arg2);
     delete this;
   }
@@ -456,7 +460,7 @@ public:
 
   virtual ~CallableMany_2_0() {}
 
-  virtual Res operator()(Arg1 arg1, Arg2 arg2) {
+  virtual Res run(Arg1 arg1, Arg2 arg2) {
     return ((*obj_).*target_func_)(arg1, arg2);
   }
 
@@ -496,7 +500,7 @@ public:
 
   virtual ~CallableOnce_2_1() {}
 
-  virtual Res operator()(Arg1 arg1) {
+  virtual Res run(Arg1 arg1) {
     Res ret = ((*obj_).*target_func_)(bind1_, arg1);
     delete this;
     return ret;
@@ -528,7 +532,7 @@ public:
 
   virtual ~CallableOnce_2_1() {}
 
-  virtual void operator()(Arg1 arg1) {
+  virtual void run(Arg1 arg1) {
     ((*obj_).*target_func_)(bind1_, arg1);
     delete this;
   }
@@ -571,7 +575,7 @@ public:
 
   virtual ~CallableMany_2_1() {}
 
-  virtual Res operator()(Arg1 arg1) {
+  virtual Res run(Arg1 arg1) {
     return ((*obj_).*target_func_)(bind1_, arg1);
   }
 
@@ -615,7 +619,7 @@ public:
 
   virtual ~CallableOnce_2_2() {}
 
-  virtual Res operator()() {
+  virtual Res run() {
     Res ret = ((*obj_).*target_func_)(bind1_, bind2_);
     delete this;
     return ret;
@@ -650,7 +654,7 @@ public:
 
   virtual ~CallableOnce_2_2() {}
 
-  virtual void operator()() {
+  virtual void run() {
     ((*obj_).*target_func_)(bind1_, bind2_);
     delete this;
   }
@@ -698,7 +702,7 @@ public:
 
   virtual ~CallableMany_2_2() {}
 
-  virtual Res operator()() {
+  virtual Res run() {
     return ((*obj_).*target_func_)(bind1_, bind2_);
   }
 
@@ -740,7 +744,7 @@ public:
 
   virtual ~CallableOnce_3_0() {}
 
-  virtual Res operator()(Arg1 arg1, Arg2 arg2, Arg3 arg3) {
+  virtual Res run(Arg1 arg1, Arg2 arg2, Arg3 arg3) {
     Res ret = ((*obj_).*target_func_)(arg1, arg2, arg3);
     delete this;
     return ret;
@@ -770,7 +774,7 @@ public:
 
   virtual ~CallableOnce_3_0() {}
 
-  virtual void operator()(Arg1 arg1, Arg2 arg2, Arg3 arg3) {
+  virtual void run(Arg1 arg1, Arg2 arg2, Arg3 arg3) {
     ((*obj_).*target_func_)(arg1, arg2, arg3);
     delete this;
   }
@@ -809,7 +813,7 @@ public:
 
   virtual ~CallableMany_3_0() {}
 
-  virtual Res operator()(Arg1 arg1, Arg2 arg2, Arg3 arg3) {
+  virtual Res run(Arg1 arg1, Arg2 arg2, Arg3 arg3) {
     return ((*obj_).*target_func_)(arg1, arg2, arg3);
   }
 
@@ -849,7 +853,7 @@ public:
 
   virtual ~CallableOnce_3_1() {}
 
-  virtual Res operator()(Arg1 arg1, Arg2 arg2) {
+  virtual Res run(Arg1 arg1, Arg2 arg2) {
     Res ret = ((*obj_).*target_func_)(bind1_, arg1, arg2);
     delete this;
     return ret;
@@ -881,7 +885,7 @@ public:
 
   virtual ~CallableOnce_3_1() {}
 
-  virtual void operator()(Arg1 arg1, Arg2 arg2) {
+  virtual void run(Arg1 arg1, Arg2 arg2) {
     ((*obj_).*target_func_)(bind1_, arg1, arg2);
     delete this;
   }
@@ -924,7 +928,7 @@ public:
 
   virtual ~CallableMany_3_1() {}
 
-  virtual Res operator()(Arg1 arg1, Arg2 arg2) {
+  virtual Res run(Arg1 arg1, Arg2 arg2) {
     return ((*obj_).*target_func_)(bind1_, arg1, arg2);
   }
 
@@ -968,7 +972,7 @@ public:
 
   virtual ~CallableOnce_3_2() {}
 
-  virtual Res operator()(Arg1 arg1) {
+  virtual Res run(Arg1 arg1) {
     Res ret = ((*obj_).*target_func_)(bind1_, bind2_, arg1);
     delete this;
     return ret;
@@ -1003,7 +1007,7 @@ public:
 
   virtual ~CallableOnce_3_2() {}
 
-  virtual void operator()(Arg1 arg1) {
+  virtual void run(Arg1 arg1) {
     ((*obj_).*target_func_)(bind1_, bind2_, arg1);
     delete this;
   }
@@ -1051,7 +1055,7 @@ public:
 
   virtual ~CallableMany_3_2() {}
 
-  virtual Res operator()(Arg1 arg1) {
+  virtual Res run(Arg1 arg1) {
     return ((*obj_).*target_func_)(bind1_, bind2_, arg1);
   }
 
@@ -1100,7 +1104,7 @@ public:
 
   virtual ~CallableOnce_3_3() {}
 
-  virtual Res operator()() {
+  virtual Res run() {
     Res ret = ((*obj_).*target_func_)(bind1_, bind2_, bind3_);
     delete this;
     return ret;
@@ -1138,7 +1142,7 @@ public:
 
   virtual ~CallableOnce_3_3() {}
 
-  virtual void operator()() {
+  virtual void run() {
     ((*obj_).*target_func_)(bind1_, bind2_, bind3_);
     delete this;
   }
@@ -1191,7 +1195,7 @@ public:
 
   virtual ~CallableMany_3_3() {}
 
-  virtual Res operator()() {
+  virtual Res run() {
     return ((*obj_).*target_func_)(bind1_, bind2_, bind3_);
   }
 
