@@ -314,6 +314,33 @@ private:
     ConditionVar& operator=(ConditionVar&);
 };
 
+
+// A microsecond precision timer based on the gettimeofday() call
+// (which should be low overhead).
+//
+// Usage:
+//
+//   Timer t;
+//   t.start();
+//   ... event we want to clock
+//   t.end();
+//
+//   std::cout << "elapsed time in seconds" << t.elapsed();
+//
+class Timer {
+public:
+  Timer();
+
+  void start();
+  void end();
+  void reset();
+  double elapsed() const;
+
+private:
+  struct timeval start_;
+  struct timeval end_;
+};
+
 int set_nonblocking(int fd, bool nonblocking);
 
 uint32_t crc32c(const char* data, size_t n);
