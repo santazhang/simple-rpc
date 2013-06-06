@@ -124,7 +124,7 @@ def GenIthInstance(i):
     many   =       "return ((*obj_).*target_func_)(%s);"     # ditto
 
     # Make the transient and the permanent variants
-    bodies = [ "CallableMany", "CallableOnce" ]
+    bodies = [ "Callable", "CallableOnce" ]
 
     res = []
     bound = 0;

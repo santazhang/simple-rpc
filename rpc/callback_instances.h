@@ -118,18 +118,18 @@ makeCallableOnce(
 }
 
 template<typename Target, typename Res>
-class CallableMany_0_0 :
+class Callable_0_0 :
   public Callback<Res> {
 
 public:
   typedef Res(Target::*TargetFunc)();
 
-  CallableMany_0_0(TargetFunc target_func,
+  Callable_0_0(TargetFunc target_func,
     Target* obj)
     : target_func_(target_func),
       obj_(obj) { }
 
-  virtual ~CallableMany_0_0() {}
+  virtual ~Callable_0_0() {}
 
   virtual Res run() {
     return ((*obj_).*target_func_)();
@@ -146,11 +146,11 @@ private:
 };
 
 template<typename Target, typename Res>
-CallableMany_0_0<Target, Res>*
-makeCallableMany(
+Callable_0_0<Target, Res>*
+makeCallable(
     Res (Target::*f)(),
     Target* obj) {
-  return new CallableMany_0_0<Target,Res>(
+  return new Callable_0_0<Target,Res>(
     f,
     obj);
 }
@@ -224,18 +224,18 @@ makeCallableOnce(
 }
 
 template<typename Target, typename Res, typename Arg1>
-class CallableMany_1_0 :
+class Callable_1_0 :
   public Callback<Res, Arg1> {
 
 public:
   typedef Res(Target::*TargetFunc)(Arg1);
 
-  CallableMany_1_0(TargetFunc target_func,
+  Callable_1_0(TargetFunc target_func,
     Target* obj)
     : target_func_(target_func),
       obj_(obj) { }
 
-  virtual ~CallableMany_1_0() {}
+  virtual ~Callable_1_0() {}
 
   virtual Res run(Arg1 arg1) {
     return ((*obj_).*target_func_)(arg1);
@@ -252,11 +252,11 @@ private:
 };
 
 template<typename Target, typename Res, typename Arg1>
-CallableMany_1_0<Target, Res, Arg1>*
-makeCallableMany(
+Callable_1_0<Target, Res, Arg1>*
+makeCallable(
     Res (Target::*f)(Arg1),
     Target* obj) {
-  return new CallableMany_1_0<Target,Res, Arg1>(
+  return new Callable_1_0<Target,Res, Arg1>(
     f,
     obj);
 }
@@ -337,20 +337,20 @@ makeCallableOnce(
 }
 
 template<typename Target, typename Res, typename Bind1>
-class CallableMany_1_1 :
+class Callable_1_1 :
   public Callback<Res> {
 
 public:
   typedef Res(Target::*TargetFunc)(Bind1);
 
-  CallableMany_1_1(TargetFunc target_func,
+  Callable_1_1(TargetFunc target_func,
     Target* obj,
     Bind1 bind1)
     : target_func_(target_func),
       obj_(obj),
       bind1_(bind1) { }
 
-  virtual ~CallableMany_1_1() {}
+  virtual ~Callable_1_1() {}
 
   virtual Res run() {
     return ((*obj_).*target_func_)(bind1_);
@@ -367,12 +367,12 @@ private:
 };
 
 template<typename Target, typename Res, typename Bind1>
-CallableMany_1_1<Target, Res, Bind1>*
-makeCallableMany(
+Callable_1_1<Target, Res, Bind1>*
+makeCallable(
     Res (Target::*f)(Bind1),
     Target* obj,
     Bind1 bind1) {
-  return new CallableMany_1_1<Target,Res, Bind1>(
+  return new Callable_1_1<Target,Res, Bind1>(
     f,
     obj,
     bind1);
@@ -447,18 +447,18 @@ makeCallableOnce(
 }
 
 template<typename Target, typename Res, typename Arg1, typename Arg2>
-class CallableMany_2_0 :
+class Callable_2_0 :
   public Callback<Res, Arg1, Arg2> {
 
 public:
   typedef Res(Target::*TargetFunc)(Arg1, Arg2);
 
-  CallableMany_2_0(TargetFunc target_func,
+  Callable_2_0(TargetFunc target_func,
     Target* obj)
     : target_func_(target_func),
       obj_(obj) { }
 
-  virtual ~CallableMany_2_0() {}
+  virtual ~Callable_2_0() {}
 
   virtual Res run(Arg1 arg1, Arg2 arg2) {
     return ((*obj_).*target_func_)(arg1, arg2);
@@ -475,11 +475,11 @@ private:
 };
 
 template<typename Target, typename Res, typename Arg1, typename Arg2>
-CallableMany_2_0<Target, Res, Arg1, Arg2>*
-makeCallableMany(
+Callable_2_0<Target, Res, Arg1, Arg2>*
+makeCallable(
     Res (Target::*f)(Arg1, Arg2),
     Target* obj) {
-  return new CallableMany_2_0<Target,Res, Arg1, Arg2>(
+  return new Callable_2_0<Target,Res, Arg1, Arg2>(
     f,
     obj);
 }
@@ -560,20 +560,20 @@ makeCallableOnce(
 }
 
 template<typename Target, typename Res, typename Bind1, typename Arg1>
-class CallableMany_2_1 :
+class Callable_2_1 :
   public Callback<Res, Arg1> {
 
 public:
   typedef Res(Target::*TargetFunc)(Bind1, Arg1);
 
-  CallableMany_2_1(TargetFunc target_func,
+  Callable_2_1(TargetFunc target_func,
     Target* obj,
     Bind1 bind1)
     : target_func_(target_func),
       obj_(obj),
       bind1_(bind1) { }
 
-  virtual ~CallableMany_2_1() {}
+  virtual ~Callable_2_1() {}
 
   virtual Res run(Arg1 arg1) {
     return ((*obj_).*target_func_)(bind1_, arg1);
@@ -590,12 +590,12 @@ private:
 };
 
 template<typename Target, typename Res, typename Bind1, typename Arg1>
-CallableMany_2_1<Target, Res, Bind1, Arg1>*
-makeCallableMany(
+Callable_2_1<Target, Res, Bind1, Arg1>*
+makeCallable(
     Res (Target::*f)(Bind1, Arg1),
     Target* obj,
     Bind1 bind1) {
-  return new CallableMany_2_1<Target,Res, Bind1, Arg1>(
+  return new Callable_2_1<Target,Res, Bind1, Arg1>(
     f,
     obj,
     bind1);
@@ -685,13 +685,13 @@ makeCallableOnce(
 }
 
 template<typename Target, typename Res, typename Bind1, typename Bind2>
-class CallableMany_2_2 :
+class Callable_2_2 :
   public Callback<Res> {
 
 public:
   typedef Res(Target::*TargetFunc)(Bind1, Bind2);
 
-  CallableMany_2_2(TargetFunc target_func,
+  Callable_2_2(TargetFunc target_func,
     Target* obj,
     Bind1 bind1,
     Bind2 bind2)
@@ -700,7 +700,7 @@ public:
       bind1_(bind1),
       bind2_(bind2) { }
 
-  virtual ~CallableMany_2_2() {}
+  virtual ~Callable_2_2() {}
 
   virtual Res run() {
     return ((*obj_).*target_func_)(bind1_, bind2_);
@@ -718,13 +718,13 @@ private:
 };
 
 template<typename Target, typename Res, typename Bind1, typename Bind2>
-CallableMany_2_2<Target, Res, Bind1, Bind2>*
-makeCallableMany(
+Callable_2_2<Target, Res, Bind1, Bind2>*
+makeCallable(
     Res (Target::*f)(Bind1, Bind2),
     Target* obj,
     Bind1 bind1,
     Bind2 bind2) {
-  return new CallableMany_2_2<Target,Res, Bind1, Bind2>(
+  return new Callable_2_2<Target,Res, Bind1, Bind2>(
     f,
     obj,
     bind1,
@@ -800,18 +800,18 @@ makeCallableOnce(
 }
 
 template<typename Target, typename Res, typename Arg1, typename Arg2, typename Arg3>
-class CallableMany_3_0 :
+class Callable_3_0 :
   public Callback<Res, Arg1, Arg2, Arg3> {
 
 public:
   typedef Res(Target::*TargetFunc)(Arg1, Arg2, Arg3);
 
-  CallableMany_3_0(TargetFunc target_func,
+  Callable_3_0(TargetFunc target_func,
     Target* obj)
     : target_func_(target_func),
       obj_(obj) { }
 
-  virtual ~CallableMany_3_0() {}
+  virtual ~Callable_3_0() {}
 
   virtual Res run(Arg1 arg1, Arg2 arg2, Arg3 arg3) {
     return ((*obj_).*target_func_)(arg1, arg2, arg3);
@@ -828,11 +828,11 @@ private:
 };
 
 template<typename Target, typename Res, typename Arg1, typename Arg2, typename Arg3>
-CallableMany_3_0<Target, Res, Arg1, Arg2, Arg3>*
-makeCallableMany(
+Callable_3_0<Target, Res, Arg1, Arg2, Arg3>*
+makeCallable(
     Res (Target::*f)(Arg1, Arg2, Arg3),
     Target* obj) {
-  return new CallableMany_3_0<Target,Res, Arg1, Arg2, Arg3>(
+  return new Callable_3_0<Target,Res, Arg1, Arg2, Arg3>(
     f,
     obj);
 }
@@ -913,20 +913,20 @@ makeCallableOnce(
 }
 
 template<typename Target, typename Res, typename Bind1, typename Arg1, typename Arg2>
-class CallableMany_3_1 :
+class Callable_3_1 :
   public Callback<Res, Arg1, Arg2> {
 
 public:
   typedef Res(Target::*TargetFunc)(Bind1, Arg1, Arg2);
 
-  CallableMany_3_1(TargetFunc target_func,
+  Callable_3_1(TargetFunc target_func,
     Target* obj,
     Bind1 bind1)
     : target_func_(target_func),
       obj_(obj),
       bind1_(bind1) { }
 
-  virtual ~CallableMany_3_1() {}
+  virtual ~Callable_3_1() {}
 
   virtual Res run(Arg1 arg1, Arg2 arg2) {
     return ((*obj_).*target_func_)(bind1_, arg1, arg2);
@@ -943,12 +943,12 @@ private:
 };
 
 template<typename Target, typename Res, typename Bind1, typename Arg1, typename Arg2>
-CallableMany_3_1<Target, Res, Bind1, Arg1, Arg2>*
-makeCallableMany(
+Callable_3_1<Target, Res, Bind1, Arg1, Arg2>*
+makeCallable(
     Res (Target::*f)(Bind1, Arg1, Arg2),
     Target* obj,
     Bind1 bind1) {
-  return new CallableMany_3_1<Target,Res, Bind1, Arg1, Arg2>(
+  return new Callable_3_1<Target,Res, Bind1, Arg1, Arg2>(
     f,
     obj,
     bind1);
@@ -1038,13 +1038,13 @@ makeCallableOnce(
 }
 
 template<typename Target, typename Res, typename Bind1, typename Bind2, typename Arg1>
-class CallableMany_3_2 :
+class Callable_3_2 :
   public Callback<Res, Arg1> {
 
 public:
   typedef Res(Target::*TargetFunc)(Bind1, Bind2, Arg1);
 
-  CallableMany_3_2(TargetFunc target_func,
+  Callable_3_2(TargetFunc target_func,
     Target* obj,
     Bind1 bind1,
     Bind2 bind2)
@@ -1053,7 +1053,7 @@ public:
       bind1_(bind1),
       bind2_(bind2) { }
 
-  virtual ~CallableMany_3_2() {}
+  virtual ~Callable_3_2() {}
 
   virtual Res run(Arg1 arg1) {
     return ((*obj_).*target_func_)(bind1_, bind2_, arg1);
@@ -1071,13 +1071,13 @@ private:
 };
 
 template<typename Target, typename Res, typename Bind1, typename Bind2, typename Arg1>
-CallableMany_3_2<Target, Res, Bind1, Bind2, Arg1>*
-makeCallableMany(
+Callable_3_2<Target, Res, Bind1, Bind2, Arg1>*
+makeCallable(
     Res (Target::*f)(Bind1, Bind2, Arg1),
     Target* obj,
     Bind1 bind1,
     Bind2 bind2) {
-  return new CallableMany_3_2<Target,Res, Bind1, Bind2, Arg1>(
+  return new Callable_3_2<Target,Res, Bind1, Bind2, Arg1>(
     f,
     obj,
     bind1,
@@ -1176,13 +1176,13 @@ makeCallableOnce(
 }
 
 template<typename Target, typename Res, typename Bind1, typename Bind2, typename Bind3>
-class CallableMany_3_3 :
+class Callable_3_3 :
   public Callback<Res> {
 
 public:
   typedef Res(Target::*TargetFunc)(Bind1, Bind2, Bind3);
 
-  CallableMany_3_3(TargetFunc target_func,
+  Callable_3_3(TargetFunc target_func,
     Target* obj,
     Bind1 bind1,
     Bind2 bind2,
@@ -1193,7 +1193,7 @@ public:
       bind2_(bind2),
       bind3_(bind3) { }
 
-  virtual ~CallableMany_3_3() {}
+  virtual ~Callable_3_3() {}
 
   virtual Res run() {
     return ((*obj_).*target_func_)(bind1_, bind2_, bind3_);
@@ -1212,14 +1212,14 @@ private:
 };
 
 template<typename Target, typename Res, typename Bind1, typename Bind2, typename Bind3>
-CallableMany_3_3<Target, Res, Bind1, Bind2, Bind3>*
-makeCallableMany(
+Callable_3_3<Target, Res, Bind1, Bind2, Bind3>*
+makeCallable(
     Res (Target::*f)(Bind1, Bind2, Bind3),
     Target* obj,
     Bind1 bind1,
     Bind2 bind2,
     Bind3 bind3) {
-  return new CallableMany_3_3<Target,Res, Bind1, Bind2, Bind3>(
+  return new Callable_3_3<Target,Res, Bind1, Bind2, Bind3>(
     f,
     obj,
     bind1,

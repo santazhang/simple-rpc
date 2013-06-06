@@ -2,12 +2,13 @@
 #include "rpc/callback.h"
 #include "test/test_unit.h"
 #include "test/test_util.h"
+#include "rpc/utils.h"
 
 namespace {
 
 using rpc::Callback;
 using rpc::makeCallableOnce;
-using rpc::makeCallableMany;
+using rpc::makeCallable;
 using test::Counter;
 
 TEST(Once, Simple) {
@@ -59,7 +60,7 @@ TEST(Once, ReturnType) {
 
 TEST(Many, Simple) {
   Counter c;
-  Callback<void>* cb = makeCallableMany(&Counter::inc, &c);
+  Callback<void>* cb = makeCallable(&Counter::inc, &c);
   EXPECT_FALSE(cb->once());
   (*cb)();
   (*cb)();
@@ -70,12 +71,24 @@ TEST(Many, Simple) {
 // For threadpool interface run()
 TEST(Run, Simple) {
   Counter c;
-  Callback<void>* cb = makeCallableMany(&Counter::inc, &c);
+  Callback<void>* cb = makeCallable(&Counter::inc, &c);
   EXPECT_FALSE(cb->once());
   cb->run();
   cb->run();
   EXPECT_EQ(c.count(), 2);
   delete cb;
+}
+
+TEST(TheadPool, Simple) {
+  rpc::ThreadPool* pool = new rpc::ThreadPool(1);
+  Counter c;
+  rpc::Runnable* cb = makeCallable(&Counter::inc, &c); // Bind function to object.
+
+  pool->run_async(cb); // cb is deleted after running by pool.
+  cb = makeCallable(&Counter::incBy, &c, 2);  // Currying.
+  pool->run_async(cb); // cb is deleted after running by pool.
+  pool->release();
+  EXPECT_EQ(c.count(), 3)
 }
 
 } // unnamed namespace

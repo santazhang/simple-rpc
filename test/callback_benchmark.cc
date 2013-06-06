@@ -11,14 +11,14 @@ using std::tr1::bind;
 using std::tr1::function;
 using rpc::Callback;
 using rpc::makeCallableOnce;
-using rpc::makeCallableMany;
+using rpc::makeCallable;
 using rpc::Timer;
 using test::Counter;
 
 void SimpleCall() {
   const int REPEATS = 1000000;
 
-  // comparing base, tr1, makeCallableOnce, makeCallableMany variations
+  // comparing base, tr1, makeCallableOnce, makeCallable variations
   Timer timers[4];
   Counter counters[4];
 
@@ -51,8 +51,8 @@ void SimpleCall() {
   }
   timers[2].end();
 
-  // makeCallableMany variation
-  Callback<void>* cb3 = makeCallableMany(&Counter::inc, &counters[3]);
+  // makeCallable variation
+  Callback<void>* cb3 = makeCallable(&Counter::inc, &counters[3]);
   timers[3].start();
   for (int i=0; i<REPEATS; i++) {
     (*cb3)();
