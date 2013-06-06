@@ -17,7 +17,7 @@ def GenIthBase(i):
                "",
                "  virtual Res run(%s) = 0;",               # params
                "  Res operator()(%s) { return this->run(%s); }",  # params_decl, params_ins
-               "  virtual bool once() const { return false; }",
+               "  virtual bool once() const { return false; }", # default once() to compatible with Runnable()
                "};",
                "",
                ""]
