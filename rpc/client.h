@@ -51,7 +51,11 @@ class Future: public RefCounted {
     pthread_cond_t ready_cond_;
     pthread_mutex_t ready_m_;
 
-    // Private destructor as required by RefCounted.
+    void notify_ready();
+
+protected:
+
+    // protected destructor as required by RefCounted.
     ~Future() {
         if (attr_.callback != NULL) {
             delete attr_.callback;
@@ -59,8 +63,6 @@ class Future: public RefCounted {
         Pthread_mutex_destroy(&ready_m_);
         Pthread_cond_destroy(&ready_cond_);
     }
-
-    void notify_ready();
 
 public:
 
