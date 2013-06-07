@@ -5,6 +5,10 @@
 #include "marshal.h"
 #include "polling.h"
 
+#ifndef RPC_CLIENT_H_
+#define RPC_CLIENT_H_
+#endif // RPC_CLIENT_H_
+
 namespace rpc {
 
 class Future;
@@ -22,7 +26,7 @@ public:
 
 
 #define FUTURE_CALLBACK_CLASS1(cls, type1, arg1, fu_var, future_callback_body) \
-    class cls: public FutureCallback { \
+    class cls: public rpc::FutureCallback { \
     public: \
         cls(type1 arg1): arg1(arg1) {} \
         void run(Future* fu_var) { future_callback_body; } \

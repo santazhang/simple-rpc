@@ -79,7 +79,7 @@ public:
 
 
 #define RUNNABLE_CLASS1(cls, type1, arg1, run_func_body) \
-    class cls: public Runnable { \
+    class cls: public rpc::Runnable { \
     public: \
         cls(type1 arg1): arg1(arg1) {} \
         void run() { run_func_body; } \
@@ -88,7 +88,7 @@ public:
     };
 
 #define RUNNABLE_CLASS2(cls, type1, arg1, type2, arg2, run_func_body) \
-    class cls: public Runnable { \
+    class cls: public rpc::Runnable { \
     public: \
         cls(type1 arg1, type2 arg2): arg1(arg1), arg2(arg2) {} \
         void run() { run_func_body; } \
@@ -98,7 +98,7 @@ public:
     };
 
 #define RUNNABLE_CLASS3(cls, type1, arg1, type2, arg2, type3, arg3, run_func_body) \
-    class cls: public Runnable { \
+    class cls: public rpc::Runnable { \
     public: \
         cls(type1 arg1, type2 arg2, type3 arg3): arg1(arg1), arg2(arg2), arg3(arg3) {} \
         void run() { run_func_body; } \
@@ -109,7 +109,7 @@ public:
     };
 
 #define RUNNABLE_CLASS4(cls, type1, arg1, type2, arg2, type3, arg3, type4, arg4, run_func_body) \
-    class cls: public Runnable { \
+    class cls: public rpc::Runnable { \
     public: \
         cls(type1 arg1, type2 arg2, type3 arg3, type4 arg4): arg1(arg1), arg2(arg2), arg3(arg3), arg4(arg4) {} \
         void run() { run_func_body; } \

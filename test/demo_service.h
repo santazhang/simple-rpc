@@ -1,7 +1,14 @@
-// this file is generated from 'demo_service.rpc'
-// make sure you have included server.h and client.h before including this file
+// generated from 'demo_service.rpc'
 
 #pragma once
+
+#ifndef RPC_SERVER_H_
+#error please include server.h before including this file
+#endif // RPC_SERVER_H_
+
+#ifndef RPC_CLIENT_H_
+#error please include client.h before including this file
+#endif // RPC_CLIENT_H_
 
 #include <errno.h>
 
@@ -13,24 +20,19 @@ struct point3 {
     double z;
 };
 
-} // namespace demo
-
-// back to default namespace, we want the marshaling operators be avaialbe without using namespace demo
-inline rpc::Marshal& operator <<(rpc::Marshal& m, const demo::point3& o) {
+inline rpc::Marshal& operator <<(rpc::Marshal& m, const point3& o) {
     m << o.x;
     m << o.y;
     m << o.z;
     return m;
 }
 
-inline rpc::Marshal& operator >>(rpc::Marshal& m, demo::point3& o) {
+inline rpc::Marshal& operator >>(rpc::Marshal& m, point3& o) {
     m >> o.x;
     m >> o.y;
     m >> o.z;
     return m;
 }
-
-namespace demo {
 
 class MathService: public rpc::Service {
 public:
@@ -38,36 +40,30 @@ public:
         IS_PRIME = 0x1001,
         DOT_PROD = 0x1002,
     };
-
     void reg_to(rpc::Server* svr) {
-        svr->reg(IS_PRIME, this, &MathService::__is_prime__wrapped__);
-        svr->reg(DOT_PROD, this, &MathService::__dot_prod__wrapped__);
+        svr->reg(IS_PRIME, this, &MathService::__is_prime__wrapper__);
+        svr->reg(DOT_PROD, this, &MathService::__dot_prod__wrapper__);
     }
-
+    // these RPC handler functions need to be implemented by user
+    // for 'raw' handlers, remember to reply req, delete req, and sconn->release(); use sconn->run_async for heavy job
+    virtual void is_prime(const rpc::i32& n, rpc::i32* flag);
+    virtual void dot_prod(const point3& p1, const point3& p2, double* v);
 private:
-    void __is_prime__wrapped__(rpc::Request* req, rpc::ServerConnection* sconn) {
-        class R: public rpc::Runnable {
-            MathService* __thiz__;
-            rpc::Request* __req__;
-            rpc::ServerConnection* __sconn__;
-        public:
-            R(MathService* thiz, rpc::Request* r, rpc::ServerConnection* sc): __thiz__(thiz), __req__(r), __sconn__(sc) {}
-            void run() {
-                rpc::i32 in_0;
-                __req__->m >> in_0;
-                rpc::i32 out_0;
-                __thiz__->is_prime(in_0, &out_0);
-                __sconn__->begin_reply(__req__);
-                *__sconn__ << out_0;
-                __sconn__->end_reply();
-                delete __req__;
-                __sconn__->release();
-            }
-        };
+    void __is_prime__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
+        RUNNABLE_CLASS3(R, MathService*, thiz, rpc::Request*, req, rpc::ServerConnection*, sconn, {
+            rpc::i32 in_0;
+            req->m >> in_0;
+            rpc::i32 out_0;
+            thiz->is_prime(in_0, &out_0);
+            sconn->begin_reply(req);
+            *sconn << out_0;
+            sconn->end_reply();
+            delete req;
+            sconn->release();
+        });
         sconn->run_async(new R(this, req, sconn));
     }
-
-    void __dot_prod__wrapped__(rpc::Request* req, rpc::ServerConnection* sconn) {
+    void __dot_prod__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
         point3 in_0;
         req->m >> in_0;
         point3 in_1;
@@ -80,22 +76,23 @@ private:
         delete req;
         sconn->release();
     }
-
-public:
-    // these member functions need to be implemented by user
-    virtual void is_prime(const rpc::i32& n, rpc::i32* flag);
-    virtual void dot_prod(const point3& p1, const point3& p2, double* v);
-
-}; // class MathService
+};
 
 class MathProxy {
 protected:
     rpc::Client* __cl__;
 public:
-    MathProxy(rpc::Client* cl): __cl__(cl) {}
-
+    MathProxy(rpc::Client* cl): __cl__(cl) { }
+    rpc::Future* async_is_prime(const rpc::i32& n, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
+        rpc::Future* __fu__ = __cl__->begin_request(MathService::IS_PRIME, __fu_attr__);
+        if (__fu__ != NULL) {
+            *__cl__ << n;
+        }
+        __cl__->end_request();
+        return __fu__;
+    }
     rpc::i32 is_prime(const rpc::i32& n, rpc::i32* flag) {
-        rpc::Future* __fu__ = async_is_prime(n);
+        rpc::Future* __fu__ = this->async_is_prime(n);
         if (__fu__ == NULL) {
             return ENOTCONN;
         }
@@ -106,18 +103,17 @@ public:
         __fu__->release();
         return __ret__;
     }
-
-    rpc::Future* async_is_prime(const rpc::i32& n, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
-        rpc::Future* __fu__ = __cl__->begin_request(MathService::IS_PRIME, __fu_attr__);
+    rpc::Future* async_dot_prod(const point3& p1, const point3& p2, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
+        rpc::Future* __fu__ = __cl__->begin_request(MathService::DOT_PROD, __fu_attr__);
         if (__fu__ != NULL) {
-            *__cl__ << n;
+            *__cl__ << p1;
+            *__cl__ << p2;
         }
         __cl__->end_request();
         return __fu__;
     }
-
     rpc::i32 dot_prod(const point3& p1, const point3& p2, double* v) {
-        rpc::Future* __fu__ = async_dot_prod(p1, p2);
+        rpc::Future* __fu__ = this->async_dot_prod(p1, p2);
         if (__fu__ == NULL) {
             return ENOTCONN;
         }
@@ -128,23 +124,16 @@ public:
         __fu__->release();
         return __ret__;
     }
-
-    rpc::Future* async_dot_prod(const point3& p1, const point3& p2, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
-        rpc::Future* __fu__ = __cl__->begin_request(MathService::DOT_PROD, __fu_attr__);
-        if (__fu__ != NULL) {
-            *__cl__ << p1;
-            *__cl__ << p2;
-        }
-        __cl__->end_request();
-        return __fu__;
-    }
-
-}; // class MathProxy
+};
 
 } // namespace demo
 
+
 namespace demo {
+
 inline void MathService::dot_prod(const point3& p1, const point3& p2, double* v) {
     *v = p1.x * p2.x + p1.y * p2.y + p1.z * p2.z;
 }
+
 }
+

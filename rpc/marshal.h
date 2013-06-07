@@ -299,10 +299,6 @@ public:
     }
 };
 
-} // namespace rpc
-
-// define marshaling operators in default namespace, so we can use them without using namespace rpc
-
 inline rpc::Marshal& operator <<(rpc::Marshal& m, const rpc::i32& v) {
     m.write_i32(v);
     return m;
@@ -441,3 +437,5 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, std::map<K, V>& v) {
     }
     return m;
 }
+
+} // namespace rpc
