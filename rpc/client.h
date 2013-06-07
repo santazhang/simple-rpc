@@ -4,6 +4,7 @@
 
 #include "marshal.h"
 #include "polling.h"
+#include "callback.h"
 
 #ifndef RPC_CLIENT_H_
 #define RPC_CLIENT_H_
@@ -15,12 +16,7 @@ class Future;
 class Client;
 
 // callback should be fast, otherwise it hurts rpc performance
-class FutureCallback {
-public:
-    virtual ~FutureCallback() { }
-    virtual void run(Future* fu) = 0;
-};
-
+typedef Callback<void, Future*> FutureCallback;
 
 #define FUTURE_CALLBACK_CLASS1(cls, type1, arg1, fu_var, future_callback_body) \
     class cls: public rpc::FutureCallback { \
