@@ -14,9 +14,6 @@ namespace rpc {
 class Future;
 class Client;
 
-class Future;
-
-
 // callback should be fast, otherwise it hurts rpc performance
 class FutureCallback {
 public:
