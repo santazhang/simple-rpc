@@ -11,6 +11,29 @@
 using namespace rpc;
 using namespace demo;
 
+class CallbackHanler {
+public:
+    void onCallback(Client* cl, int* rpc_counter, Future* fu) {
+        (*rpc_counter)++;
+        FutureAttr attr;
+        attr.callback = makeCallable(&CallbackHanler::onCallback, this, cl, rpc_counter);
+#if 1
+        Future* fu2 = MathProxy(cl).async_is_prime(rand(), attr);
+#else
+        point3 p1, p2;
+        p1.x = 0.0;
+        p1.y = 0.0;
+        p1.z = 0.0;
+        p2.x = 0.0;
+        p2.y = 0.0;
+        p2.z = 0.0;
+        Future* fu2 = MathProxy(cl_).async_dot_prod(p1, p2, attr);
+#endif
+        if (fu2 != NULL) {
+            fu2->release();
+        }
+    }
+};
 
 int main(int argc, char* argv[]) {
     const char* svr_addr = "127.0.0.1:1987";
@@ -51,39 +74,13 @@ int main(int argc, char* argv[]) {
     const int concurrency = 1000;
 
     int rpc_counter = 0;
+    CallbackHanler handler; // Thread-safe
 
     for (int i = 0; i < concurrency; i++) {
-        class CB: public FutureCallback {
-        public:
-            CB(Client* cl, int* rpc_counter): cl_(cl), rpc_counter_(rpc_counter) {}
-            void run(Future* fu) {
-                (*rpc_counter_)++;
-                FutureAttr attr;
-                attr.callback = new CB(cl_, rpc_counter_);
-#if 1
-                Future* fu2 = MathProxy(cl_).async_is_prime(rand(), attr);
-#else
-                point3 p1, p2;
-                p1.x = 0.0;
-                p1.y = 0.0;
-                p1.z = 0.0;
-                p2.x = 0.0;
-                p2.y = 0.0;
-                p2.z = 0.0;
-                Future* fu2 = MathProxy(cl_).async_dot_prod(p1, p2, attr);
-#endif
-                if (fu2 != NULL) {
-                    fu2->release();
-                }
-            }
-        private:
-            Client* cl_;
-            int* rpc_counter_;
-        };
-
         FutureAttr attr;
-        attr.callback = new CB(cl, &rpc_counter);
+        attr.callback = makeCallable(&CallbackHanler::onCallback, &handler, cl, &rpc_counter);
 #if 1
+        // Start the endless chains of callbacks until close_and_release.
         Future* fu = MathProxy(cl).async_is_prime(rand(), attr);
 #else
         point3 p1, p2;
