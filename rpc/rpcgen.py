@@ -485,8 +485,9 @@ def rpcgen(rpc_fpath):
         emit_rpc_source(rpc_source, f)
 
         rpc_src_lines = rpc_src.split("\n")
-        for l in rpc_src_lines[rpc_src_lines.index("%%") + 1:]:
-            f.writeln(l)
+        if "%%" in rpc_src_lines:
+            for l in rpc_src_lines[rpc_src_lines.index("%%") + 1:]:
+                f.writeln(l)
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
