@@ -339,7 +339,5 @@ private:
 
 int set_nonblocking(int fd, bool nonblocking);
 
-uint32_t crc32c(const char* data, size_t n);
-
 }
 

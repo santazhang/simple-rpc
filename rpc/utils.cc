@@ -5,7 +5,6 @@
 #include <sys/time.h>
 
 #include "utils.h"
-#include "crc32c.h"
 
 namespace rpc {
 
@@ -182,10 +181,6 @@ double Timer::elapsed() const {
     usec = (end_.tv_usec - start_.tv_usec) / 1000000.0;
   }
   return sec+usec;
-}
-
-uint32_t crc32c(const char* data, size_t n) {
-    return leveldb::crc32c::Value(data, n);
 }
 
 }
