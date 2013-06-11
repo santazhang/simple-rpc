@@ -5,8 +5,8 @@ using namespace std;
 namespace rpc {
 
 #ifdef PERF_TEST
-int _perf_rpc_in_packet_size[1024];
-int _perf_rpc_out_packet_size[1024];
+int _perf_rpc_in_packet_size[PERF_SAMPLE_SIZE];
+int _perf_rpc_out_packet_size[PERF_SAMPLE_SIZE];
 #endif // PERF_TEST
 
 /**
@@ -152,7 +152,7 @@ string Marshal::dump() const {
     return s;
 }
 
-int Marshal::read_from_marshal(Marshal& m, int n) {
+int Marshal::read_from_marshal(Marshal& m, int n /* =? */) {
     assert(chunk_.empty() || !chunk_.front()->fully_read());
     assert(m.chunk_.empty() || !m.chunk_.front()->fully_read());
 

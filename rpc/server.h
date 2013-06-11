@@ -39,6 +39,17 @@ public:
     virtual void reg_to(Server*) = 0;
 };
 
+struct ServerReply {
+    Marshal* m;
+    Marshal::Bookmark* bmark;
+
+    template <class T>
+    Marshal& operator <<(const T& o) {
+        *m << o;
+        return *m;
+    }
+};
+
 class ServerConnection: public Pollable {
 
     friend class Server;
@@ -48,8 +59,6 @@ class ServerConnection: public Pollable {
 
     Server* server_;
     int socket_;
-
-    Marshal::Bookmark* bmark_;
 
     enum {
         CONNECTED, CLOSED
@@ -73,7 +82,7 @@ protected:
 public:
 
     ServerConnection(Server* server, int socket)
-            : server_(server), socket_(socket), bmark_(NULL), status_(CONNECTED) {
+            : server_(server), socket_(socket), status_(CONNECTED) {
         Pthread_mutex_init(&out_m_, NULL);
     }
 
@@ -91,18 +100,12 @@ public:
      * ENOENT: method not found
      * EINVAL: invalid packet (field missing)
      */
-    void begin_reply(Request* req, i32 error_code = 0);
+    ServerReply begin_reply(Request* req, i32 error_code = 0);
 
-    void end_reply();
+    void end_reply(ServerReply& sreply);
 
     // helper function, do some work in background
     void run_async(Runnable* r);
-
-    template<class T>
-    ServerConnection& operator <<(const T& v) {
-        this->out_ << v;
-        return *this;
-    }
 
     int fd() {
         return socket_;
@@ -136,13 +139,6 @@ class Server: public NoCopy {
     } status_;
 
     pthread_t loop_th_;
-
-#ifdef PERF_TEST
-    // for performance reporting
-    pthread_t perf_th_;
-    static void* start_perf_loop(void *arg);
-    void perf_loop();
-#endif // PERF_TEST
 
     static void* start_server_loop(void* arg);
     void server_loop(struct addrinfo* svr_addr);

@@ -4,6 +4,7 @@
 #include <set>
 
 #include "utils.h"
+#include "marshal.h"
 
 namespace rpc {
 
@@ -32,6 +33,14 @@ class PollMgr: public RefCounted {
 
     PollThread* poll_threads_;
     int n_;
+
+#ifdef PERF_TEST
+    // for performance reporting
+    pthread_t perf_th_;
+    static void* start_perf_loop(void *arg);
+    void perf_loop();
+    bool perf_stop_flag_;
+#endif // PERF_TEST
 
 protected:
 

@@ -15,6 +15,10 @@
 #include "utils.h"
 #include "polling.h"
 
+#ifdef PERF_TEST
+#include <sstream>
+#endif // PERF_TEST
+
 using namespace std;
 
 namespace rpc {
@@ -84,12 +88,58 @@ PollMgr::PollMgr(int n_threads /* =... */)
         : n_(n_threads) {
     poll_threads_ = new PollThread[n_];
     //Log::debug("rpc::PollMgr: start with %d thread", n_);
+
+#ifdef PERF_TEST
+    perf_stop_flag_ = false;
+    memset(_perf_rpc_in_packet_size, 0, sizeof(_perf_rpc_in_packet_size));
+    memset(_perf_rpc_out_packet_size, 0, sizeof(_perf_rpc_out_packet_size));
+    Pthread_create(&perf_th_, NULL, PollMgr::start_perf_loop, this);
+#endif // PERF_TEST
 }
 
 PollMgr::~PollMgr() {
     delete[] poll_threads_;
     //Log::debug("rpc::PollMgr: destroyed");
+
+#ifdef PERF_TEST
+    perf_stop_flag_ = true;
+    Pthread_join(perf_th_, NULL);
+#endif // PERF_TSET
+
 }
+
+#ifdef PERF_TEST
+
+void* PollMgr::start_perf_loop(void *arg) {
+    PollMgr* mgr = (PollMgr *) arg;
+    mgr->perf_loop();
+    pthread_exit(NULL);
+    return NULL;
+}
+
+void PollMgr::perf_loop() {
+    while (perf_stop_flag_ == false) {
+        Log::debug("perf loop");
+        ostringstream in_ostr;
+        const int in_stat_size = sizeof(_perf_rpc_in_packet_size) / sizeof(_perf_rpc_in_packet_size[0]);
+
+        for (int i = 0; i < in_stat_size; i++) {
+            in_ostr << " " << _perf_rpc_in_packet_size[i];
+        }
+        Log::debug("in:  %s", in_ostr.str().c_str());
+
+        ostringstream out_ostr;
+        const int out_stat_size = sizeof(_perf_rpc_out_packet_size) / sizeof(_perf_rpc_out_packet_size[0]);
+        for (int i = 0; i < out_stat_size; i++) {
+            out_ostr << " " << _perf_rpc_out_packet_size[i];
+        }
+        Log::debug("out: %s", out_ostr.str().c_str());
+        sleep(1);
+    }
+    Log::debug("perf loop finished");
+}
+
+#endif // PERF_TEST
 
 void PollMgr::PollThread::poll_loop() {
     while (!stop_flag_) {

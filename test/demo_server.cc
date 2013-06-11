@@ -32,7 +32,12 @@ int main(int argc, char* argv[]) {
     signal(SIGQUIT, signal_handler);
     signal(SIGTERM, signal_handler);
 
-    Server svr;
+    PollMgr* poll = new PollMgr(1);
+    ThreadPool* thrpool = new ThreadPool(32);
+    Server svr(poll, thrpool);
+    poll->release();
+    thrpool->release();
+
     MathService math_svc;
     svr.reg(&math_svc);
     svr.start(bind_addr);

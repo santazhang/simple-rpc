@@ -19,29 +19,31 @@ void ServerConnection::run_async(Runnable* r) {
     server_->threadpool_->run_async(r);
 }
 
-void ServerConnection::begin_reply(Request* req, i32 error_code /* =... */) {
-    Pthread_mutex_lock(&out_m_);
+ServerReply ServerConnection::begin_reply(Request* req, i32 error_code /* =... */) {
+    ServerReply sreply;
+    sreply.m = new Marshal;
+    sreply.bmark = sreply.m->set_bookmark(sizeof(i32)); // will write reply size later
 
-    bmark_ = this->out_.set_bookmark(sizeof(i32)); // will write reply size later
+    sreply << req->xid;
+    sreply << error_code;
 
-    *this << req->xid;
-    *this << error_code;
+    return sreply;
 }
 
-void ServerConnection::end_reply() {
+void ServerConnection::end_reply(ServerReply& sreply) {
     // set reply size in packet
-    if (bmark_ != NULL) {
-        i32 reply_size = out_.get_write_counter_and_reset();
-        out_.write_bookmark(bmark_, &reply_size);
-        delete bmark_;
-        bmark_ = NULL;
-    }
+    verify(sreply.bmark != NULL);
 
-    if (!out_.empty()) {
-        server_->pollmgr_->update_mode(this, Pollable::READ | Pollable::WRITE);
-    }
+    i32 reply_size = sreply.m->get_write_counter_and_reset();
+    sreply.m->write_bookmark(sreply.bmark, &reply_size);
+    delete sreply.bmark;
+    sreply.bmark = NULL;
 
+    Pthread_mutex_lock(&out_m_);
+    out_.read_from_marshal(*sreply.m);
     Pthread_mutex_unlock(&out_m_);
+
+    server_->pollmgr_->update_mode(this, Pollable::READ | Pollable::WRITE);
 }
 
 void ServerConnection::handle_read() {
@@ -88,8 +90,8 @@ void ServerConnection::handle_read() {
 
         if (!req->m.content_size_gt(sizeof(i32) - 1)) {
             // rpc id not provided
-            begin_reply(req, EINVAL);
-            end_reply();
+            ServerReply sreply = begin_reply(req, EINVAL);
+            end_reply(sreply);
             delete req;
             continue;
         }
@@ -103,8 +105,8 @@ void ServerConnection::handle_read() {
             it->second->handle(req, (ServerConnection *) this->ref_copy());
         } else {
             Log::error("rpc::ServerConnection: no handler for rpc_id=%d", rpc_id);
-            begin_reply(req, ENOENT);
-            end_reply();
+            ServerReply sreply = begin_reply(req, ENOENT);
+            end_reply(sreply);
             delete req;
         }
     }
@@ -195,10 +197,6 @@ Server::~Server() {
         // wait till accepting thread done
         Pthread_join(loop_th_, NULL);
 
-#ifdef PERF_TEST
-        Pthread_join(perf_th_, NULL);
-#endif // PERF_TSET
-
         verify(server_sock_ == -1 && status_ == STOPPED);
     }
 
@@ -277,38 +275,6 @@ void Server::server_loop(struct addrinfo* svr_addr) {
     status_ = STOPPED;
 }
 
-#ifdef PERF_TEST
-
-void* Server::start_perf_loop(void *arg) {
-    Server* svr = (Server *) arg;
-    svr->perf_loop();
-    pthread_exit(NULL);
-    return NULL;
-}
-
-void Server::perf_loop() {
-    while (status_ == RUNNING) {
-        Log::debug("perf loop");
-        ostringstream in_ostr;
-        const int in_stat_size = sizeof(_perf_rpc_in_packet_size) / sizeof(_perf_rpc_in_packet_size[0]);
-
-        for (int i = 0; i < in_stat_size; i++) {
-            in_ostr << " " << _perf_rpc_in_packet_size[i];
-        }
-        Log::debug("in:  %s", in_ostr.str().c_str());
-
-        ostringstream out_ostr;
-        const int out_stat_size = sizeof(_perf_rpc_out_packet_size) / sizeof(_perf_rpc_out_packet_size[0]);
-        for (int i = 0; i < out_stat_size; i++) {
-            out_ostr << " " << _perf_rpc_out_packet_size[i];
-        }
-        Log::debug("out: %s", out_ostr.str().c_str());
-        sleep(1);
-    }
-    Log::debug("perf loop finished");
-}
-
-#endif // PERF_TEST
 
 int Server::start(const char* bind_addr) {
     string addr(bind_addr);
@@ -371,12 +337,6 @@ int Server::start(const char* bind_addr) {
     start_server_loop_args->gai_result = result;
     start_server_loop_args->svr_addr = rp;
     Pthread_create(&loop_th_, NULL, Server::start_server_loop, start_server_loop_args);
-
-#ifdef PERF_TEST
-    memset(_perf_rpc_in_packet_size, 0, sizeof(_perf_rpc_in_packet_size));
-    memset(_perf_rpc_out_packet_size, 0, sizeof(_perf_rpc_out_packet_size));
-    Pthread_create(&perf_th_, NULL, Server::start_perf_loop, this);
-#endif // PERF_TEST
 
     return 0;
 }

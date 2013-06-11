@@ -15,7 +15,7 @@ def configure(conf):
         Logs.pprint("PINK", "debug support enabled")
         conf.env.append_value("CXXFLAGS", ["-ggdb", "-Wall"])
     else:
-        conf.env.append_value("CXXFLAGS", ["-O3", "-fno-omit-frame-pointer", "-Wall"])
+        conf.env.append_value("CXXFLAGS", ["-O3", "-fno-omit-frame-pointer", "-Wall", "-ggdb"])
 
 def build(bld):
     def _depend(target, source, action):

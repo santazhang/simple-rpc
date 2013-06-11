@@ -5,6 +5,7 @@
 #include <string>
 #include <map>
 #include <set>
+#include <limits>
 
 #include <inttypes.h>
 #include <string.h>
@@ -17,8 +18,9 @@
 namespace rpc {
 
 #ifdef PERF_TEST
-extern int _perf_rpc_in_packet_size[1024];
-extern int _perf_rpc_out_packet_size[1024];
+#define PERF_SAMPLE_SIZE 19
+extern int _perf_rpc_in_packet_size[PERF_SAMPLE_SIZE];
+extern int _perf_rpc_out_packet_size[PERF_SAMPLE_SIZE];
 #endif // PERF_TEST
 
 class Marshal;
@@ -269,7 +271,7 @@ public:
     int read(void* p, int n);
     int peek(void* p, int n) const;
 
-    int read_from_marshal(Marshal&, int n);
+    int read_from_marshal(Marshal&, int n = std::numeric_limits<int>::max());
     int read_from_fd(int fd);
     int write_to_fd(int fd);
 
