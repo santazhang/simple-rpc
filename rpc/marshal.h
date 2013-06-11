@@ -230,6 +230,7 @@ class Marshal: public NoCopy {
 
     std::list<Chunk*> chunk_;
     i32 write_counter_;
+    double last_write_fd_tm_;
 
 public:
 
@@ -246,11 +247,8 @@ public:
         }
     };
 
-    Marshal()
-            : write_counter_(0) {
-    }
-    Marshal(const std::string& data)
-            : write_counter_(0) {
+    Marshal() : write_counter_(0), last_write_fd_tm_(0) { }
+    Marshal(const std::string& data) : write_counter_(0), last_write_fd_tm_(0) {
         chunk_.push_back(new Chunk(&data[0], data.length()));
     }
     ~Marshal();

@@ -1,3 +1,5 @@
+#include <sys/time.h>
+
 #include "marshal.h"
 
 using namespace std;
@@ -122,6 +124,15 @@ int Marshal::peek(void* p, int n) const {
 
 int Marshal::write_to_fd(int fd) {
     assert(chunk_.empty() || !chunk_.front()->fully_read());
+
+    struct timeval tm;
+    gettimeofday(&tm, NULL);
+    double now = tm.tv_sec + tm.tv_usec / 1000.0 / 1000.0;
+    if (!content_size_gt(1024) && now - last_write_fd_tm_ < 0.001) {
+        // wait till next batch
+        return 0;
+    }
+    last_write_fd_tm_ = now;
 
     int n_write = 0;
     while (!chunk_.empty()) {
