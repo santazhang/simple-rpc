@@ -211,10 +211,10 @@ def emit_service_and_proxy(service, f):
                     f.writeln("thiz->%s(%s);" % (func.name, ", ".join(invoke_with)))
                 else:
                     f.writeln("this->%s(%s);" % (func.name, ", ".join(invoke_with)))
-                f.writeln("rpc::ServerReply sreply = sconn->begin_reply(req);")
+                f.writeln("sconn->begin_reply(req);")
                 for i in range(out_counter):
-                    f.writeln("sreply << out_%d;" % i)
-                f.writeln("sconn->end_reply(sreply);")
+                    f.writeln("*sconn << out_%d;" % i)
+                f.writeln("sconn->end_reply();")
                 f.writeln("delete req;")
                 f.writeln("sconn->release();")
                 if func.attr != "fast":

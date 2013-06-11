@@ -39,17 +39,6 @@ public:
     virtual void reg_to(Server*) = 0;
 };
 
-struct ServerReply {
-    Marshal* m;
-    Marshal::Bookmark* bmark;
-
-    template <class T>
-    Marshal& operator <<(const T& o) {
-        *m << o;
-        return *m;
-    }
-};
-
 class ServerConnection: public Pollable {
 
     friend class Server;
@@ -59,6 +48,8 @@ class ServerConnection: public Pollable {
 
     Server* server_;
     int socket_;
+
+    Marshal::Bookmark* bmark_;
 
     enum {
         CONNECTED, CLOSED
@@ -82,7 +73,7 @@ protected:
 public:
 
     ServerConnection(Server* server, int socket)
-            : server_(server), socket_(socket), status_(CONNECTED) {
+            : server_(server), socket_(socket), bmark_(NULL), status_(CONNECTED) {
         Pthread_mutex_init(&out_m_, NULL);
     }
 
@@ -100,12 +91,18 @@ public:
      * ENOENT: method not found
      * EINVAL: invalid packet (field missing)
      */
-    ServerReply begin_reply(Request* req, i32 error_code = 0);
+    void begin_reply(Request* req, i32 error_code = 0);
 
-    void end_reply(ServerReply& sreply);
+    void end_reply();
 
     // helper function, do some work in background
     void run_async(Runnable* r);
+
+    template<class T>
+    ServerConnection& operator <<(const T& v) {
+        this->out_ << v;
+        return *this;
+    }
 
     int fd() {
         return socket_;

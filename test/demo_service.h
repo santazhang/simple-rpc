@@ -66,9 +66,9 @@ private:
         req->m >> in_0;
         rpc::i32 out_0;
         this->fast_prime(in_0, &out_0);
-        rpc::ServerReply sreply = sconn->begin_reply(req);
-        sreply << out_0;
-        sconn->end_reply(sreply);
+        sconn->begin_reply(req);
+        *sconn << out_0;
+        sconn->end_reply();
         delete req;
         sconn->release();
     }
@@ -79,9 +79,9 @@ private:
         req->m >> in_1;
         double out_0;
         this->fast_dot_prod(in_0, in_1, &out_0);
-        rpc::ServerReply sreply = sconn->begin_reply(req);
-        sreply << out_0;
-        sconn->end_reply(sreply);
+        sconn->begin_reply(req);
+        *sconn << out_0;
+        sconn->end_reply();
         delete req;
         sconn->release();
     }
@@ -89,8 +89,8 @@ private:
         std::string in_0;
         req->m >> in_0;
         this->fast_large_str_nop(in_0);
-        rpc::ServerReply sreply = sconn->begin_reply(req);
-        sconn->end_reply(sreply);
+        sconn->begin_reply(req);
+        sconn->end_reply();
         delete req;
         sconn->release();
     }
@@ -100,9 +100,9 @@ private:
             req->m >> in_0;
             rpc::i32 out_0;
             thiz->prime(in_0, &out_0);
-            rpc::ServerReply sreply = sconn->begin_reply(req);
-            sreply << out_0;
-            sconn->end_reply(sreply);
+            sconn->begin_reply(req);
+            *sconn << out_0;
+            sconn->end_reply();
             delete req;
             sconn->release();
         });
@@ -116,9 +116,9 @@ private:
             req->m >> in_1;
             double out_0;
             thiz->dot_prod(in_0, in_1, &out_0);
-            rpc::ServerReply sreply = sconn->begin_reply(req);
-            sreply << out_0;
-            sconn->end_reply(sreply);
+            sconn->begin_reply(req);
+            *sconn << out_0;
+            sconn->end_reply();
             delete req;
             sconn->release();
         });
@@ -129,8 +129,8 @@ private:
             std::string in_0;
             req->m >> in_0;
             thiz->large_str_nop(in_0);
-            rpc::ServerReply sreply = sconn->begin_reply(req);
-            sconn->end_reply(sreply);
+            sconn->begin_reply(req);
+            sconn->end_reply();
             delete req;
             sconn->release();
         });

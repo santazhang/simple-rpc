@@ -19,31 +19,29 @@ void ServerConnection::run_async(Runnable* r) {
     server_->threadpool_->run_async(r);
 }
 
-ServerReply ServerConnection::begin_reply(Request* req, i32 error_code /* =... */) {
-    ServerReply sreply;
-    sreply.m = new Marshal;
-    sreply.bmark = sreply.m->set_bookmark(sizeof(i32)); // will write reply size later
+void ServerConnection::begin_reply(Request* req, i32 error_code /* =... */) {
+    Pthread_mutex_lock(&out_m_);
 
-    sreply << req->xid;
-    sreply << error_code;
+    bmark_ = this->out_.set_bookmark(sizeof(i32)); // will write reply size later
 
-    return sreply;
+    *this << req->xid;
+    *this << error_code;
 }
 
-void ServerConnection::end_reply(ServerReply& sreply) {
+void ServerConnection::end_reply() {
     // set reply size in packet
-    verify(sreply.bmark != NULL);
+    if (bmark_ != NULL) {
+        i32 reply_size = out_.get_write_counter_and_reset();
+        out_.write_bookmark(bmark_, &reply_size);
+        delete bmark_;
+        bmark_ = NULL;
+    }
 
-    i32 reply_size = sreply.m->get_write_counter_and_reset();
-    sreply.m->write_bookmark(sreply.bmark, &reply_size);
-    delete sreply.bmark;
-    sreply.bmark = NULL;
+    if (!out_.empty()) {
+        server_->pollmgr_->update_mode(this, Pollable::READ | Pollable::WRITE);
+    }
 
-    Pthread_mutex_lock(&out_m_);
-    out_.read_from_marshal(*sreply.m);
     Pthread_mutex_unlock(&out_m_);
-
-    server_->pollmgr_->update_mode(this, Pollable::READ | Pollable::WRITE);
 }
 
 void ServerConnection::handle_read() {
@@ -90,8 +88,8 @@ void ServerConnection::handle_read() {
 
         if (!req->m.content_size_gt(sizeof(i32) - 1)) {
             // rpc id not provided
-            ServerReply sreply = begin_reply(req, EINVAL);
-            end_reply(sreply);
+            begin_reply(req, EINVAL);
+            end_reply();
             delete req;
             continue;
         }
@@ -105,8 +103,8 @@ void ServerConnection::handle_read() {
             it->second->handle(req, (ServerConnection *) this->ref_copy());
         } else {
             Log::error("rpc::ServerConnection: no handler for rpc_id=%d", rpc_id);
-            ServerReply sreply = begin_reply(req, ENOENT);
-            end_reply(sreply);
+            begin_reply(req, ENOENT);
+            end_reply();
             delete req;
         }
     }
@@ -274,7 +272,6 @@ void Server::server_loop(struct addrinfo* svr_addr) {
     server_sock_ = -1;
     status_ = STOPPED;
 }
-
 
 int Server::start(const char* bind_addr) {
     string addr(bind_addr);

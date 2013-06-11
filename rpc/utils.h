@@ -123,42 +123,30 @@ typedef Callback<void> Runnable;
  * This is thread safe.
  */
 class RefCounted: public NoCopy {
-    pthread_mutex_t m_;
     int refcnt_;
 
 protected:
 
-    virtual ~RefCounted() {
-        Pthread_mutex_destroy(&m_);
-    }
+    virtual ~RefCounted() {}
 
 public:
 
     RefCounted(): refcnt_(1) {
-        Pthread_mutex_init(&m_, NULL);
     }
 
     int ref_count() {
-        Pthread_mutex_lock(&m_);
-        int r = refcnt_;
-        Pthread_mutex_unlock(&m_);
-        return r;
+        return refcnt_;
     }
 
     RefCounted* ref_copy() {
-        Pthread_mutex_lock(&m_);
-        refcnt_++;
-        Pthread_mutex_unlock(&m_);
+        __sync_add_and_fetch(&refcnt_, 1);
         return this;
     }
 
     void release() {
-        Pthread_mutex_lock(&m_);
-        refcnt_--;
-        verify(refcnt_ >= 0);
-        bool should_delete = (refcnt_ == 0);
-        Pthread_mutex_unlock(&m_);
-        if (should_delete) {
+        int r = __sync_sub_and_fetch(&refcnt_, 1);
+        verify(r >= 0);
+        if (r == 0) {
             delete this;
         }
     }
