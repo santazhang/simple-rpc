@@ -128,7 +128,7 @@ int Marshal::write_to_fd(int fd) {
     struct timeval tm;
     gettimeofday(&tm, NULL);
     double now = tm.tv_sec + tm.tv_usec / 1000.0 / 1000.0;
-    if (!content_size_gt(1024) && now - last_write_fd_tm_ < 0.001) {
+    if (!content_size_gt(512) && now - last_write_fd_tm_ < 0.05) {
         // wait till next batch
         return 0;
     }
