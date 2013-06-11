@@ -14,10 +14,10 @@ using namespace demo;
 class CallbackHanler {
 public:
     void onCallback(Client* cl, int* rpc_counter, Future* fu) {
-        (*rpc_counter)++;
+        __sync_add_and_fetch(rpc_counter, 1);
         FutureAttr attr;
         attr.callback = makeCallable(&CallbackHanler::onCallback, this, cl, rpc_counter);
-#if 1
+#if 0
         Future* fu2 = MathProxy(cl).async_is_prime(rand(), attr);
 #else
         point3 p1, p2;
@@ -27,7 +27,7 @@ public:
         p2.x = 0.0;
         p2.y = 0.0;
         p2.z = 0.0;
-        Future* fu2 = MathProxy(cl_).async_dot_prod(p1, p2, attr);
+        Future* fu2 = MathProxy(cl).async_dot_prod(p1, p2, attr);
 #endif
         if (fu2 != NULL) {
             fu2->release();
@@ -79,7 +79,7 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < concurrency; i++) {
         FutureAttr attr;
         attr.callback = makeCallable(&CallbackHanler::onCallback, &handler, cl, &rpc_counter);
-#if 1
+#if 0
         // Start the endless chains of callbacks until close_and_release.
         Future* fu = MathProxy(cl).async_is_prime(rand(), attr);
 #else
