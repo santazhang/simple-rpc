@@ -58,9 +58,7 @@ void ThreadPool::run_async(const std::function<void()>& f) {
     class R: public Runnable {
         std::function<void()> f_;
     public:
-        R(const std::function<void()>& f): f_(f) {
-            printf("sizeof(f)=%d\n", sizeof(f));
-        }
+        R(const std::function<void()>& f): f_(f) {}
         void run() {
             f_();
         }
