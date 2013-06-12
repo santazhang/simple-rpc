@@ -1,6 +1,7 @@
 #pragma once
 
 #include <list>
+#include <functional>
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -218,6 +219,8 @@ public:
 
     // NOTE: Runnable* will be deleted after execution.
     void run_async(Runnable*);
+
+    void run_async(std::function<void()>);
 };
 
 class Counter: public NoCopy {

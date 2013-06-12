@@ -16,9 +16,10 @@ def configure(conf):
 
     if os.getenv("DEBUG") in ["true", "1"]:
         Logs.pprint("PINK", "debug support enabled")
-        conf.env.append_value("CXXFLAGS", "-std=c++11 -Wall -pthread -ggdb".split())
+        conf.env.append_value("CXXFLAGS", "-std=c++11 -stdlib=libc++ -Wall -pthread -ggdb".split())
     else:
-        conf.env.append_value("CXXFLAGS", "-std=c++11 -Wall -pthread -O3 -ggdb -fno-omit-frame-pointer".split())
+        conf.env.append_value("CXXFLAGS", "-std=c++11 -stdlib=libc++ -Wall -pthread -O3 -ggdb -fno-omit-frame-pointer".split())
+    conf.env.append_value("LINKFLAGS", "-stdlib=libc++")
 
     conf.env.LIB_PTHREAD = 'pthread'
 

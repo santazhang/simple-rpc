@@ -309,7 +309,7 @@ int Server::start(const char* bind_addr) {
         verify(setsockopt(server_sock_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == 0);
         verify(setsockopt(server_sock_, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(yes)) == 0);
 
-        if (bind(server_sock_, rp->ai_addr, rp->ai_addrlen) == 0) {
+        if (::bind(server_sock_, rp->ai_addr, rp->ai_addrlen) == 0) {
             break;
         }
         close(server_sock_);

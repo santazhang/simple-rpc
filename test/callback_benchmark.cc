@@ -1,5 +1,5 @@
 #include <iostream>
-#include <tr1/functional>
+#include <functional>
 
 #include "rpc/callback.h"
 #include "rpc/utils.h"
@@ -7,8 +7,8 @@
 
 namespace {
 
-using std::tr1::bind;
-using std::tr1::function;
+using std::bind;
+using std::function;
 using rpc::Callback;
 using rpc::makeCallableOnce;
 using rpc::makeCallable;
