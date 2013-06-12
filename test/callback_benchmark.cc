@@ -31,14 +31,14 @@ void SimpleCall() {
   timers[0].end();
 
   // tr1 variation
-  typedef function<void()> Tr1Callback;
-  Tr1Callback* cb1 = new Tr1Callback(bind(&Counter::inc, &counters[1]));
+  auto f = [&] {
+    counters[1].inc();
+  };
   timers[1].start();
   for (int i=0; i<REPEATS; i++) {
-    (*cb1)();
+      f();
   }
   timers[1].end();
-  delete cb1;
 
   // makeCallableOnce variation
   Callback<void>* cb2[REPEATS];
