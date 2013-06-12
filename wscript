@@ -13,9 +13,9 @@ def configure(conf):
     conf.load("compiler_cxx")
     if conf.options.debug:
         Logs.pprint("PINK", "debug support enabled")
-        conf.env.append_value("CXXFLAGS", ["-ggdb", "-Wall"])
+        conf.env.append_value("CXXFLAGS", ["-std=c++11", "-ggdb", "-Wall"])
     else:
-        conf.env.append_value("CXXFLAGS", ["-O3", "-fno-omit-frame-pointer", "-Wall", "-ggdb"])
+        conf.env.append_value("CXXFLAGS", ["-std=c++11", "-O3", "-fno-omit-frame-pointer", "-Wall", "-ggdb"])
 
 def build(bld):
     def _depend(target, source, action):
