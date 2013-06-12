@@ -2,11 +2,11 @@ APPNAME="simple-rpc"
 VERSION="0.1"
 
 import os
-import shutil
+import sys
 from waflib import Logs
 
-if os.path.exists("/mach_kernel"):
-    os.environ["CXX"] = "clang++"   # use clang++ for c++11 support on mac
+if sys.platform == 'darwin' and not os.environ.has_key("CXX"):
+    os.environ["CXX"] = "clang++"   # use clang++ as default compiler (for c++11 support on mac)
 
 def options(opt):
     opt.load("compiler_cxx")
