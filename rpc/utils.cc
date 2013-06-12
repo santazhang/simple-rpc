@@ -54,6 +54,20 @@ void ThreadPool::run_async(Runnable* r) {
     q_[queue_id].push(r);
 }
 
+void ThreadPool::run_async(const std::function<void()>& f) {
+    class R: public Runnable {
+        std::function<void()> f_;
+    public:
+        R(const std::function<void()>& f): f_(f) {
+            printf("sizeof(f)=%d\n", sizeof(f));
+        }
+        void run() {
+            f_();
+        }
+    };
+    run_async(new R(f));
+}
+
 void ThreadPool::run_thread(int tid) {
     for (;;) {
         Runnable* j = q_[tid].pop();
