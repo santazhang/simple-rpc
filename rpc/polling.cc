@@ -198,7 +198,7 @@ void PollMgr::PollThread::poll_loop() {
                 poll->handle_read();
             }
             if (evlist[i].events & EPOLLOUT) {
-                poll->handle_write();
+                poll->handle_write(poll_mgr_->opts_);
             }
 
             // handle error after handle IO, so that we can at least process something
