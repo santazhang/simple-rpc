@@ -122,17 +122,19 @@ int Marshal::peek(void* p, int n) const {
     return n_peek;
 }
 
-int Marshal::write_to_fd(int fd) {
+int Marshal::write_to_fd(int fd, const rpc_batching_options& batch_opts) {
     assert(chunk_.empty() || !chunk_.front()->fully_read());
 
-    struct timeval tm;
-    gettimeofday(&tm, NULL);
-    double now = tm.tv_sec + tm.tv_usec / 1000.0 / 1000.0;
-    if (!content_size_gt(512) && now - last_write_fd_tm_ < 0.001) {
-        // wait till next batch
-        return 0;
+    if (batch_opts.min_size > 0 && batch_opts.interval > 0) {
+        struct timeval tm;
+        gettimeofday(&tm, NULL);
+        double now = tm.tv_sec + tm.tv_usec / 1000.0 / 1000.0;
+        if (!content_size_gt(batch_opts.min_size) && now - last_write_fd_tm_ < batch_opts.interval) {
+            // wait till next batch
+            return 0;
+        }
+        last_write_fd_tm_ = now;
     }
-    last_write_fd_tm_ = now;
 
     int n_write = 0;
     while (!chunk_.empty()) {

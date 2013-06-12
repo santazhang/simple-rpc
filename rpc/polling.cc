@@ -25,6 +25,10 @@ namespace rpc {
 
 class PollMgr::PollThread {
 
+    friend class PollMgr;
+
+    PollMgr* poll_mgr_;
+
     // guard mode_ and poll_set_
     pthread_mutex_t m_;
     std::map<int, int> mode_;
@@ -46,10 +50,14 @@ class PollMgr::PollThread {
 
     void poll_loop();
 
+    void start(PollMgr* poll_mgr) {
+        poll_mgr_ = poll_mgr;
+        Pthread_create(&th_, NULL, PollMgr::PollThread::start_poll_loop, this);
+    }
+
 public:
 
-    PollThread()
-            : stop_flag_(false) {
+    PollThread(): poll_mgr_(nullptr), stop_flag_(false) {
         Pthread_mutex_init(&m_, NULL);
         Pthread_mutex_init(&pending_remove_m_, NULL);
 
@@ -60,8 +68,6 @@ public:
 #endif
 
         verify(poll_fd_ != -1);
-
-        Pthread_create(&th_, NULL, PollMgr::PollThread::start_poll_loop, this);
     }
 
     ~PollThread() {
@@ -84,10 +90,12 @@ public:
     void update_mode(Pollable*, int new_mode);
 };
 
-PollMgr::PollMgr(int n_threads /* =... */)
-        : n_(n_threads) {
-    poll_threads_ = new PollThread[n_];
-    //Log::debug("rpc::PollMgr: start with %d thread", n_);
+PollMgr::PollMgr(const poll_options& opts /* =... */): opts_(opts) {
+    poll_threads_ = new PollThread[opts_.n_threads];
+    for (int i = 0; i < opts_.n_threads; i++) {
+        poll_threads_[i].start(this);
+    }
+    //Log::debug("rpc::PollMgr: start with %d thread", opts_.n_threads);
 
 #ifdef PERF_TEST
     perf_stop_flag_ = false;
@@ -162,7 +170,7 @@ void PollMgr::PollThread::poll_loop() {
                 poll->handle_read();
             }
             if (evlist[i].filter == EVFILT_WRITE) {
-                poll->handle_write();
+                poll->handle_write(poll_mgr_->opts_);
             }
 
             // handle error after handle IO, so that we can at least process something
@@ -408,7 +416,7 @@ void PollMgr::PollThread::update_mode(Pollable* poll, int new_mode) {
 void PollMgr::add(Pollable* poll) {
     int fd = poll->fd();
     if (fd >= 0) {
-        int tid = fd % n_;
+        int tid = fd % opts_.n_threads;
         poll_threads_[tid].add(poll);
     }
 }
@@ -416,7 +424,7 @@ void PollMgr::add(Pollable* poll) {
 void PollMgr::remove(Pollable* poll) {
     int fd = poll->fd();
     if (fd >= 0) {
-        int tid = fd % n_;
+        int tid = fd % opts_.n_threads;
         poll_threads_[tid].remove(poll);
     }
 }
@@ -424,7 +432,7 @@ void PollMgr::remove(Pollable* poll) {
 void PollMgr::update_mode(Pollable* poll, int new_mode) {
     int fd = poll->fd();
     if (fd >= 0) {
-        int tid = fd % n_;
+        int tid = fd % opts_.n_threads;
         poll_threads_[tid].update_mode(poll, new_mode);
     }
 }

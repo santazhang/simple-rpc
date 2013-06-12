@@ -110,13 +110,13 @@ void ServerConnection::handle_read() {
     }
 }
 
-void ServerConnection::handle_write() {
+void ServerConnection::handle_write(const poll_options& opts) {
     if (status_ == CLOSED) {
         return;
     }
 
     Pthread_mutex_lock(&out_m_);
-    out_.write_to_fd(socket_);
+    out_.write_to_fd(socket_, opts.batch_opts);
     if (out_.empty()) {
         server_->pollmgr_->update_mode(this, Pollable::READ);
     }
@@ -175,7 +175,9 @@ Server::Server(PollMgr* pollmgr /* =... */, ThreadPool* thrpool /* =? */)
     memset(&loop_th_, 0, sizeof(loop_th_));
 
     if (pollmgr == NULL) {
-        pollmgr_ = new PollMgr(8);
+        poll_options opt;
+        opt.n_threads = 8;
+        pollmgr_ = new PollMgr(opt);
     } else {
         pollmgr_ = (PollMgr *) pollmgr->ref_copy();
     }

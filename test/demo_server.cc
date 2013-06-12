@@ -32,7 +32,8 @@ int main(int argc, char* argv[]) {
     signal(SIGQUIT, signal_handler);
     signal(SIGTERM, signal_handler);
 
-    PollMgr* poll = new PollMgr(1);
+    poll_options opts;
+    PollMgr* poll = new PollMgr(opts);
     ThreadPool* thrpool = new ThreadPool(64);
     Server svr(poll, thrpool);
     poll->release();

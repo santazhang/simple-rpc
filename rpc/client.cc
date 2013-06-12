@@ -144,13 +144,13 @@ void Client::handle_error() {
     close();
 }
 
-void Client::handle_write() {
+void Client::handle_write(const poll_options& opts) {
     if (status_ != CONNECTED) {
         return;
     }
 
     Pthread_mutex_lock(&out_m_);
-    out_.write_to_fd(sock_);
+    out_.write_to_fd(sock_, opts.batch_opts);
     if (out_.empty()) {
         pollmgr_->update_mode(this, Pollable::READ);
     }
@@ -271,7 +271,7 @@ ClientPool::ClientPool(PollMgr* pollmgr /* =? */) {
     Pthread_mutex_init(&m_, NULL);
 
     if (pollmgr == NULL) {
-        pollmgr_ = new PollMgr(1);
+        pollmgr_ = new PollMgr;
     } else {
         pollmgr_ = (PollMgr *) pollmgr->ref_copy();
     }

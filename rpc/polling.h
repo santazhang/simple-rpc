@@ -8,6 +8,15 @@
 
 namespace rpc {
 
+
+struct poll_options {
+    int n_threads;
+    rpc_batching_options batch_opts;
+
+    poll_options(): n_threads(1) {}
+};
+
+
 class Pollable: public RefCounted {
 protected:
 
@@ -23,7 +32,7 @@ public:
     virtual int fd() = 0;
     virtual int poll_mode() = 0;
     virtual void handle_read() = 0;
-    virtual void handle_write() = 0;
+    virtual void handle_write(const poll_options& opts) = 0;
     virtual void handle_error() = 0;
 };
 
@@ -32,7 +41,7 @@ class PollMgr: public RefCounted {
     class PollThread;
 
     PollThread* poll_threads_;
-    int n_;
+    poll_options opts_;
 
 #ifdef PERF_TEST
     // for performance reporting
@@ -49,7 +58,7 @@ protected:
 
 public:
 
-    PollMgr(int n_threads = 1);
+    PollMgr(const poll_options& opts = poll_options());
 
     void add(Pollable*);
     void remove(Pollable*);
