@@ -11,7 +11,7 @@ namespace rpc {
 
 struct poll_options {
     int n_threads;
-    rpc_batching_options batch_opts;
+    io_ratelimit rate;
 
     poll_options(): n_threads(1) {}
 };
@@ -32,7 +32,7 @@ public:
     virtual int fd() = 0;
     virtual int poll_mode() = 0;
     virtual void handle_read() = 0;
-    virtual void handle_write(const poll_options& opts) = 0;
+    virtual void handle_write(const io_ratelimit& rate) = 0;
     virtual void handle_error() = 0;
 };
 

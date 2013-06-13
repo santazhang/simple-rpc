@@ -23,11 +23,11 @@ extern int _perf_rpc_in_packet_size[PERF_SAMPLE_SIZE];
 extern int _perf_rpc_out_packet_size[PERF_SAMPLE_SIZE];
 #endif // PERF_TEST
 
-struct rpc_batching_options {
+struct io_ratelimit {
     int min_size;
     double interval;
 
-    rpc_batching_options(): min_size(-1), interval(-1) {}
+    io_ratelimit(): min_size(-1), interval(-1) {}
 };
 
 class Marshal;
@@ -278,7 +278,7 @@ public:
 
     int read_from_marshal(Marshal&, int n = std::numeric_limits<int>::max());
     int read_from_fd(int fd);
-    int write_to_fd(int fd, const rpc_batching_options& batch_opts);
+    int write_to_fd(int fd, const io_ratelimit& rate);
 
     std::string dump() const;
 

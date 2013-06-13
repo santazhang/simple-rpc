@@ -139,13 +139,13 @@ void Client::handle_error() {
     close();
 }
 
-void Client::handle_write(const poll_options& opts) {
+void Client::handle_write(const io_ratelimit& rate) {
     if (status_ != CONNECTED) {
         return;
     }
 
     Pthread_mutex_lock(&out_m_);
-    out_.write_to_fd(sock_, opts.batch_opts);
+    out_.write_to_fd(sock_, rate);
     if (out_.empty()) {
         pollmgr_->update_mode(this, Pollable::READ);
     }

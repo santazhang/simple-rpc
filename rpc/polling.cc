@@ -91,9 +91,9 @@ public:
 };
 
 PollMgr::PollMgr(const poll_options& opts /* =... */): opts_(opts) {
-    if (opts_.batch_opts.min_size > 0 && opts_.batch_opts.interval <= 0.0) {
+    if (opts_.rate.min_size > 0 && opts_.rate.interval <= 0.0) {
         Log::warn("rpc batching size set but wait time not set, will use 1ms");
-        opts_.batch_opts.interval = 0.001;
+        opts_.rate.interval = 0.001;
     }
     poll_threads_ = new PollThread[opts_.n_threads];
     for (int i = 0; i < opts_.n_threads; i++) {
@@ -174,7 +174,7 @@ void PollMgr::PollThread::poll_loop() {
                 poll->handle_read();
             }
             if (evlist[i].filter == EVFILT_WRITE) {
-                poll->handle_write(poll_mgr_->opts_);
+                poll->handle_write(poll_mgr_->opts_.rate);
             }
 
             // handle error after handle IO, so that we can at least process something
@@ -202,7 +202,7 @@ void PollMgr::PollThread::poll_loop() {
                 poll->handle_read();
             }
             if (evlist[i].events & EPOLLOUT) {
-                poll->handle_write(poll_mgr_->opts_);
+                poll->handle_write(poll_mgr_->opts_.rate);
             }
 
             // handle error after handle IO, so that we can at least process something

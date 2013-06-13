@@ -110,13 +110,13 @@ void ServerConnection::handle_read() {
     }
 }
 
-void ServerConnection::handle_write(const poll_options& opts) {
+void ServerConnection::handle_write(const io_ratelimit& rate) {
     if (status_ == CLOSED) {
         return;
     }
 
     Pthread_mutex_lock(&out_m_);
-    out_.write_to_fd(socket_, opts.batch_opts);
+    out_.write_to_fd(socket_, rate);
     if (out_.empty()) {
         server_->pollmgr_->update_mode(this, Pollable::READ);
     }

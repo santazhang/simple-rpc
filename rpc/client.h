@@ -139,7 +139,7 @@ public:
 
     int poll_mode();
     void handle_read();
-    void handle_write(const poll_options& opts);
+    void handle_write(const io_ratelimit& rate);
     void handle_error();
 
 };
