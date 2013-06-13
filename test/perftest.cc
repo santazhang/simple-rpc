@@ -1,0 +1,139 @@
+#include "rpc/client.h"
+#include "rpc/server.h"
+#include "demo_service.h"
+
+#define NUM 10000000
+
+using namespace demo;
+using namespace rpc;
+
+
+typedef struct { 
+    NullProxy *np;
+    int *counter;
+} clt_data;
+
+int n_th = 1;
+
+int
+diff_timespec(const struct timespec &end, const struct timespec &start)
+{
+    int diff = (end.tv_sec > start.tv_sec)?(end.tv_sec-start.tv_sec)*1000:0;
+    assert(diff || end.tv_sec == start.tv_sec);
+    if (end.tv_nsec > start.tv_nsec) {
+        diff += (end.tv_nsec-start.tv_nsec)/1000000;
+    } else {
+        diff -= (start.tv_nsec-end.tv_nsec)/1000000;
+    }
+    return diff;
+}
+
+void NullService::test(const i32& arg1, const i32& arg2, i32* result) {
+}	
+
+void *
+clt_run(void *x)
+{
+    clt_data *d = (clt_data *)x;
+    for (int i = 0; i < NUM; i++) {
+        i32 x,y,r;
+        d->np->test(x,y,&r);
+        *d->counter = *d->counter + 1;
+    }
+    printf("client finished\n");
+    return NULL;
+}
+
+void *
+print_stat(void *x)
+{
+    int *allcounters = (int *)x;
+    int last = 0, curr = 0;
+    struct timespec now, past;
+    clock_gettime(CLOCK_REALTIME, &now);
+    do { 
+        last = curr;
+        past = now;
+        curr = 0;
+        for (int i = 0; i < n_th; i++) {
+            curr += allcounters[i];
+        }
+        clock_gettime(CLOCK_REALTIME, &now);
+        int diff = diff_timespec(now, past);
+        printf("%.2f s processed %d rpcs = %.2f rpcs/sec\n", diff/1000.0, curr-last, 1000.0*(curr-last)/diff);
+        sleep(1);
+    }while (!curr || curr != last);
+    return NULL;
+}
+
+int main(int argc, char **argv) {
+
+    bool isclient = false, isserver = false;
+    int num_clients = 0;
+
+    const char *svr_addr = "127.0.0.1:7777";
+    char ch = 0;
+    while ((ch = getopt(argc, argv, "s:c:t:"))!= -1) {
+        switch (ch) {
+        case 'c':
+            isclient = true;
+            if (optarg) svr_addr = optarg; 
+            break;
+        case 's':
+            isserver = true;
+            if (optarg) svr_addr = optarg;
+            break;
+        case 't':
+            n_th = atoi(optarg);
+            break;
+        default:    
+            break;
+        }
+    }        
+
+    verify(isserver || isclient);
+
+    if (isserver) {
+        printf("starting server on %s\n", svr_addr);
+        Server svr;
+        NullService null_svc;
+        svr.reg(&null_svc);
+        svr.start(svr_addr);
+
+        while (1) {
+            sleep(1);
+        }
+    }else { //isclient
+
+        if (!num_clients)
+            num_clients = n_th;
+
+        NullProxy** allclients = (NullProxy **)malloc(sizeof(NullProxy *)*num_clients);
+
+        pthread_t *cltth = (pthread_t *)malloc(sizeof(pthread_t)*n_th);
+        int * counters = (int *)malloc(sizeof(int)*n_th);
+        bzero(counters, sizeof(int)*n_th);
+        printf("Perf client to create %d rpc clients and %d threads\n", num_clients, n_th);
+
+        for (int i = 0; i < num_clients; i++) {
+            PollMgr* poll = new PollMgr;
+            Client *cl = new Client(poll);
+            verify(cl->connect(svr_addr) == 0);
+            allclients[i] = new NullProxy(cl);
+        }
+
+        clt_data args[n_th];
+        for (int i = 0; i < n_th; i++) {
+            args[i].np = allclients[i % num_clients];
+            args[i].counter = &counters[i];
+            assert(pthread_create(&cltth[i], NULL, clt_run, (void *)&args[i])==0);
+        }
+
+        pthread_t stat_th;
+        assert(pthread_create(&stat_th,NULL, print_stat, (void *)counters)==0);
+        
+        for (int i = 0; i < n_th; i++) {
+            pthread_join(cltth[i], NULL);
+        }
+    }
+}
