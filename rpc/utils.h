@@ -24,7 +24,7 @@
 #define verify(expr, ...) assert(expr)
 #endif
 
-#define Pthread_spin_init(l, attr) verify(pthread_spin_init(l, attr) == 0)
+#define Pthread_spin_init(l, pshared) verify(pthread_spin_init(l, pshared) == 0)
 #define Pthread_spin_lock(l) verify(pthread_spin_lock(l) == 0)
 #define Pthread_spin_unlock(l) verify(pthread_spin_unlock(l) == 0)
 #define Pthread_spin_destroy(l) verify(pthread_spin_destroy(l) == 0)
@@ -226,7 +226,7 @@ class ShortLock: public Lockable {
     pthread_spinlock_t l_;
 public:
     ShortLock() {
-        Pthread_spin_init(&l_, NULL);
+        Pthread_spin_init(&l_, 0);
     }
     ~ShortLock() {
         Pthread_spin_destroy(&l_);
