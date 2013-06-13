@@ -126,6 +126,64 @@ public:
     }
 };
 
+class NullService: public rpc::Service {
+public:
+    enum {
+        TEST = 0x1003,
+    };
+    void reg_to(rpc::Server* svr) {
+        svr->reg(TEST, this, &NullService::__test__wrapper__);
+    }
+    // these RPC handler functions need to be implemented by user
+    // for 'raw' handlers, remember to reply req, delete req, and sconn->release(); use sconn->run_async for heavy job
+    virtual void test(const rpc::i32& n, const rpc::i32& arg1, rpc::i32* result);
+private:
+    void __test__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
+        RUNNABLE_CLASS3(R, NullService*, thiz, rpc::Request*, req, rpc::ServerConnection*, sconn, {
+            rpc::i32 in_0;
+            req->m >> in_0;
+            rpc::i32 in_1;
+            req->m >> in_1;
+            rpc::i32 out_0;
+            thiz->test(in_0, in_1, &out_0);
+            sconn->begin_reply(req);
+            *sconn << out_0;
+            sconn->end_reply();
+            delete req;
+            sconn->release();
+        });
+        sconn->run_async(new R(this, req, sconn));
+    }
+};
+
+class NullProxy {
+protected:
+    rpc::Client* __cl__;
+public:
+    NullProxy(rpc::Client* cl): __cl__(cl) { }
+    rpc::Future* async_test(const rpc::i32& n, const rpc::i32& arg1, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
+        rpc::Future* __fu__ = __cl__->begin_request(NullService::TEST, __fu_attr__);
+        if (__fu__ != NULL) {
+            *__cl__ << n;
+            *__cl__ << arg1;
+        }
+        __cl__->end_request();
+        return __fu__;
+    }
+    rpc::i32 test(const rpc::i32& n, const rpc::i32& arg1, rpc::i32* result) {
+        rpc::Future* __fu__ = this->async_test(n, arg1);
+        if (__fu__ == NULL) {
+            return ENOTCONN;
+        }
+        rpc::i32 __ret__ = __fu__->get_error_code();
+        if (__ret__ == 0) {
+            __fu__->get_reply() >> *result;
+        }
+        __fu__->release();
+        return __ret__;
+    }
+};
+
 } // namespace demo
 
 

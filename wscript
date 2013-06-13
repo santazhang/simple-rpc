@@ -33,10 +33,11 @@ def build(bld):
     bld.stlib(source="test/param_map.cc", includes=".", target = 'test', name = 'test')
 
     def _prog(source, target):
-        bld.program(source=source, target=target, includes=".", use="simplerpc", lib="pthread")
+        bld.program(source=source, target=target, includes=".", use="simplerpc", lib="pthread rt")
 
     _prog("test/demo_client.cc", "demo_client")
     _prog("test/demo_server.cc test/demo_service.cc", "demo_server")
+    _prog("test/perftest.cc", "perftest")
 
     # Unit tests and benchmark, inherented from MCP code
     bld.program(source="test/param_map_test.cc", target="param_map_test",

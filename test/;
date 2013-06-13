@@ -1,4 +1,3 @@
-#include <semaphore.h>
 #include "rpc/client.h"
 #include "rpc/server.h"
 #include "demo_service.h"
@@ -13,17 +12,16 @@ int n_batch = 1;
 
 typedef struct { 
     NullProxy *np;
-    int *counter;
-    int n_outstanding;
-    sem_t sem;
+    int *out_standing;
+    pthread_cond_t *cond;
 } clt_data;
 
 class ClientCallback {
 public:
-    void onCallback(clt_data* cl, Future* fu) {
-        __sync_add_and_fetch(&cl->n_outstanding, -1);
-        if (cl->n_outstanding < (n_batch/2)) {
-            verify(sem_post(&cl->sem)==0);
+    void onCallback(clt_data* cl, int *n_outstanding, Future* fu) {
+        __sync_add_and_fetch(n_outstanding, -1);
+        if (n_oustanding < (n_batch/2)) {
+            pthread_cond_signal(cl->cond);
         }
     }
 };
@@ -57,28 +55,30 @@ clt_run(void *x)
         }
         printf("client finished\n");
     } else {
-        ClientCallback cb;
-        i32 x,y;
-        d->n_outstanding = 0;
+        int total_sent = 0;
+        FutureAttr attr;
+        i32 x,y,r;
+        d->n_oustanding = n_batch;
+        for (int i = 0; i < n_batch; i++) {
+            Future *fu = d->np->async_test(x,y, attr);
+            fu->release();
+        }
+        total_sent += n_batch;
         
         while (1) {
-            verify(sem_wait(&d->sem)==0);
+            pthread_cond_wait();
             int diff = n_batch - d->n_outstanding;
-            if (diff > n_batch/2) {
+            if (diff < n_batch/2) {
                 for (int i = 0; i < diff; i++) {
-                    FutureAttr attr;
-                    attr.callback = makeCallable(&ClientCallback::onCallback, &cb, d);
                     Future *fu = d->np->async_test(x,y,attr);
                     fu->release();
                 }
-                *d->counter = *d->counter + diff;
-                /*don't get out of the loop, i'll live with that*/
-                if (*d->counter == NUM) sleep(1); 
-
-                __sync_add_and_fetch(&d->n_outstanding, diff);
+                total_sent += diff;
+                if (total_sent == NUM) break; /*error: won't wait for the completion of the last few rpcs*/
+                __sync_add_and_fetch(d->n_outstanding, diff);
             }
         }
-    }
+
 
     return NULL;
 }
@@ -173,8 +173,6 @@ int main(int argc, char **argv) {
         for (int i = 0; i < n_th; i++) {
             args[i].np = allclients[i % num_clients];
             args[i].counter = &counters[i];
-            args[i].n_outstanding = 0;
-            verify(sem_init(&args[i].sem, 0, 1)==0);
             assert(pthread_create(&cltth[i], NULL, clt_run, (void *)&args[i])==0);
         }
 

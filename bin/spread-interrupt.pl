@@ -92,7 +92,7 @@ for ($i = 0; $i <= $#irqs; $i++) {
     $key = "$phy_id.$core_id";
     $mask = sprintf("%x", $masks{$key});
     print "echo $mask > /proc/irq/$irqs[$i]/smp_affinity\n";
-    `echo $masks{$key} > /proc/irq/$irqs[$i]/smp_affinity`;
+    `echo $mask > /proc/irq/$irqs[$i]/smp_affinity`;
     $core_id++;
     if ($core_id >= $num_core) {
         $phy_id++;

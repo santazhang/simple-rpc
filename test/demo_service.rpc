@@ -11,6 +11,10 @@ service Math {
     fast dot_prod(point3 p1, point3 p2 | double v)
 }
 
+service Null {
+    test(i32 n , i32 arg1 | i32 result)
+}
+
 %%
 
 namespace demo {
