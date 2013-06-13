@@ -1,4 +1,8 @@
+#include <stdio.h>
+#include <stdlib.h>
 #include <semaphore.h>
+#include <unistd.h>
+
 #include "rpc/client.h"
 #include "rpc/server.h"
 #include "demo_service.h"
@@ -18,15 +22,12 @@ typedef struct {
     sem_t sem;
 } clt_data;
 
-class ClientCallback {
-public:
-    void onCallback(clt_data* cl, Future* fu) {
-        __sync_add_and_fetch(&cl->n_outstanding, -1);
-        if (cl->n_outstanding < (n_batch/2)) {
-            verify(sem_post(&cl->sem)==0);
-        }
+void client_cb(clt_data* cl, Future* fu) {
+    __sync_add_and_fetch(&cl->n_outstanding, -1);
+    if (cl->n_outstanding < (n_batch/2)) {
+        verify(sem_post(&cl->sem)==0);
     }
-};
+}
 
 
 int
@@ -57,19 +58,21 @@ clt_run(void *x)
         }
         printf("client finished\n");
     } else {
-        ClientCallback cb;
+        FutureAttr attr;
+        attr.callback = std::bind(client_cb, d, std::placeholders::_1);
+
         i32 x,y;
         d->n_outstanding = 0;
-        
+
         while (1) {
             verify(sem_wait(&d->sem)==0);
             int diff = n_batch - d->n_outstanding;
             if (diff > n_batch/2) {
                 for (int i = 0; i < diff; i++) {
-                    FutureAttr attr;
-                    attr.callback = makeCallable(&ClientCallback::onCallback, &cb, d);
-                    Future *fu = d->np->async_test(x,y,attr);
-                    fu->release();
+                    Future *fu = d->np->async_test(x,y, attr);
+                    if (fu) {
+                        fu->release();
+                    }
                 }
                 *d->counter = *d->counter + diff;
                 /*don't get out of the loop, i'll live with that*/

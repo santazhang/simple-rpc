@@ -264,7 +264,7 @@ public:
 class NullService: public rpc::Service {
 public:
     enum {
-        TEST = 0x1003,
+        TEST = 0x1007,
     };
     void reg_to(rpc::Server* svr) {
         svr->reg(TEST, this, &NullService::__test__wrapper__);
@@ -274,20 +274,20 @@ public:
     virtual void test(const rpc::i32& n, const rpc::i32& arg1, rpc::i32* result);
 private:
     void __test__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
-        RUNNABLE_CLASS3(R, NullService*, thiz, rpc::Request*, req, rpc::ServerConnection*, sconn, {
+        auto f = [=] {
             rpc::i32 in_0;
             req->m >> in_0;
             rpc::i32 in_1;
             req->m >> in_1;
             rpc::i32 out_0;
-            thiz->test(in_0, in_1, &out_0);
+            this->test(in_0, in_1, &out_0);
             sconn->begin_reply(req);
             *sconn << out_0;
             sconn->end_reply();
             delete req;
             sconn->release();
-        });
-        sconn->run_async(new R(this, req, sconn));
+        };
+        sconn->run_async(f);
     }
 };
 
