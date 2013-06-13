@@ -10,6 +10,10 @@
 #include <pthread.h>
 #include <inttypes.h>
 
+#ifdef __APPLE__
+#include <libkern/OSAtomic.h>
+#endif
+
 /**
  * Use assert() when the test is only intended for debugging.
  * Use verify() when the test is crucial for both debug and release binary.
@@ -20,6 +24,10 @@
 #define verify(expr, ...) assert(expr)
 #endif
 
+#define Pthread_spin_init(l, pshared) verify(pthread_spin_init(l, pshared) == 0)
+#define Pthread_spin_lock(l) verify(pthread_spin_lock(l) == 0)
+#define Pthread_spin_unlock(l) verify(pthread_spin_unlock(l) == 0)
+#define Pthread_spin_destroy(l) verify(pthread_spin_destroy(l) == 0)
 #define Pthread_mutex_init(m, attr) verify(pthread_mutex_init(m, attr) == 0)
 #define Pthread_mutex_lock(m) verify(pthread_mutex_lock(m) == 0)
 #define Pthread_mutex_unlock(m) verify(pthread_mutex_unlock(m) == 0)
@@ -186,6 +194,67 @@ public:
     }
     void reset(int start = 0) {
         next_ = start;
+    }
+};
+
+class Lockable: public NoCopy {
+public:
+    virtual void lock() = 0;
+    virtual void unlock() = 0;
+};
+
+#ifdef __APPLE__
+
+class ShortLock: public Lockable {
+    OSSpinLock l_;
+public:
+    ShortLock(): l_(0) {
+        // man -S 3 spinlock
+        // 0 is unlocked, nonzero is locked
+    }
+    void lock() {
+        OSSpinLockLock(&l_);
+    }
+    void unlock() {
+        OSSpinLockUnlock(&l_);
+    }
+};
+
+#else
+
+class ShortLock: public Lockable {
+    pthread_spinlock_t l_;
+public:
+    ShortLock() {
+        Pthread_spin_init(&l_, 0);
+    }
+    ~ShortLock() {
+        Pthread_spin_destroy(&l_);
+    }
+    void lock() {
+        Pthread_spin_lock(&l_);
+    }
+    void unlock() {
+        Pthread_spin_unlock(&l_);
+    }
+};
+
+#endif // __APPLE__
+
+class LongLock: public Lockable {
+    pthread_mutex_t m_;
+public:
+    LongLock() {
+        Pthread_mutex_init(&m_, NULL);
+    }
+    ~LongLock() {
+        Pthread_mutex_destroy(&m_);
+    }
+    void lock() {
+        Pthread_mutex_lock(&m_);
+    }
+    void unlock() {
+        Pthread_mutex_unlock(&m_);
     }
 };
 
