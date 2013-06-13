@@ -203,43 +203,53 @@ public:
     virtual void unlock() = 0;
 };
 
-#ifdef __APPLE__
-
-class ShortLock: public Lockable {
-    OSSpinLock l_;
+// A spinning lock with backoff.
+//
+// This class predates C++11 atomics (and can be compiled in early
+// versions). We use GCC built-in atomics instead. The lock state is
+// represented by a boolean and all accesses to that state are
+// explicit in terms of atomicity and memory ordering expected.
+//
+class ShortLock : public Lockable
+{
 public:
-    ShortLock(): l_(0) {
-        // man -S 3 spinlock
-        // 0 is unlocked, nonzero is locked
+  ShortLock() : locked_(false) {}
+
+  ~ShortLock() { }
+
+  void lock() {
+    // Fast path for when lock is available.
+    if (! loadLockState() && !__sync_lock_test_and_set(&locked_, true)) {
+      return;
     }
-    void lock() {
-        OSSpinLockLock(&l_);
+
+    // Spin for a bitm waiting for the lock.
+    int wait = 1000;
+    while ((wait-- > 0) && loadLockState()) {}
+
+    // If failed to grab lock, sleep.
+    struct timespec t;
+    t.tv_sec = 0;
+    t.tv_nsec = 5000000;
+    while (__sync_lock_test_and_set(&locked_, true)) {
+      nanosleep(&t, NULL);
     }
-    void unlock() {
-        OSSpinLockUnlock(&l_);
-    }
+  }
+
+  void unlock() {
+    __sync_lock_release(&locked_);
+  }
+
+private:
+  int locked_;
+
+  // We force a memory access to 'locked_' without any barrier
+  // guarantees. (This would equate to a load with
+  // 'memory_order_relaxed'.)
+  int loadLockState() const volatile {
+    return locked_;
+  }
 };
-
-#else
-
-class ShortLock: public Lockable {
-    pthread_spinlock_t l_;
-public:
-    ShortLock() {
-        Pthread_spin_init(&l_, 0);
-    }
-    ~ShortLock() {
-        Pthread_spin_destroy(&l_);
-    }
-    void lock() {
-        Pthread_spin_lock(&l_);
-    }
-    void unlock() {
-        Pthread_spin_unlock(&l_);
-    }
-};
-
-#endif // __APPLE__
 
 class LongLock: public Lockable {
     pthread_mutex_t m_;
