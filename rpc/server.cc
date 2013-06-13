@@ -15,8 +15,8 @@ using namespace std;
 
 namespace rpc {
 
-void ServerConnection::run_async(Runnable* r) {
-    server_->threadpool_->run_async(r);
+void ServerConnection::run_async(const std::function<void()>& f) {
+    server_->threadpool_->run_async(f);
 }
 
 void ServerConnection::begin_reply(Request* req, i32 error_code /* =... */) {

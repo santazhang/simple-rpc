@@ -96,7 +96,7 @@ public:
     void end_reply();
 
     // helper function, do some work in background
-    void run_async(Runnable* r);
+    void run_async(const std::function<void()>& f);
 
     template<class T>
     ServerConnection& operator <<(const T& v) {

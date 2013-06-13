@@ -95,46 +95,46 @@ private:
         sconn->release();
     }
     void __prime__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
-        RUNNABLE_CLASS3(R, MathService*, thiz, rpc::Request*, req, rpc::ServerConnection*, sconn, {
+        auto f = [=] {
             rpc::i32 in_0;
             req->m >> in_0;
             rpc::i32 out_0;
-            thiz->prime(in_0, &out_0);
+            this->prime(in_0, &out_0);
             sconn->begin_reply(req);
             *sconn << out_0;
             sconn->end_reply();
             delete req;
             sconn->release();
-        });
-        sconn->run_async(new R(this, req, sconn));
+        };
+        sconn->run_async(f);
     }
     void __dot_prod__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
-        RUNNABLE_CLASS3(R, MathService*, thiz, rpc::Request*, req, rpc::ServerConnection*, sconn, {
+        auto f = [=] {
             point3 in_0;
             req->m >> in_0;
             point3 in_1;
             req->m >> in_1;
             double out_0;
-            thiz->dot_prod(in_0, in_1, &out_0);
+            this->dot_prod(in_0, in_1, &out_0);
             sconn->begin_reply(req);
             *sconn << out_0;
             sconn->end_reply();
             delete req;
             sconn->release();
-        });
-        sconn->run_async(new R(this, req, sconn));
+        };
+        sconn->run_async(f);
     }
     void __large_str_nop__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
-        RUNNABLE_CLASS3(R, MathService*, thiz, rpc::Request*, req, rpc::ServerConnection*, sconn, {
+        auto f = [=] {
             std::string in_0;
             req->m >> in_0;
-            thiz->large_str_nop(in_0);
+            this->large_str_nop(in_0);
             sconn->begin_reply(req);
             sconn->end_reply();
             delete req;
             sconn->release();
-        });
-        sconn->run_async(new R(this, req, sconn));
+        };
+        sconn->run_async(f);
     }
 };
 

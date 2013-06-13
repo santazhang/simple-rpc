@@ -6,16 +6,19 @@
 
 #include "utils.h"
 
+using namespace std;
+
 namespace rpc {
 
+struct start_thread_pool_args {
+    ThreadPool* thrpool;
+    int id_in_pool;
+};
+
 void* ThreadPool::start_thread_pool(void* args) {
-    std::pair<ThreadPool*, int>* thread_args = (std::pair<ThreadPool*, int>*) args;
-    ThreadPool* threadpool = thread_args->first;
-    int tid = thread_args->second;
-    delete thread_args;
-
-    threadpool->run_thread(tid);
-
+    start_thread_pool_args* t_args = (start_thread_pool_args *) args;
+    t_args->thrpool->run_thread(t_args->id_in_pool);
+    delete t_args;
     pthread_exit(NULL);
     return NULL;
 }
@@ -23,57 +26,42 @@ void* ThreadPool::start_thread_pool(void* args) {
 ThreadPool::ThreadPool(int n /* =... */)
         : n_(n) {
     th_ = new pthread_t[n_];
-    q_ = new Queue<Runnable*> [n_];
+    q_ = new Queue<function<void()>*> [n_];
 
     for (int i = 0; i < n_; i++) {
-        std::pair<ThreadPool*, int>* thread_args = new std::pair<ThreadPool*, int>;
-        thread_args->first = this;
-        thread_args->second = i;
-        Pthread_create(&th_[i], NULL, ThreadPool::start_thread_pool, thread_args);
+        start_thread_pool_args* args = new start_thread_pool_args();
+        args->thrpool = this;
+        args->id_in_pool = i;
+        Pthread_create(&th_[i], NULL, ThreadPool::start_thread_pool, args);
     }
 }
 
 ThreadPool::~ThreadPool() {
     for (int i = 0; i < n_; i++) {
-        q_[i].push(NULL);	// NULL is used as a termination token
+        q_[i].push(nullptr);  // nullptr is used as a termination token
     }
     for (int i = 0; i < n_; i++) {
-        Pthread_join(th_[i], NULL);
+        Pthread_join(th_[i], nullptr);
     }
     delete[] th_;
     delete[] q_;
 }
 
-void ThreadPool::run_async(Runnable* r) {
-    verify(r != NULL);
-    // NULL is used to terminate a thread
-
+void ThreadPool::run_async(const std::function<void()>& f) {
     // Randomly select a thread for the job.
     // There could be better schedule policy.
     int queue_id = rand() % n_;
-    q_[queue_id].push(r);
+    q_[queue_id].push(new function<void()>(f));
 }
 
-void ThreadPool::run_async(const std::function<void()>& f) {
-    class R: public Runnable {
-        std::function<void()> f_;
-    public:
-        R(const std::function<void()>& f): f_(f) {}
-        void run() {
-            f_();
-        }
-    };
-    run_async(new R(f));
-}
-
-void ThreadPool::run_thread(int tid) {
+void ThreadPool::run_thread(int id_in_pool) {
     for (;;) {
-        Runnable* j = q_[tid].pop();
-        if (j == NULL) {
+        function<void()>* f = q_[id_in_pool].pop();
+        if (f == nullptr) {
             return;
         }
-        j->run();
-        delete j;
+        (*f)();
+        delete f;
     }
 }
 

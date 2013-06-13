@@ -66,16 +66,6 @@ inline void do_work(Client* cl, FutureAttr& fu_attr) {
     }
 }
 
-class CallbackHanler {
-public:
-    void onCallback(Client* cl, int* rpc_counter, Future* fu) {
-        __sync_add_and_fetch(rpc_counter, 1);
-        FutureAttr attr;
-        attr.callback = makeCallable(&CallbackHanler::onCallback, this, cl, rpc_counter);
-        do_work(cl, attr);
-    }
-};
-
 int main(int argc, char* argv[]) {
     printf("usage: %s svr_addr eval_case\n", argv[0]);
     printf("eval_case: fast_prime, fast_dot_prod, fast_large_str_nop, prime, dot_prod, large_str_nop\n");
@@ -107,18 +97,20 @@ int main(int argc, char* argv[]) {
     verify(cl->connect(svr_addr) == 0);
 
     const int concurrency = 1000;
+    Counter rpc_counter;
 
-    int rpc_counter = 0;
-    CallbackHanler handler; // Thread-safe
+    FutureAttr attr1;
+    FutureAttr attr2;
+    verify(attr1.callback == nullptr);
+    attr1.callback = [&] (Future*) { do_work(cl, attr2); rpc_counter.next(); };
+    attr2.callback = [&] (Future*) { do_work(cl, attr1); rpc_counter.next(); };
 
     for (int i = 0; i < concurrency; i++) {
-        FutureAttr attr;
-        attr.callback = makeCallable(&CallbackHanler::onCallback, &handler, cl, &rpc_counter);
-        do_work(cl, attr);
+        do_work(cl, attr1);
     }
 
     for (int i = 0; i < 20; i++) {
-        Log::debug("clock tick, about %d rpc done", rpc_counter);
+        Log::debug("clock tick, about %d rpc done", rpc_counter.peek_next());
         sleep(1);
     }
 

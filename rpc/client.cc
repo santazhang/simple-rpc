@@ -26,13 +26,8 @@ void Future::notify_ready() {
     ready_ = true;
     Pthread_cond_signal(&ready_cond_);
     Pthread_mutex_unlock(&ready_m_);
-
-    if (attr_.callback != NULL) {
-        attr_.callback->run(this);
-
-        // automatically cleanup the callback
-        delete attr_.callback;
-        attr_.callback = NULL;
+    if (attr_.callback != nullptr) {
+        attr_.callback(this);
     }
 }
 
@@ -217,9 +212,6 @@ Future* Client::begin_request(i32 rpc_id, const FutureAttr& attr /* =... */) {
     Pthread_mutex_lock(&out_m_);
 
     if (status_ != CONNECTED) {
-        if (attr.callback != NULL) {
-            delete attr.callback;
-        }
         return NULL;
     }
 
