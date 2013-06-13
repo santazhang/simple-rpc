@@ -96,7 +96,7 @@ public:
     void end_reply();
 
     // helper function, do some work in background
-    void run_async(Runnable* r);
+    void run_async(const std::function<void()>& f);
 
     template<class T>
     ServerConnection& operator <<(const T& v) {
@@ -109,7 +109,7 @@ public:
     }
 
     int poll_mode();
-    void handle_write();
+    void handle_write(const io_ratelimit& rate);
     void handle_read();
     void handle_error();
 };
@@ -136,13 +136,6 @@ class Server: public NoCopy {
     } status_;
 
     pthread_t loop_th_;
-
-#ifdef PERF_TEST
-    // for performance reporting
-    pthread_t perf_th_;
-    static void* start_perf_loop(void *arg);
-    void perf_loop();
-#endif // PERF_TEST
 
     static void* start_server_loop(void* arg);
     void server_loop(struct addrinfo* svr_addr);

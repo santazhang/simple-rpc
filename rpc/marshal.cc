@@ -1,3 +1,5 @@
+#include <sys/time.h>
+
 #include "marshal.h"
 
 using namespace std;
@@ -5,8 +7,8 @@ using namespace std;
 namespace rpc {
 
 #ifdef PERF_TEST
-int _perf_rpc_in_packet_size[1024];
-int _perf_rpc_out_packet_size[1024];
+int _perf_rpc_in_packet_size[PERF_SAMPLE_SIZE];
+int _perf_rpc_out_packet_size[PERF_SAMPLE_SIZE];
 #endif // PERF_TEST
 
 /**
@@ -120,8 +122,32 @@ int Marshal::peek(void* p, int n) const {
     return n_peek;
 }
 
-int Marshal::write_to_fd(int fd) {
+int Marshal::write_to_fd(int fd, const io_ratelimit& rate) {
     assert(chunk_.empty() || !chunk_.front()->fully_read());
+
+    if (rate.min_size > 0 || rate.interval > 0) {
+        // rpc batching, check if should wait till next batch
+        bool should_wait = true;
+        if (rate.min_size > 0 && content_size_gt(rate.min_size)) {
+            should_wait = false;
+        }
+
+        if (rate.interval > 0) {
+            struct timeval tm;
+            gettimeofday(&tm, NULL);
+            double now = tm.tv_sec + tm.tv_usec / 1000.0 / 1000.0;
+            if (should_wait && now - last_write_fd_tm_ > rate.interval) {
+                should_wait = false;
+            }
+            if (should_wait == false) {
+                last_write_fd_tm_ = now;
+            }
+        }
+
+        if (should_wait) {
+            return 0;
+        }
+    }
 
     int n_write = 0;
     while (!chunk_.empty()) {
@@ -152,7 +178,7 @@ string Marshal::dump() const {
     return s;
 }
 
-int Marshal::read_from_marshal(Marshal& m, int n) {
+int Marshal::read_from_marshal(Marshal& m, int n /* =? */) {
     assert(chunk_.empty() || !chunk_.front()->fully_read());
     assert(m.chunk_.empty() || !m.chunk_.front()->fully_read());
 

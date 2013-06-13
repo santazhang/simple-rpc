@@ -26,13 +26,8 @@ void Future::notify_ready() {
     ready_ = true;
     Pthread_cond_signal(&ready_cond_);
     Pthread_mutex_unlock(&ready_m_);
-
-    if (attr_.callback != NULL) {
-        attr_.callback->run(this);
-
-        // automatically cleanup the callback
-        delete attr_.callback;
-        attr_.callback = NULL;
+    if (attr_.callback != nullptr) {
+        attr_.callback(this);
     }
 }
 
@@ -144,13 +139,13 @@ void Client::handle_error() {
     close();
 }
 
-void Client::handle_write() {
+void Client::handle_write(const io_ratelimit& rate) {
     if (status_ != CONNECTED) {
         return;
     }
 
     Pthread_mutex_lock(&out_m_);
-    out_.write_to_fd(sock_);
+    out_.write_to_fd(sock_, rate);
     if (out_.empty()) {
         pollmgr_->update_mode(this, Pollable::READ);
     }
@@ -217,9 +212,6 @@ Future* Client::begin_request(i32 rpc_id, const FutureAttr& attr /* =... */) {
     Pthread_mutex_lock(&out_m_);
 
     if (status_ != CONNECTED) {
-        if (attr.callback != NULL) {
-            delete attr.callback;
-        }
         return NULL;
     }
 
@@ -271,7 +263,7 @@ ClientPool::ClientPool(PollMgr* pollmgr /* =? */) {
     Pthread_mutex_init(&m_, NULL);
 
     if (pollmgr == NULL) {
-        pollmgr_ = new PollMgr(1);
+        pollmgr_ = new PollMgr;
     } else {
         pollmgr_ = (PollMgr *) pollmgr->ref_copy();
     }

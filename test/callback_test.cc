@@ -82,11 +82,7 @@ TEST(Run, Simple) {
 TEST(TheadPool, Simple) {
   rpc::ThreadPool* pool = new rpc::ThreadPool(1);
   Counter c;
-  rpc::Runnable* cb = makeCallable(&Counter::inc, &c); // Bind function to object.
-
-  pool->run_async(cb); // cb is deleted after running by pool.
-  cb = makeCallable(&Counter::incBy, &c, 2);  // Currying.
-  pool->run_async(cb); // cb is deleted after running by pool.
+  pool->run_async([&] {c.inc();});
   pool->release();
   EXPECT_EQ(c.count(), 3)
 }

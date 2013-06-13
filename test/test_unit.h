@@ -5,7 +5,7 @@
 
 #include <iostream>
 #include <string>
-#include <tr1/unordered_map>
+#include <unordered_map>
 #include <vector>
 
 #include "param_map.h"
@@ -16,7 +16,7 @@
 namespace base {
 
 using std::string;
-using std::tr1::unordered_map;
+using std::unordered_map;
 using std::vector;
 
 class TestCase {

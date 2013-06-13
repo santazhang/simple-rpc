@@ -1,6 +1,7 @@
 #pragma once
 
 #include <list>
+#include <functional>
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -8,8 +9,6 @@
 #include <assert.h>
 #include <pthread.h>
 #include <inttypes.h>
-
-#include "callback.h"
 
 /**
  * Use assert() when the test is only intended for debugging.
@@ -72,50 +71,6 @@ protected:
 inline NoCopy::~NoCopy() {
 }
 
-typedef Callback<void> Runnable;
-
-#define RUNNABLE_CLASS1(cls, type1, arg1, run_func_body) \
-    class cls: public rpc::Runnable { \
-    public: \
-        cls(type1 arg1): arg1(arg1) {} \
-        void run() { run_func_body; } \
-    private: \
-        type1 arg1; \
-    };
-
-#define RUNNABLE_CLASS2(cls, type1, arg1, type2, arg2, run_func_body) \
-    class cls: public rpc::Runnable { \
-    public: \
-        cls(type1 arg1, type2 arg2): arg1(arg1), arg2(arg2) {} \
-        void run() { run_func_body; } \
-    private: \
-        type1 arg1; \
-        type2 arg2; \
-    };
-
-#define RUNNABLE_CLASS3(cls, type1, arg1, type2, arg2, type3, arg3, run_func_body) \
-    class cls: public rpc::Runnable { \
-    public: \
-        cls(type1 arg1, type2 arg2, type3 arg3): arg1(arg1), arg2(arg2), arg3(arg3) {} \
-        void run() { run_func_body; } \
-    private: \
-        type1 arg1; \
-        type2 arg2; \
-        type3 arg3; \
-    };
-
-#define RUNNABLE_CLASS4(cls, type1, arg1, type2, arg2, type3, arg3, type4, arg4, run_func_body) \
-    class cls: public rpc::Runnable { \
-    public: \
-        cls(type1 arg1, type2 arg2, type3 arg3, type4 arg4): arg1(arg1), arg2(arg2), arg3(arg3), arg4(arg4) {} \
-        void run() { run_func_body; } \
-    private: \
-        type1 arg1; \
-        type2 arg2; \
-        type3 arg3; \
-        type4 arg4; \
-    };
-
 /**
  * Note: All sub class of RefCounted *MUST* have protected destructor!
  * This prevents accidentally deleting the object.
@@ -123,42 +78,30 @@ typedef Callback<void> Runnable;
  * This is thread safe.
  */
 class RefCounted: public NoCopy {
-    pthread_mutex_t m_;
     int refcnt_;
 
 protected:
 
-    virtual ~RefCounted() {
-        Pthread_mutex_destroy(&m_);
-    }
+    virtual ~RefCounted() {}
 
 public:
 
     RefCounted(): refcnt_(1) {
-        Pthread_mutex_init(&m_, NULL);
     }
 
     int ref_count() {
-        Pthread_mutex_lock(&m_);
-        int r = refcnt_;
-        Pthread_mutex_unlock(&m_);
-        return r;
+        return refcnt_;
     }
 
     RefCounted* ref_copy() {
-        Pthread_mutex_lock(&m_);
-        refcnt_++;
-        Pthread_mutex_unlock(&m_);
+        __sync_add_and_fetch(&refcnt_, 1);
         return this;
     }
 
     void release() {
-        Pthread_mutex_lock(&m_);
-        refcnt_--;
-        verify(refcnt_ >= 0);
-        bool should_delete = (refcnt_ == 0);
-        Pthread_mutex_unlock(&m_);
-        if (should_delete) {
+        int r = __sync_sub_and_fetch(&refcnt_, 1);
+        verify(r >= 0);
+        if (r == 0) {
             delete this;
         }
     }
@@ -217,10 +160,10 @@ public:
 class ThreadPool: public RefCounted {
     int n_;
     pthread_t* th_;
-    Queue<Runnable*>* q_;
+    Queue<std::function<void()>*>* q_;
 
     static void* start_thread_pool(void*);
-    void run_thread(int tid);
+    void run_thread(int id_in_pool);
 
 protected:
     ~ThreadPool();
@@ -228,32 +171,21 @@ protected:
 public:
     ThreadPool(int n = 64);
 
-    // NOTE: Runnable* will be deleted after execution.
-    void run_async(Runnable*);
+    void run_async(const std::function<void()>&);
 };
 
 class Counter: public NoCopy {
-    i64 next_;
-    pthread_mutex_t m_;
+    int next_;
 public:
-    Counter(i64 start = 0)
-            : next_(start) {
-        Pthread_mutex_init(&m_, NULL);
+    Counter(int start = 0) : next_(start) { }
+    int peek_next() const {
+        return next_;
     }
-    ~Counter() {
-        Pthread_mutex_destroy(&m_);
+    int next(int step = 1) {
+        return __sync_fetch_and_add(&next_, step);
     }
-    i64 next(i64 step = 1) {
-        Pthread_mutex_lock(&m_);
-        i64 r = next_;
-        next_ += step;
-        Pthread_mutex_unlock(&m_);
-        return r;
-    }
-    void reset(i64 start = 0) {
-        Pthread_mutex_lock(&m_);
+    void reset(int start = 0) {
         next_ = start;
-        Pthread_mutex_unlock(&m_);
     }
 };
 
@@ -325,16 +257,16 @@ private:
 //
 class Timer {
 public:
-  Timer();
+    Timer();
 
-  void start();
-  void end();
-  void reset();
-  double elapsed() const;
+    void start();
+    void end();
+    void reset();
+    double elapsed() const;
 
 private:
-  struct timeval start_;
-  struct timeval end_;
+    struct timeval start_;
+    struct timeval end_;
 };
 
 int set_nonblocking(int fd, bool nonblocking);

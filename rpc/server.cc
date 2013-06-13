@@ -15,8 +15,8 @@ using namespace std;
 
 namespace rpc {
 
-void ServerConnection::run_async(Runnable* r) {
-    server_->threadpool_->run_async(r);
+void ServerConnection::run_async(const std::function<void()>& f) {
+    server_->threadpool_->run_async(f);
 }
 
 void ServerConnection::begin_reply(Request* req, i32 error_code /* =... */) {
@@ -110,13 +110,13 @@ void ServerConnection::handle_read() {
     }
 }
 
-void ServerConnection::handle_write() {
+void ServerConnection::handle_write(const io_ratelimit& rate) {
     if (status_ == CLOSED) {
         return;
     }
 
     Pthread_mutex_lock(&out_m_);
-    out_.write_to_fd(socket_);
+    out_.write_to_fd(socket_, rate);
     if (out_.empty()) {
         server_->pollmgr_->update_mode(this, Pollable::READ);
     }
@@ -175,7 +175,9 @@ Server::Server(PollMgr* pollmgr /* =... */, ThreadPool* thrpool /* =? */)
     memset(&loop_th_, 0, sizeof(loop_th_));
 
     if (pollmgr == NULL) {
-        pollmgr_ = new PollMgr(8);
+        poll_options opt;
+        opt.n_threads = 8;
+        pollmgr_ = new PollMgr(opt);
     } else {
         pollmgr_ = (PollMgr *) pollmgr->ref_copy();
     }
@@ -194,10 +196,6 @@ Server::~Server() {
         status_ = STOPPING;
         // wait till accepting thread done
         Pthread_join(loop_th_, NULL);
-
-#ifdef PERF_TEST
-        Pthread_join(perf_th_, NULL);
-#endif // PERF_TSET
 
         verify(server_sock_ == -1 && status_ == STOPPED);
     }
@@ -277,39 +275,6 @@ void Server::server_loop(struct addrinfo* svr_addr) {
     status_ = STOPPED;
 }
 
-#ifdef PERF_TEST
-
-void* Server::start_perf_loop(void *arg) {
-    Server* svr = (Server *) arg;
-    svr->perf_loop();
-    pthread_exit(NULL);
-    return NULL;
-}
-
-void Server::perf_loop() {
-    while (status_ == RUNNING) {
-        Log::debug("perf loop");
-        ostringstream in_ostr;
-        const int in_stat_size = sizeof(_perf_rpc_in_packet_size) / sizeof(_perf_rpc_in_packet_size[0]);
-
-        for (int i = 0; i < in_stat_size; i++) {
-            in_ostr << " " << _perf_rpc_in_packet_size[i];
-        }
-        Log::debug("in:  %s", in_ostr.str().c_str());
-
-        ostringstream out_ostr;
-        const int out_stat_size = sizeof(_perf_rpc_out_packet_size) / sizeof(_perf_rpc_out_packet_size[0]);
-        for (int i = 0; i < out_stat_size; i++) {
-            out_ostr << " " << _perf_rpc_out_packet_size[i];
-        }
-        Log::debug("out: %s", out_ostr.str().c_str());
-        sleep(1);
-    }
-    Log::debug("perf loop finished");
-}
-
-#endif // PERF_TEST
-
 int Server::start(const char* bind_addr) {
     string addr(bind_addr);
     size_t idx = addr.find(":");
@@ -344,7 +309,7 @@ int Server::start(const char* bind_addr) {
         verify(setsockopt(server_sock_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == 0);
         verify(setsockopt(server_sock_, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(yes)) == 0);
 
-        if (bind(server_sock_, rp->ai_addr, rp->ai_addrlen) == 0) {
+        if (::bind(server_sock_, rp->ai_addr, rp->ai_addrlen) == 0) {
             break;
         }
         close(server_sock_);
@@ -371,12 +336,6 @@ int Server::start(const char* bind_addr) {
     start_server_loop_args->gai_result = result;
     start_server_loop_args->svr_addr = rp;
     Pthread_create(&loop_th_, NULL, Server::start_server_loop, start_server_loop_args);
-
-#ifdef PERF_TEST
-    memset(_perf_rpc_in_packet_size, 0, sizeof(_perf_rpc_in_packet_size));
-    memset(_perf_rpc_out_packet_size, 0, sizeof(_perf_rpc_out_packet_size));
-    Pthread_create(&perf_th_, NULL, Server::start_perf_loop, this);
-#endif // PERF_TEST
 
     return 0;
 }

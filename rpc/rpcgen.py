@@ -350,7 +350,7 @@ def emit_service_and_proxy(service, f):
             f.writeln("void __%s__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {" % func.name)
             with f.indent():
                 if func.attr != "fast":
-                    f.writeln("RUNNABLE_CLASS3(R, %sService*, thiz, rpc::Request*, req, rpc::ServerConnection*, sconn, {" % service.name)
+                    f.writeln("auto f = [=] {")
                     f.incr_indent()
                 invoke_with = []
                 in_counter = 0
@@ -364,10 +364,7 @@ def emit_service_and_proxy(service, f):
                     f.writeln("%s out_%d;" % (out_arg.type, out_counter))
                     invoke_with += "&out_%d" % out_counter,
                     out_counter += 1
-                if func.attr != "fast":
-                    f.writeln("thiz->%s(%s);" % (func.name, ", ".join(invoke_with)))
-                else:
-                    f.writeln("this->%s(%s);" % (func.name, ", ".join(invoke_with)))
+                f.writeln("this->%s(%s);" % (func.name, ", ".join(invoke_with)))
                 f.writeln("sconn->begin_reply(req);")
                 for i in range(out_counter):
                     f.writeln("*sconn << out_%d;" % i)
@@ -376,8 +373,8 @@ def emit_service_and_proxy(service, f):
                 f.writeln("sconn->release();")
                 if func.attr != "fast":
                     f.decr_indent()
-                    f.writeln("});")
-                    f.writeln("sconn->run_async(new R(this, req, sconn));")
+                    f.writeln("};")
+                    f.writeln("sconn->run_async(f);")
             f.writeln("}")
     f.writeln("};")
     f.writeln()

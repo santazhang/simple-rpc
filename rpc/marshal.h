@@ -5,6 +5,7 @@
 #include <string>
 #include <map>
 #include <set>
+#include <limits>
 
 #include <inttypes.h>
 #include <string.h>
@@ -17,9 +18,17 @@
 namespace rpc {
 
 #ifdef PERF_TEST
-extern int _perf_rpc_in_packet_size[1024];
-extern int _perf_rpc_out_packet_size[1024];
+#define PERF_SAMPLE_SIZE 19
+extern int _perf_rpc_in_packet_size[PERF_SAMPLE_SIZE];
+extern int _perf_rpc_out_packet_size[PERF_SAMPLE_SIZE];
 #endif // PERF_TEST
+
+struct io_ratelimit {
+    int min_size;
+    double interval;
+
+    io_ratelimit(): min_size(-1), interval(-1) {}
+};
 
 class Marshal;
 
@@ -228,6 +237,7 @@ class Marshal: public NoCopy {
 
     std::list<Chunk*> chunk_;
     i32 write_counter_;
+    double last_write_fd_tm_;
 
 public:
 
@@ -244,11 +254,8 @@ public:
         }
     };
 
-    Marshal()
-            : write_counter_(0) {
-    }
-    Marshal(const std::string& data)
-            : write_counter_(0) {
+    Marshal() : write_counter_(0), last_write_fd_tm_(0) { }
+    Marshal(const std::string& data) : write_counter_(0), last_write_fd_tm_(0) {
         chunk_.push_back(new Chunk(&data[0], data.length()));
     }
     ~Marshal();
@@ -269,9 +276,9 @@ public:
     int read(void* p, int n);
     int peek(void* p, int n) const;
 
-    int read_from_marshal(Marshal&, int n);
+    int read_from_marshal(Marshal&, int n = std::numeric_limits<int>::max());
     int read_from_fd(int fd);
-    int write_to_fd(int fd);
+    int write_to_fd(int fd, const io_ratelimit& rate);
 
     std::string dump() const;
 

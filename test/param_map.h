@@ -2,12 +2,12 @@
 #define PARAM_MAP_HEADER
 
 #include <string>
-#include <tr1/unordered_map>
+#include <unordered_map>
 
 namespace base {
 
 using std::string;
-using std::tr1::unordered_map;
+using std::unordered_map;
 
 // Command-line argument parsing class. Arguments are declared first,
 // and then parsed from 'argc' and 'argv'. The result is made

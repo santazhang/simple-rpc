@@ -1,21 +1,29 @@
-serverAPPNAME="simple-rpc"
+APPNAME="simple-rpc"
 VERSION="0.1"
 
 import os
-import shutil
+import sys
 from waflib import Logs
+
+if sys.platform == 'darwin' and not os.environ.has_key("CXX"):
+    os.environ["CXX"] = "clang++"   # use clang++ as default compiler (for c++11 support on mac)
 
 def options(opt):
     opt.load("compiler_cxx")
-    opt.add_option("--debug", action="store_true", default=False, help="enable debug support")
 
 def configure(conf):
     conf.load("compiler_cxx")
-    if conf.options.debug:
+
+    if sys.platform == "darwin":
+        conf.env.append_value("CXXFLAGS", "-stdlib=libc++")
+        conf.env.append_value("LINKFLAGS", "-stdlib=libc++")
+    if os.getenv("DEBUG") in ["true", "1"]:
         Logs.pprint("PINK", "debug support enabled")
-        conf.env.append_value("CXXFLAGS", ["-ggdb", "-Wall"])
+        conf.env.append_value("CXXFLAGS", "-std=c++11 -Wall -pthread -ggdb".split())
     else:
-        conf.env.append_value("CXXFLAGS", ["-O3", "-fno-omit-frame-pointer", "-Wall"])
+        conf.env.append_value("CXXFLAGS", "-std=c++11 -Wall -pthread -O3 -ggdb -fno-omit-frame-pointer".split())
+
+    conf.env.LIB_PTHREAD = 'pthread'
 
 def build(bld):
     def _depend(target, source, action):
@@ -32,17 +40,14 @@ def build(bld):
     bld.stlib(source=bld.path.ant_glob("rpc/*.cc"), target="simplerpc", includes="rpc", lib="pthread")
     bld.stlib(source="test/param_map.cc", includes=".", target = 'test', name = 'test')
 
-    def _prog(source, target):
-        bld.program(source=source, target=target, includes=".", use="simplerpc", lib="pthread rt")
+    def _prog(source, target, includes=".", use="simplerpc PTHREAD"):
+        bld.program(source=source, target=target, includes=includes, use=use, lib="rt")
 
     _prog("test/demo_client.cc", "demo_client")
     _prog("test/demo_server.cc test/demo_service.cc", "demo_server")
     _prog("test/perftest.cc", "perftest")
 
     # Unit tests and benchmark, inherented from MCP code
-    bld.program(source="test/param_map_test.cc", target="param_map_test",
-        includes=".", use=["simplerpc", "test"], lib="pthread")
-    bld.program(source="test/callback_test.cc", target="callback_test",
-        includes=".", use=["simplerpc", "test"], lib="pthread")
-    bld.program(source="test/callback_benchmark.cc", target="callback_benchmark",
-        includes=".", use=["simplerpc", "test"], lib="pthread")
+    _prog(source="test/param_map_test.cc", target="param_map_test", use="simplerpc test PTHREAD")
+    _prog(source="test/callback_test.cc", target="callback_test", use="simplerpc test PTHREAD")
+    _prog(source="test/callback_benchmark.cc", target="callback_benchmark", use="simplerpc test PTHREAD")

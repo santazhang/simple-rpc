@@ -4,7 +4,6 @@
 
 #include "marshal.h"
 #include "polling.h"
-#include "callback.h"
 
 #ifndef RPC_CLIENT_H_
 #define RPC_CLIENT_H_
@@ -15,23 +14,11 @@ namespace rpc {
 class Future;
 class Client;
 
-// callback should be fast, otherwise it hurts rpc performance
-typedef Callback<void, Future*> FutureCallback;
-
-#define FUTURE_CALLBACK_CLASS1(cls, type1, arg1, fu_var, future_callback_body) \
-    class cls: public rpc::FutureCallback { \
-    public: \
-        cls(type1 arg1): arg1(arg1) {} \
-        void run(Future* fu_var) { future_callback_body; } \
-    private: \
-        type1 arg1; \
-    }; \
-
-
-// callback will be automatically released by client
 struct FutureAttr {
-    FutureAttr(FutureCallback* cb = NULL) : callback(cb) { }
-    FutureCallback* callback;
+    FutureAttr(const std::function<void(Future*)>& cb = std::function<void(Future*)>()) : callback(cb) { }
+
+    // callback should be fast, otherwise it hurts rpc performance
+    std::function<void(Future*)> callback;
 };
 
 class Future: public RefCounted {
@@ -53,9 +40,6 @@ protected:
 
     // protected destructor as required by RefCounted.
     ~Future() {
-        if (attr_.callback != NULL) {
-            delete attr_.callback;
-        }
         Pthread_mutex_destroy(&ready_m_);
         Pthread_cond_destroy(&ready_cond_);
     }
@@ -155,7 +139,7 @@ public:
 
     int poll_mode();
     void handle_read();
-    void handle_write();
+    void handle_write(const io_ratelimit& rate);
     void handle_error();
 
 };

@@ -15,11 +15,19 @@
 #include "utils.h"
 #include "polling.h"
 
+#ifdef PERF_TEST
+#include <sstream>
+#endif // PERF_TEST
+
 using namespace std;
 
 namespace rpc {
 
 class PollMgr::PollThread {
+
+    friend class PollMgr;
+
+    PollMgr* poll_mgr_;
 
     // guard mode_ and poll_set_
     pthread_mutex_t m_;
@@ -42,10 +50,14 @@ class PollMgr::PollThread {
 
     void poll_loop();
 
+    void start(PollMgr* poll_mgr) {
+        poll_mgr_ = poll_mgr;
+        Pthread_create(&th_, NULL, PollMgr::PollThread::start_poll_loop, this);
+    }
+
 public:
 
-    PollThread()
-            : stop_flag_(false) {
+    PollThread(): poll_mgr_(nullptr), stop_flag_(false) {
         Pthread_mutex_init(&m_, NULL);
         Pthread_mutex_init(&pending_remove_m_, NULL);
 
@@ -56,8 +68,6 @@ public:
 #endif
 
         verify(poll_fd_ != -1);
-
-        Pthread_create(&th_, NULL, PollMgr::PollThread::start_poll_loop, this);
     }
 
     ~PollThread() {
@@ -80,16 +90,68 @@ public:
     void update_mode(Pollable*, int new_mode);
 };
 
-PollMgr::PollMgr(int n_threads /* =... */)
-        : n_(n_threads) {
-    poll_threads_ = new PollThread[n_];
-    //Log::debug("rpc::PollMgr: start with %d thread", n_);
+PollMgr::PollMgr(const poll_options& opts /* =... */): opts_(opts) {
+    if (opts_.rate.min_size > 0 && opts_.rate.interval <= 0.0) {
+        Log::warn("rpc batching size set but wait time not set, will use 1ms");
+        opts_.rate.interval = 0.001;
+    }
+    poll_threads_ = new PollThread[opts_.n_threads];
+    for (int i = 0; i < opts_.n_threads; i++) {
+        poll_threads_[i].start(this);
+    }
+    //Log::debug("rpc::PollMgr: start with %d thread", opts_.n_threads);
+
+#ifdef PERF_TEST
+    perf_stop_flag_ = false;
+    memset(_perf_rpc_in_packet_size, 0, sizeof(_perf_rpc_in_packet_size));
+    memset(_perf_rpc_out_packet_size, 0, sizeof(_perf_rpc_out_packet_size));
+    Pthread_create(&perf_th_, NULL, PollMgr::start_perf_loop, this);
+#endif // PERF_TEST
 }
 
 PollMgr::~PollMgr() {
     delete[] poll_threads_;
     //Log::debug("rpc::PollMgr: destroyed");
+
+#ifdef PERF_TEST
+    perf_stop_flag_ = true;
+    Pthread_join(perf_th_, NULL);
+#endif // PERF_TSET
+
 }
+
+#ifdef PERF_TEST
+
+void* PollMgr::start_perf_loop(void *arg) {
+    PollMgr* mgr = (PollMgr *) arg;
+    mgr->perf_loop();
+    pthread_exit(NULL);
+    return NULL;
+}
+
+void PollMgr::perf_loop() {
+    while (perf_stop_flag_ == false) {
+        Log::debug("perf loop");
+        ostringstream in_ostr;
+        const int in_stat_size = sizeof(_perf_rpc_in_packet_size) / sizeof(_perf_rpc_in_packet_size[0]);
+
+        for (int i = 0; i < in_stat_size; i++) {
+            in_ostr << " " << _perf_rpc_in_packet_size[i];
+        }
+        Log::debug("in:  %s", in_ostr.str().c_str());
+
+        ostringstream out_ostr;
+        const int out_stat_size = sizeof(_perf_rpc_out_packet_size) / sizeof(_perf_rpc_out_packet_size[0]);
+        for (int i = 0; i < out_stat_size; i++) {
+            out_ostr << " " << _perf_rpc_out_packet_size[i];
+        }
+        Log::debug("out: %s", out_ostr.str().c_str());
+        sleep(1);
+    }
+    Log::debug("perf loop finished");
+}
+
+#endif // PERF_TEST
 
 void PollMgr::PollThread::poll_loop() {
     while (!stop_flag_) {
@@ -112,7 +174,7 @@ void PollMgr::PollThread::poll_loop() {
                 poll->handle_read();
             }
             if (evlist[i].filter == EVFILT_WRITE) {
-                poll->handle_write();
+                poll->handle_write(poll_mgr_->opts_.rate);
             }
 
             // handle error after handle IO, so that we can at least process something
@@ -140,7 +202,7 @@ void PollMgr::PollThread::poll_loop() {
                 poll->handle_read();
             }
             if (evlist[i].events & EPOLLOUT) {
-                poll->handle_write();
+                poll->handle_write(poll_mgr_->opts_.rate);
             }
 
             // handle error after handle IO, so that we can at least process something
@@ -358,7 +420,7 @@ void PollMgr::PollThread::update_mode(Pollable* poll, int new_mode) {
 void PollMgr::add(Pollable* poll) {
     int fd = poll->fd();
     if (fd >= 0) {
-        int tid = fd % n_;
+        int tid = fd % opts_.n_threads;
         poll_threads_[tid].add(poll);
     }
 }
@@ -366,7 +428,7 @@ void PollMgr::add(Pollable* poll) {
 void PollMgr::remove(Pollable* poll) {
     int fd = poll->fd();
     if (fd >= 0) {
-        int tid = fd % n_;
+        int tid = fd % opts_.n_threads;
         poll_threads_[tid].remove(poll);
     }
 }
@@ -374,7 +436,7 @@ void PollMgr::remove(Pollable* poll) {
 void PollMgr::update_mode(Pollable* poll, int new_mode) {
     int fd = poll->fd();
     if (fd >= 0) {
-        int tid = fd % n_;
+        int tid = fd % opts_.n_threads;
         poll_threads_[tid].update_mode(poll, new_mode);
     }
 }

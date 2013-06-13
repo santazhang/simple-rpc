@@ -7,7 +7,7 @@
 using namespace demo;
 using namespace rpc;
 
-void MathService::is_prime(const i32& n, i32* flag) {
+void MathService::fast_prime(const i32& n, i32* flag) {
     if (n <= 0) {
         *flag = -1;
     } else if (n <= 3) {
@@ -28,4 +28,10 @@ void MathService::is_prime(const i32& n, i32* flag) {
     }
 }
 
+void MathService::prime(const i32& n, i32* flag) {
+    return fast_prime(n, flag);
+}
 
+void MathService::dot_prod(const point3& p1, const point3& p2, double *v) {
+    return fast_dot_prod(p1, p2, v);
+}
