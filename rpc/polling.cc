@@ -308,7 +308,7 @@ void PollMgr::PollThread::add(Pollable* poll) {
     memset(&ev, 0, sizeof(ev));
 
     ev.data.ptr = poll;
-    ev.events = EPOLLIN | EPOLLRDHUP; // EPOLLERR and EPOLLHUP are included by default
+    ev.events = EPOLLIN | EPOLLET | EPOLLRDHUP; // EPOLLERR and EPOLLHUP are included by default
     if (poll_mode & Pollable::WRITE) {
         ev.events |= EPOLLOUT;
     }
@@ -401,7 +401,7 @@ void PollMgr::PollThread::update_mode(Pollable* poll, int new_mode) {
         memset(&ev, 0, sizeof(ev));
 
         ev.data.ptr = poll;
-        ev.events = EPOLLRDHUP;
+        ev.events = EPOLLET | EPOLLRDHUP;
         if (new_mode & Pollable::READ) {
             ev.events |= EPOLLIN;
         }
