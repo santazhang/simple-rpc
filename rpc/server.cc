@@ -20,7 +20,7 @@ void ServerConnection::run_async(const std::function<void()>& f) {
 }
 
 void ServerConnection::begin_reply(Request* req, i32 error_code /* =... */) {
-    Pthread_mutex_lock(&out_m_);
+    out_l_.lock();
 
     bmark_ = this->out_.set_bookmark(sizeof(i32)); // will write reply size later
 
@@ -41,7 +41,7 @@ void ServerConnection::end_reply() {
         server_->pollmgr_->update_mode(this, Pollable::READ | Pollable::WRITE);
     }
 
-    Pthread_mutex_unlock(&out_m_);
+    out_l_.unlock();
 }
 
 void ServerConnection::handle_read() {
@@ -115,12 +115,12 @@ void ServerConnection::handle_write(const io_ratelimit& rate) {
         return;
     }
 
-    Pthread_mutex_lock(&out_m_);
+    out_l_.lock();
     out_.write_to_fd(socket_, rate);
     if (out_.empty()) {
         server_->pollmgr_->update_mode(this, Pollable::READ);
     }
-    Pthread_mutex_unlock(&out_m_);
+    out_l_.unlock();
 }
 
 void ServerConnection::handle_error() {
@@ -131,11 +131,11 @@ void ServerConnection::close() {
     bool should_release = false;
 
     if (status_ == CONNECTED) {
-        Pthread_mutex_lock(&server_->sconns_m_);
+        server_->sconns_l_.lock();
         set<ServerConnection*>::iterator it = server_->sconns_.find(this);
         if (it == server_->sconns_.end()) {
             // another thread has already calling close()
-            Pthread_mutex_unlock(&server_->sconns_m_);
+            server_->sconns_l_.unlock();
             return;
         }
         server_->sconns_.erase(it);
@@ -144,7 +144,7 @@ void ServerConnection::close() {
         should_release = true;
 
         server_->pollmgr_->remove(this);
-        Pthread_mutex_unlock(&server_->sconns_m_);
+        server_->sconns_l_.unlock();
 
         Log::debug("rpc::ServerConnection: closed on fd=%d", socket_);
 
@@ -160,11 +160,11 @@ void ServerConnection::close() {
 
 int ServerConnection::poll_mode() {
     int mode = Pollable::READ;
-    Pthread_mutex_lock(&out_m_);
+    out_l_.lock();
     if (!out_.empty()) {
         mode |= Pollable::WRITE;
     }
-    Pthread_mutex_unlock(&out_m_);
+    out_l_.unlock();
     return mode;
 }
 
@@ -187,8 +187,6 @@ Server::Server(PollMgr* pollmgr /* =... */, ThreadPool* thrpool /* =? */)
     } else {
         threadpool_ = (ThreadPool *) thrpool->ref_copy();
     }
-
-    Pthread_mutex_init(&sconns_m_, NULL);
 }
 
 Server::~Server() {
@@ -200,9 +198,9 @@ Server::~Server() {
         verify(server_sock_ == -1 && status_ == STOPPED);
     }
 
-    Pthread_mutex_lock(&sconns_m_);
+    sconns_l_.lock();
     vector<ServerConnection*> sconns(sconns_.begin(), sconns_.end());
-    Pthread_mutex_unlock(&sconns_m_);
+    sconns_l_.unlock();
 
     for (vector<ServerConnection*>::iterator it = sconns.begin(); it != sconns.end(); ++it) {
         (*it)->close();
@@ -210,7 +208,6 @@ Server::~Server() {
 
     pollmgr_->release();
     threadpool_->release();
-    Pthread_mutex_destroy(&sconns_m_);
 
     for (map<i32, Handler*>::iterator it = handlers_.begin(); it != handlers_.end(); ++it) {
         delete it->second;
@@ -262,11 +259,11 @@ void Server::server_loop(struct addrinfo* svr_addr) {
             Log::debug("rpc::Server: got new client, fd=%d", clnt_socket);
             verify(set_nonblocking(clnt_socket, true) == 0);
 
-            Pthread_mutex_lock(&sconns_m_);
+            sconns_l_.lock();
             ServerConnection* sconn = new ServerConnection(this, clnt_socket);
             sconns_.insert(sconn);
             pollmgr_->add(sconn);
-            Pthread_mutex_unlock(&sconns_m_);
+            sconns_l_.unlock();
         }
     }
 

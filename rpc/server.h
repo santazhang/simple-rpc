@@ -44,7 +44,7 @@ class ServerConnection: public Pollable {
     friend class Server;
 
     Marshal in_, out_;
-    pthread_mutex_t out_m_;
+    LongLock out_l_;
 
     Server* server_;
     int socket_;
@@ -67,15 +67,12 @@ protected:
     // Protected destructor as required by RefCounted.
     ~ServerConnection() {
         //Log::debug("rpc::ServerConnection: destroyed");
-        Pthread_mutex_destroy(&out_m_);
     }
 
 public:
 
     ServerConnection(Server* server, int socket)
-            : server_(server), socket_(socket), bmark_(NULL), status_(CONNECTED) {
-        Pthread_mutex_init(&out_m_, NULL);
-    }
+            : server_(server), socket_(socket), bmark_(NULL), status_(CONNECTED) { }
 
     /**
      * Start a reply message. Must be paired with end_reply().
@@ -128,7 +125,7 @@ class Server: public NoCopy {
     ThreadPool* threadpool_;
     int server_sock_;
 
-    pthread_mutex_t sconns_m_;
+    ShortLock sconns_l_;
     std::set<ServerConnection*> sconns_;
 
     enum {

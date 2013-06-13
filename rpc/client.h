@@ -91,7 +91,8 @@ class Client: public Pollable {
     Counter xid_counter_;
     std::map<i64, Future*> pending_fu_;
 
-    pthread_mutex_t pending_fu_m_, out_m_;
+    ShortLock pending_fu_l_;
+    LongLock out_l_;
 
     // reentrant, could be called multiple times before releasing
     void close();
@@ -103,11 +104,13 @@ class Client: public Pollable {
 
 protected:
 
-    virtual ~Client();
+    virtual ~Client() {
+        invalidate_pending_futures();
+    }
 
 public:
 
-    Client(PollMgr* pollmgr);
+    Client(PollMgr* pollmgr): pollmgr_(pollmgr), sock_(-1), status_(NEW), bmark_(NULL) { }
 
     /**
      * Start a new request. Must be paired with end_request(), even if NULL returned.
@@ -150,7 +153,7 @@ class ClientPool {
     rpc::PollMgr* pollmgr_;
 
     // guard cache_
-    pthread_mutex_t m_;
+    ShortLock l_;
     std::map<std::string, rpc::Client*> cache_;
 
 public:

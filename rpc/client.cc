@@ -31,29 +31,14 @@ void Future::notify_ready() {
     }
 }
 
-
-Client::Client(PollMgr* pollmgr): pollmgr_(pollmgr), sock_(-1), status_(NEW), bmark_(NULL) {
-    Pthread_mutex_init(&pending_fu_m_, NULL);
-    Pthread_mutex_init(&out_m_, NULL);
-}
-
-Client::~Client() {
-    invalidate_pending_futures();
-
-    Pthread_mutex_destroy(&pending_fu_m_);
-    Pthread_mutex_destroy(&out_m_);
-
-    //Log::debug("rpc::Client: destroyed");
-}
-
 void Client::invalidate_pending_futures() {
     list<Future*> futures;
-    Pthread_mutex_lock(&pending_fu_m_);
+    pending_fu_l_.lock();
     while (pending_fu_.empty() == false) {
         futures.push_back(pending_fu_.begin()->second);
         pending_fu_.erase(pending_fu_.begin());
     }
-    Pthread_mutex_unlock(&pending_fu_m_);
+    pending_fu_l_.unlock();
 
     for (list<Future*>::iterator it = futures.begin(); it != futures.end(); ++it) {
         Future* fu = *it;
@@ -144,12 +129,12 @@ void Client::handle_write(const io_ratelimit& rate) {
         return;
     }
 
-    Pthread_mutex_lock(&out_m_);
+    out_l_.lock();
     out_.write_to_fd(sock_, rate);
     if (out_.empty()) {
         pollmgr_->update_mode(this, Pollable::READ);
     }
-    Pthread_mutex_unlock(&out_m_);
+    out_l_.unlock();
 }
 
 void Client::handle_read() {
@@ -174,13 +159,13 @@ void Client::handle_read() {
 
             in_ >> reply_xid >> error_code;
 
-            Pthread_mutex_lock(&pending_fu_m_);
+            pending_fu_l_.lock();
             map<i64, Future*>::iterator it = pending_fu_.find(reply_xid);
             if (it != pending_fu_.end()) {
                 Future* fu = it->second;
                 verify(fu->xid_ == reply_xid);
                 pending_fu_.erase(it);
-                Pthread_mutex_unlock(&pending_fu_m_);
+                pending_fu_l_.unlock();
 
                 fu->error_code_ = error_code;
                 fu->reply_.read_from_marshal(in_, packet_size - sizeof(reply_xid) - sizeof(error_code));
@@ -189,6 +174,8 @@ void Client::handle_read() {
 
                 // since we removed it from pending_fu_
                 fu->release();
+            } else {
+                pending_fu_l_.unlock();
             }
 
         } else {
@@ -200,36 +187,36 @@ void Client::handle_read() {
 
 int Client::poll_mode() {
     int mode = Pollable::READ;
-    Pthread_mutex_lock(&out_m_);
+    out_l_.lock();
     if (!out_.empty()) {
         mode |= Pollable::WRITE;
     }
-    Pthread_mutex_unlock(&out_m_);
+    out_l_.unlock();
     return mode;
 }
 
 Future* Client::begin_request(i32 rpc_id, const FutureAttr& attr /* =... */) {
-    Pthread_mutex_lock(&out_m_);
+    out_l_.lock();
 
     if (status_ != CONNECTED) {
         return NULL;
     }
 
     Future* fu = new Future(xid_counter_.next(), attr);
-    Pthread_mutex_lock(&pending_fu_m_);
+    pending_fu_l_.lock();
     pending_fu_[fu->xid_] = fu;
     pending_fu_.size();
-    Pthread_mutex_unlock(&pending_fu_m_);
+    pending_fu_l_.unlock();
 
     // check if the client gets closed in the meantime
     if (status_ != CONNECTED) {
-        Pthread_mutex_lock(&pending_fu_m_);
+        pending_fu_l_.lock();
         map<i64, Future*>::iterator it = pending_fu_.find(fu->xid_);
         if (it != pending_fu_.end()) {
             it->second->release();
             pending_fu_.erase(it);
         }
-        Pthread_mutex_unlock(&pending_fu_m_);
+        pending_fu_l_.unlock();
 
         return NULL;
     }
@@ -256,12 +243,10 @@ void Client::end_request() {
         pollmgr_->update_mode(this, Pollable::READ | Pollable::WRITE);
     }
 
-    Pthread_mutex_unlock(&out_m_);
+    out_l_.unlock();
 }
 
 ClientPool::ClientPool(PollMgr* pollmgr /* =? */) {
-    Pthread_mutex_init(&m_, NULL);
-
     if (pollmgr == NULL) {
         pollmgr_ = new PollMgr;
     } else {
@@ -274,12 +259,11 @@ ClientPool::~ClientPool() {
         it->second->close_and_release();
     }
     pollmgr_->release();
-    Pthread_mutex_destroy(&m_);
 }
 
 Client* ClientPool::get_client(const string& addr) {
     Client* cl = NULL;
-    Pthread_mutex_lock(&m_);
+    l_.lock();
     map<string, Client*>::iterator it = cache_.find(addr);
     if (it != cache_.end()) {
         cl = it->second;
@@ -294,7 +278,7 @@ Client* ClientPool::get_client(const string& addr) {
             cache_.insert(make_pair(addr, cl));
         }
     }
-    Pthread_mutex_unlock(&m_);
+    l_.unlock();
     return cl;
 }
 

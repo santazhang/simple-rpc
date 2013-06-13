@@ -30,13 +30,13 @@ class PollMgr::PollThread {
     PollMgr* poll_mgr_;
 
     // guard mode_ and poll_set_
-    pthread_mutex_t m_;
+    ShortLock l_;
     std::map<int, int> mode_;
     std::set<Pollable*> poll_set_;
     int poll_fd_;
 
     std::set<Pollable*> pending_remove_;
-    pthread_mutex_t pending_remove_m_;
+    ShortLock pending_remove_l_;
 
     pthread_t th_;
     bool stop_flag_;
@@ -58,22 +58,18 @@ class PollMgr::PollThread {
 public:
 
     PollThread(): poll_mgr_(nullptr), stop_flag_(false) {
-        Pthread_mutex_init(&m_, NULL);
-        Pthread_mutex_init(&pending_remove_m_, NULL);
-
 #ifdef USE_KQUEUE
         poll_fd_ = kqueue();
 #else
         poll_fd_ = epoll_create(10);    // arg ignored, any value > 0 will do
 #endif
-
         verify(poll_fd_ != -1);
     }
 
     ~PollThread() {
-        Pthread_mutex_lock(&m_);
+        l_.lock();
         set<Pollable*> poll_set_copy = poll_set_;
-        Pthread_mutex_unlock(&m_);
+        l_.unlock();
 
         for (set<Pollable*>::iterator it = poll_set_copy.begin(); it != poll_set_copy.end(); ++it) {
             remove(*it);
@@ -81,8 +77,6 @@ public:
 
         stop_flag_ = true;
         Pthread_join(th_, NULL);
-        Pthread_mutex_destroy(&m_);
-        Pthread_mutex_destroy(&pending_remove_m_);
     }
 
     void add(Pollable*);
@@ -214,16 +208,16 @@ void PollMgr::PollThread::poll_loop() {
 #endif
 
         // after each poll loop, remove uninterested pollables
-        Pthread_mutex_lock(&pending_remove_m_);
+        pending_remove_l_.lock();
         list<Pollable*> remove_poll(pending_remove_.begin(), pending_remove_.end());
         pending_remove_.clear();
-        Pthread_mutex_unlock(&pending_remove_m_);
+        pending_remove_l_.unlock();
 
         for (list<Pollable*>::iterator it = remove_poll.begin(); it != remove_poll.end(); ++it) {
             Pollable* poll = *it;
             int fd = poll->fd();
 
-            Pthread_mutex_lock(&m_);
+            l_.lock();
             if (mode_.find(fd) == mode_.end()) {
                 // NOTE: only remove the fd when it is not immediately added again
                 // if the same fd is used again, mode_ will contains its info
@@ -250,7 +244,7 @@ void PollMgr::PollThread::poll_loop() {
                 epoll_ctl(poll_fd_, EPOLL_CTL_DEL, fd, &ev);
 #endif
             }
-            Pthread_mutex_unlock(&m_);
+            l_.unlock();
 
             poll->release();
         }
@@ -270,7 +264,7 @@ void PollMgr::PollThread::add(Pollable* poll) {
     int poll_mode = poll->poll_mode();
     int fd = poll->fd();
 
-    Pthread_mutex_lock(&m_);
+    l_.lock();
 
     // verify not exists
     verify(poll_set_.find(poll) == poll_set_.end());
@@ -280,7 +274,7 @@ void PollMgr::PollThread::add(Pollable* poll) {
     poll_set_.insert(poll);
     mode_[fd] = poll_mode;
 
-    Pthread_mutex_unlock(&m_);
+    l_.unlock();
 
 #ifdef USE_KQUEUE
 
@@ -319,7 +313,7 @@ void PollMgr::PollThread::add(Pollable* poll) {
 
 void PollMgr::PollThread::remove(Pollable* poll) {
     bool found = false;
-    Pthread_mutex_lock(&m_);
+    l_.lock();
     set<Pollable*>::iterator it = poll_set_.find(poll);
     if (it != poll_set_.end()) {
         found = true;
@@ -329,22 +323,22 @@ void PollMgr::PollThread::remove(Pollable* poll) {
     } else {
         assert(mode_.find(poll->fd()) == mode_.end());
     }
-    Pthread_mutex_unlock(&m_);
+    l_.unlock();
 
     if (found) {
-        Pthread_mutex_lock(&pending_remove_m_);
+        pending_remove_l_.lock();
         pending_remove_.insert(poll);
-        Pthread_mutex_unlock(&pending_remove_m_);
+        pending_remove_l_.unlock();
     }
 }
 
 void PollMgr::PollThread::update_mode(Pollable* poll, int new_mode) {
     int fd = poll->fd();
 
-    Pthread_mutex_lock(&m_);
+    l_.lock();
 
     if (poll_set_.find(poll) == poll_set_.end()) {
-        Pthread_mutex_unlock(&m_);
+        l_.unlock();
         return;
     }
 
@@ -414,7 +408,7 @@ void PollMgr::PollThread::update_mode(Pollable* poll, int new_mode) {
 
     }
 
-    Pthread_mutex_unlock(&m_);
+    l_.unlock();
 }
 
 void PollMgr::add(Pollable* poll) {
