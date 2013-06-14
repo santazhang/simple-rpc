@@ -145,7 +145,7 @@ public:
     MathProxy(rpc::Client* cl): __cl__(cl) { }
     rpc::Future* async_fast_prime(const rpc::i32& n, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
         rpc::Future* __fu__ = __cl__->begin_request(MathService::FAST_PRIME, __fu_attr__);
-        if (__fu__ != NULL) {
+        if (__fu__ != nullptr) {
             *__cl__ << n;
         }
         __cl__->end_request();
@@ -153,7 +153,7 @@ public:
     }
     rpc::i32 fast_prime(const rpc::i32& n, rpc::i32* flag) {
         rpc::Future* __fu__ = this->async_fast_prime(n);
-        if (__fu__ == NULL) {
+        if (__fu__ == nullptr) {
             return ENOTCONN;
         }
         rpc::i32 __ret__ = __fu__->get_error_code();
@@ -165,7 +165,7 @@ public:
     }
     rpc::Future* async_fast_dot_prod(const point3& p1, const point3& p2, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
         rpc::Future* __fu__ = __cl__->begin_request(MathService::FAST_DOT_PROD, __fu_attr__);
-        if (__fu__ != NULL) {
+        if (__fu__ != nullptr) {
             *__cl__ << p1;
             *__cl__ << p2;
         }
@@ -174,7 +174,7 @@ public:
     }
     rpc::i32 fast_dot_prod(const point3& p1, const point3& p2, double* v) {
         rpc::Future* __fu__ = this->async_fast_dot_prod(p1, p2);
-        if (__fu__ == NULL) {
+        if (__fu__ == nullptr) {
             return ENOTCONN;
         }
         rpc::i32 __ret__ = __fu__->get_error_code();
@@ -186,7 +186,7 @@ public:
     }
     rpc::Future* async_fast_large_str_nop(const std::string& str, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
         rpc::Future* __fu__ = __cl__->begin_request(MathService::FAST_LARGE_STR_NOP, __fu_attr__);
-        if (__fu__ != NULL) {
+        if (__fu__ != nullptr) {
             *__cl__ << str;
         }
         __cl__->end_request();
@@ -194,7 +194,7 @@ public:
     }
     rpc::i32 fast_large_str_nop(const std::string& str) {
         rpc::Future* __fu__ = this->async_fast_large_str_nop(str);
-        if (__fu__ == NULL) {
+        if (__fu__ == nullptr) {
             return ENOTCONN;
         }
         rpc::i32 __ret__ = __fu__->get_error_code();
@@ -203,7 +203,7 @@ public:
     }
     rpc::Future* async_prime(const rpc::i32& n, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
         rpc::Future* __fu__ = __cl__->begin_request(MathService::PRIME, __fu_attr__);
-        if (__fu__ != NULL) {
+        if (__fu__ != nullptr) {
             *__cl__ << n;
         }
         __cl__->end_request();
@@ -211,7 +211,7 @@ public:
     }
     rpc::i32 prime(const rpc::i32& n, rpc::i32* flag) {
         rpc::Future* __fu__ = this->async_prime(n);
-        if (__fu__ == NULL) {
+        if (__fu__ == nullptr) {
             return ENOTCONN;
         }
         rpc::i32 __ret__ = __fu__->get_error_code();
@@ -223,7 +223,7 @@ public:
     }
     rpc::Future* async_dot_prod(const point3& p1, const point3& p2, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
         rpc::Future* __fu__ = __cl__->begin_request(MathService::DOT_PROD, __fu_attr__);
-        if (__fu__ != NULL) {
+        if (__fu__ != nullptr) {
             *__cl__ << p1;
             *__cl__ << p2;
         }
@@ -232,7 +232,7 @@ public:
     }
     rpc::i32 dot_prod(const point3& p1, const point3& p2, double* v) {
         rpc::Future* __fu__ = this->async_dot_prod(p1, p2);
-        if (__fu__ == NULL) {
+        if (__fu__ == nullptr) {
             return ENOTCONN;
         }
         rpc::i32 __ret__ = __fu__->get_error_code();
@@ -244,7 +244,7 @@ public:
     }
     rpc::Future* async_large_str_nop(const std::string& str, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
         rpc::Future* __fu__ = __cl__->begin_request(MathService::LARGE_STR_NOP, __fu_attr__);
-        if (__fu__ != NULL) {
+        if (__fu__ != nullptr) {
             *__cl__ << str;
         }
         __cl__->end_request();
@@ -252,7 +252,7 @@ public:
     }
     rpc::i32 large_str_nop(const std::string& str) {
         rpc::Future* __fu__ = this->async_large_str_nop(str);
-        if (__fu__ == NULL) {
+        if (__fu__ == nullptr) {
             return ENOTCONN;
         }
         rpc::i32 __ret__ = __fu__->get_error_code();
@@ -298,7 +298,7 @@ public:
     NullProxy(rpc::Client* cl): __cl__(cl) { }
     rpc::Future* async_test(const rpc::i32& n, const rpc::i32& arg1, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
         rpc::Future* __fu__ = __cl__->begin_request(NullService::TEST, __fu_attr__);
-        if (__fu__ != NULL) {
+        if (__fu__ != nullptr) {
             *__cl__ << n;
             *__cl__ << arg1;
         }
@@ -307,7 +307,7 @@ public:
     }
     rpc::i32 test(const rpc::i32& n, const rpc::i32& arg1, rpc::i32* result) {
         rpc::Future* __fu__ = this->async_test(n, arg1);
-        if (__fu__ == NULL) {
+        if (__fu__ == nullptr) {
             return ENOTCONN;
         }
         rpc::i32 __ret__ = __fu__->get_error_code();

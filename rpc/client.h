@@ -71,6 +71,12 @@ public:
         wait();
         return error_code_;
     }
+
+    static inline void safe_release(Future* fu) {
+        if (fu != nullptr) {
+            fu->release();
+        }
+    }
 };
 
 class Client: public Pollable {

@@ -257,7 +257,7 @@ def emit_service_and_proxy(service, f):
             with f.indent():
                 f.writeln("rpc::Future* __fu__ = __cl__->begin_request(%sService::%s, __fu_attr__);" % (service.name, func.name.upper()))
                 if len(async_call_params) > 0:
-                    f.writeln("if (__fu__ != NULL) {")
+                    f.writeln("if (__fu__ != nullptr) {")
                     with f.indent():
                         for param in async_call_params:
                             f.writeln("*__cl__ << %s;" % param)
@@ -268,7 +268,7 @@ def emit_service_and_proxy(service, f):
             f.writeln("rpc::i32 %s(%s) {" % (func.name, ", ".join(sync_func_params)))
             with f.indent():
                 f.writeln("rpc::Future* __fu__ = this->async_%s(%s);" % (func.name, ", ".join(async_call_params)))
-                f.writeln("if (__fu__ == NULL) {")
+                f.writeln("if (__fu__ == nullptr) {")
                 with f.indent():
                     f.writeln("return ENOTCONN;")
                 f.writeln("}")
