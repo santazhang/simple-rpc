@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <semaphore.h>
 #include <unistd.h>
+#include <sys/time.h>
 
 #include "rpc/client.h"
 #include "rpc/server.h"
@@ -15,7 +16,7 @@ using namespace rpc;
 int n_th = 1;
 int n_batch = 1;
 
-typedef struct { 
+typedef struct {
     NullProxy *np;
     int *counter;
     int n_outstanding;
@@ -44,7 +45,7 @@ diff_timespec(const struct timespec &end, const struct timespec &start)
 }
 
 void NullService::test(const i32& arg1, const i32& arg2, i32* result) {
-}	
+}
 
 void *
 clt_run(void *x)
@@ -76,7 +77,7 @@ clt_run(void *x)
                 }
                 *d->counter = *d->counter + diff;
                 /*don't get out of the loop, i'll live with that*/
-                if (*d->counter == NUM) sleep(1); 
+                if (*d->counter == NUM) sleep(1);
 
                 __sync_add_and_fetch(&d->n_outstanding, diff);
             }
@@ -91,18 +92,18 @@ print_stat(void *x)
 {
     int *allcounters = (int *)x;
     int last = 0, curr = 0;
-    struct timespec now, past;
-    clock_gettime(CLOCK_REALTIME, &now);
-    do { 
+    struct timeval now, past;
+    gettimeofday(&now, 0);
+    do {
         last = curr;
         past = now;
         curr = 0;
         for (int i = 0; i < n_th; i++) {
             curr += allcounters[i];
         }
-        clock_gettime(CLOCK_REALTIME, &now);
-        int diff = diff_timespec(now, past);
-        printf("%.2f s processed %d rpcs = %.2f rpcs/sec\n", diff/1000.0, curr-last, 1000.0*(curr-last)/diff);
+        gettimeofday(&now, 0);
+        double diff_sec = now.tv_sec - past.tv_sec + (now.tv_usec - past.tv_usec) / 1000000.0;
+        printf("%.2f s processed %d rpcs = %.2f rpcs/sec\n", diff_sec, curr-last, (curr-last)/diff_sec);
         sleep(1);
     }while (!curr || curr != last);
     return NULL;
@@ -124,7 +125,7 @@ int main(int argc, char **argv) {
         switch (ch) {
         case 'c':
             isclient = true;
-            if (optarg) svr_addr = optarg; 
+            if (optarg) svr_addr = optarg;
             break;
         case 's':
             isserver = true;
@@ -136,10 +137,10 @@ int main(int argc, char **argv) {
         case 'b': /* batch of simultaneous rpcs */
             n_batch = atoi(optarg);
             break;
-        default:    
+        default:
             break;
         }
-    }        
+    }
 
     verify(isserver || isclient);
 
@@ -183,7 +184,7 @@ int main(int argc, char **argv) {
 
         pthread_t stat_th;
         assert(pthread_create(&stat_th,NULL, print_stat, (void *)counters)==0);
-        
+
         for (int i = 0; i < n_th; i++) {
             pthread_join(cltth[i], NULL);
         }

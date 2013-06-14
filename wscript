@@ -41,7 +41,7 @@ def build(bld):
     bld.stlib(source="test/param_map.cc", includes=".", target = 'test', name = 'test')
 
     def _prog(source, target, includes=".", use="simplerpc PTHREAD"):
-        bld.program(source=source, target=target, includes=includes, use=use, lib="rt")
+        bld.program(source=source, target=target, includes=includes, use=use)
 
     _prog("test/demo_client.cc", "demo_client")
     _prog("test/demo_server.cc test/demo_service.cc", "demo_server")

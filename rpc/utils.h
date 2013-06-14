@@ -10,10 +10,6 @@
 #include <pthread.h>
 #include <inttypes.h>
 
-#ifdef __APPLE__
-#include <libkern/OSAtomic.h>
-#endif
-
 /**
  * Use assert() when the test is only intended for debugging.
  * Use verify() when the test is crucial for both debug and release binary.
@@ -86,7 +82,7 @@ inline NoCopy::~NoCopy() {
  * This is thread safe.
  */
 class RefCounted: public NoCopy {
-    int refcnt_;
+    volatile int refcnt_;
 
 protected:
 
