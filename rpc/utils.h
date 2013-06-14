@@ -183,16 +183,16 @@ public:
 };
 
 class Counter: public NoCopy {
-    int next_;
+    i64 next_;
 public:
-    Counter(int start = 0) : next_(start) { }
-    int peek_next() const {
+    Counter(i64 start = 0) : next_(start) { }
+    i64 peek_next() const {
         return next_;
     }
-    int next(int step = 1) {
+    i64 next(i64 step = 1) {
         return __sync_fetch_and_add(&next_, step);
     }
-    void reset(int start = 0) {
+    void reset(i64 start = 0) {
         next_ = start;
     }
 };
