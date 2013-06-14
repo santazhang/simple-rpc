@@ -3,6 +3,7 @@
 #include <semaphore.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <signal.h>
 
 #include "rpc/client.h"
 #include "rpc/server.h"
@@ -110,6 +111,9 @@ print_stat(void *x)
 }
 
 int main(int argc, char **argv) {
+    signal(SIGPIPE, SIG_IGN);
+    signal(SIGHUP, SIG_IGN);
+    signal(SIGCHLD, SIG_IGN);
 
     bool isclient = false, isserver = false;
     int num_clients = 0;
