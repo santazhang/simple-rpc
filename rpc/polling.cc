@@ -302,7 +302,12 @@ void PollMgr::PollThread::add(Pollable* poll) {
     memset(&ev, 0, sizeof(ev));
 
     ev.data.ptr = poll;
-    ev.events = EPOLLIN | EPOLLET | EPOLLRDHUP; // EPOLLERR and EPOLLHUP are included by default
+    ev.events = EPOLLIN | EPOLLRDHUP; // EPOLLERR and EPOLLHUP are included by default
+    if (poll_mgr_->opts_.rate.min_size <= 0 && poll_mgr_->opts_.rate.interval <= 0.0) {
+        // only enable EPOLLET when not batching
+        ev.events |= EPOLLET;
+    }
+
     if (poll_mode & Pollable::WRITE) {
         ev.events |= EPOLLOUT;
     }
@@ -395,7 +400,11 @@ void PollMgr::PollThread::update_mode(Pollable* poll, int new_mode) {
         memset(&ev, 0, sizeof(ev));
 
         ev.data.ptr = poll;
-        ev.events = EPOLLET | EPOLLRDHUP;
+        ev.events = EPOLLRDHUP;
+        if (poll_mgr_->opts_.rate.min_size <= 0 && poll_mgr_->opts_.rate.interval <= 0.0) {
+            // only enable EPOLLET when not batching
+            ev.events |= EPOLLET;
+        }
         if (new_mode & Pollable::READ) {
             ev.events |= EPOLLIN;
         }
