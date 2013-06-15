@@ -10,12 +10,6 @@ class pack:
     def __str__(self):
         return str(self.__dict__)
 
-def properly_end_template(t):
-    if t.endswith(">"):
-        return " >"
-    else:
-        return ">"
-
 def std_rename(t):
     if t in ["string", "map", "list", "set", "deque", "vector"]:
         t = "std::" + t
@@ -60,7 +54,7 @@ parser Rpc:
         "i32" {{ return "rpc::i32" }}
         | "i64" {{ return "rpc::i64" }}
         | full_symbol {{ t = std_rename(full_symbol) }}
-            ["<" type {{ t += "<" + type }} ("," type {{ t += ", " + type }})* ">" {{ t += properly_end_template(t) }}] {{ return t }}
+            ["<" type {{ t += "<" + type }} ("," type {{ t += ", " + type }})* ">" {{ t += ">" }}] {{ return t }}
         | ("bool" | "int" | "unsigned" | "long" ) {{ raise TypeError("please use i32 or i64 for any integer types") }}
 
     rule full_symbol: {{ s = "" }}

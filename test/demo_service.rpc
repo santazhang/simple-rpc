@@ -10,6 +10,7 @@ service Math {
     fast fast_prime(i32 n | i32 flag)
     fast fast_dot_prod(point3 p1, point3 p2 | double v)
     fast fast_large_str_nop(string str | )
+    fast fast_vec_len(vector<vector<string>> v | i32 len)
     prime(i32 n | i32 flag)
     dot_prod(point3 p1, point3 p2 | double v)
     large_str_nop(string str | )
@@ -31,5 +32,8 @@ inline void MathService::fast_large_str_nop(const std::string& str) { }
 
 inline void MathService::large_str_nop(const std::string& str) { }
 
+inline void MathService::fast_vec_len(const std::vector<std::vector<std::string>>& v, rpc::i32* len) {
+    *len = v.size();
+}
 
 }

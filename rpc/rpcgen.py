@@ -10,12 +10,6 @@ class pack:
     def __str__(self):
         return str(self.__dict__)
 
-def properly_end_template(t):
-    if t.endswith(">"):
-        return " >"
-    else:
-        return ">"
-
 def std_rename(t):
     if t in ["string", "map", "list", "set", "deque", "vector"]:
         t = "std::" + t
@@ -140,7 +134,7 @@ class Rpc(runtime.Parser):
                     type = self.type(_context)
                     t += ", " + type
                 self._scan('">"', context=_context)
-                t += properly_end_template(t)
+                t += ">"
             return t
         else: # in ['"bool"', '"int"', '"unsigned"', '"long"']
             _token = self._peek('"bool"', '"int"', '"unsigned"', '"long"', context=_context)
