@@ -216,7 +216,7 @@ public:
         }
         struct timespec t;
         t.tv_sec = 0;
-        t.tv_nsec = 1000;
+        t.tv_nsec = 50000;
         while (__sync_lock_test_and_set(&locked_, 1)) {
             nanosleep(&t, NULL);
         }
