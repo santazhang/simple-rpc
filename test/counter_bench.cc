@@ -1,3 +1,5 @@
+#include <atomic>
+
 #include "rpc/utils.h"
 
 using namespace rpc;
@@ -16,7 +18,8 @@ public:
     }
     i64 next(i64 step = 1) {
         l_.lock();
-        i64 r = next_++;
+        i64 r = next_;
+        next_ += step;
         l_.unlock();
         return r;
     }
@@ -40,7 +43,8 @@ public:
     }
     i64 next(i64 step = 1) {
         l_.lock();
-        i64 r = next_++;
+        i64 r = next_;
+        next_ += step;
         l_.unlock();
         return r;
     }
@@ -48,6 +52,22 @@ public:
         l_.lock();
         next_ = start;
         l_.unlock();
+    }
+};
+
+class AtomicCounter {
+    atomic<i64> n_;
+public:
+    AtomicCounter(i64 start = 0): n_(start) {}
+    i64 peek_next() const {
+        return n_;
+    }
+    i64 next(i64 step = 1) {
+        n_ += step;
+        return n_;
+    }
+    void reset(i64 start = 0) {
+        n_ = start;
     }
 };
 
@@ -95,6 +115,14 @@ int main(int argc, char* argv[]) {
     }
     tm.end();
     Log::info("LongLockCounter 1 thread: %.2lf/s (%.4lf)", n / tm.elapsed(), n / tm.elapsed() / base);
+    AtomicCounter a_ctr;
+    tm.reset();
+    tm.start();
+    for (int i = 0; i < n; i++) {
+        a_ctr.next();
+    }
+    tm.end();
+    Log::info("AtomicCounter 1 thread: %.2lf/s (%.4lf)", n / tm.elapsed(), n / tm.elapsed() / base);
     pthread_t* th = new pthread_t[t];
     function<void()> worker1 = [&ctr, n] {
         while (ctr.next() < 2 * n)
@@ -138,6 +166,20 @@ int main(int argc, char* argv[]) {
     }
     tm.end();
     Log::info("LongLockCounter %d thread: %.2lf/s (%.4lf)", t, n / tm.elapsed(), n / tm.elapsed() / base);
+    function<void()> worker4 = [&a_ctr, n] {
+        while (a_ctr.next() < 2 * n)
+            ;
+    };
+    tm.reset();
+    tm.start();
+    for (int i = 0; i < t; i++) {
+        Pthread_create(&th[i], nullptr, worker_thread, &worker4);
+    }
+    for (int i = 0; i < t; i++) {
+        Pthread_join(th[i], nullptr);
+    }
+    tm.end();
+    Log::info("AtomicCounter %d thread: %.2lf/s (%.4lf)", t, n / tm.elapsed(), n / tm.elapsed() / base);
     delete[] th;
     return 0;
 }
