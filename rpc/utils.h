@@ -10,10 +10,6 @@
 #include <pthread.h>
 #include <inttypes.h>
 
-#ifdef __APPLE__
-#include <libkern/OSAtomic.h>
-#endif
-
 /**
  * Use assert() when the test is only intended for debugging.
  * Use verify() when the test is crucial for both debug and release binary.
@@ -183,7 +179,7 @@ public:
 };
 
 class Counter: public NoCopy {
-    i64 next_;
+    volatile i64 next_;
 public:
     Counter(i64 start = 0) : next_(start) { }
     i64 peek_next() const {
@@ -203,43 +199,32 @@ public:
     virtual void unlock() = 0;
 };
 
-#ifdef __APPLE__
-
 class ShortLock: public Lockable {
-    OSSpinLock l_;
-public:
-    ShortLock(): l_(0) {
-        // man -S 3 spinlock
-        // 0 is unlocked, nonzero is locked
+    int locked_;
+    int lock_state() const volatile {
+        return locked_;
     }
+public:
+    ShortLock(): locked_(0) { }
     void lock() {
-        OSSpinLockLock(&l_);
+        if (!lock_state() && !__sync_lock_test_and_set(&locked_, 1)) {
+            return;
+        }
+        int wait = 1000;
+        while ((wait-- > 0) && lock_state()) {
+            // spin for a short while
+        }
+        struct timespec t;
+        t.tv_sec = 0;
+        t.tv_nsec = 1000;
+        while (__sync_lock_test_and_set(&locked_, 1)) {
+            nanosleep(&t, NULL);
+        }
     }
     void unlock() {
-        OSSpinLockUnlock(&l_);
+        __sync_lock_release(&locked_);
     }
 };
-
-#else
-
-class ShortLock: public Lockable {
-    pthread_spinlock_t l_;
-public:
-    ShortLock() {
-        Pthread_spin_init(&l_, 0);
-    }
-    ~ShortLock() {
-        Pthread_spin_destroy(&l_);
-    }
-    void lock() {
-        Pthread_spin_lock(&l_);
-    }
-    void unlock() {
-        Pthread_spin_unlock(&l_);
-    }
-};
-
-#endif // __APPLE__
 
 class LongLock: public Lockable {
     pthread_mutex_t m_;
