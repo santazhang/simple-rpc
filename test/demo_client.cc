@@ -21,12 +21,11 @@ enum eval_case_t {
     FAST_LARGE_STR_NOP,
     PRIME,
     DOT_PROD,
-    LARGE_STR_NOP,
-    PRINT_I64,
+    LARGE_STR_NOP
 };
 
 enum eval_case_t eval_case;
-Counter g_counter;
+
 string long_str(16 * 1024, 'c');
 
 inline point3 rand_pt() {
@@ -58,9 +57,6 @@ inline void do_work(Client* cl, FutureAttr& fu_attr) {
     case LARGE_STR_NOP:
         fu = DemoProxy(cl).async_large_str_nop(long_str, fu_attr);
         break;
-    case PRINT_I64:
-        fu = DemoProxy(cl).async_print_i64(g_counter.next(), fu_attr);
-        break;
     default:
         Log::fatal("unexpected code reached!");
         verify(0);
@@ -72,7 +68,7 @@ inline void do_work(Client* cl, FutureAttr& fu_attr) {
 
 int main(int argc, char* argv[]) {
     printf("usage: %s svr_addr eval_case\n", argv[0]);
-    printf("eval_case: fast_prime, fast_dot_prod, fast_large_str_nop, prime, dot_prod, large_str_nop, print_i64\n");
+    printf("eval_case: fast_prime, fast_dot_prod, fast_large_str_nop, prime, dot_prod, large_str_nop\n");
     if (argc < 3) {
         exit(1);
     }
@@ -90,8 +86,6 @@ int main(int argc, char* argv[]) {
         eval_case = DOT_PROD;
     } else if (streq(argv[2], "large_str_nop")) {
         eval_case = LARGE_STR_NOP;
-    } else if (streq(argv[2], "print_i64")) {
-        eval_case = PRINT_I64;
     } else {
         Log::fatal("eval case not supported: %s", argv[2]);
         exit(1);

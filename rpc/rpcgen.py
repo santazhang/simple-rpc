@@ -32,7 +32,6 @@ class RpcScanner(runtime.Scanner):
         ('"\\)"', re.compile('\\)')),
         ('"\\|"', re.compile('\\|')),
         ('"\\("', re.compile('\\(')),
-        ('"ordered"', re.compile('ordered')),
         ('"raw"', re.compile('raw')),
         ('"fast"', re.compile('fast')),
         ('"service"', re.compile('service')),
@@ -184,7 +183,7 @@ class Rpc(runtime.Parser):
     def service_functions(self, _parent=None):
         _context = self.Context(_parent, self._scanner, 'service_functions', [])
         functions = []
-        while self._peek('"fast"', '"raw"', '"ordered"', 'SYMBOL', '"}"', context=_context) != '"}"':
+        while self._peek('"fast"', '"raw"', 'SYMBOL', '"}"', context=_context) != '"}"':
             service_function = self.service_function(_context)
             functions += service_function,
         return functions
@@ -192,17 +191,14 @@ class Rpc(runtime.Parser):
     def service_function(self, _parent=None):
         _context = self.Context(_parent, self._scanner, 'service_function', [])
         attr = None; abstract = False; input = []; output = []
-        if self._peek('"fast"', '"raw"', '"ordered"', 'SYMBOL', context=_context) != 'SYMBOL':
-            _token = self._peek('"fast"', '"raw"', '"ordered"', context=_context)
+        if self._peek('"fast"', '"raw"', 'SYMBOL', context=_context) != 'SYMBOL':
+            _token = self._peek('"fast"', '"raw"', context=_context)
             if _token == '"fast"':
                 self._scan('"fast"', context=_context)
                 attr = "fast"
-            elif _token == '"raw"':
+            else: # == '"raw"'
                 self._scan('"raw"', context=_context)
                 attr = "raw"
-            else: # == '"ordered"'
-                self._scan('"ordered"', context=_context)
-                attr = "ordered"
         SYMBOL = self._scan('SYMBOL', context=_context)
         forbid_reserved_names(SYMBOL)
         self._scan('"\\("', context=_context)
@@ -213,7 +209,7 @@ class Rpc(runtime.Parser):
             func_arg_list = self.func_arg_list(_context)
             output = func_arg_list
         self._scan('"\\)"', context=_context)
-        if self._peek('"="', '"fast"', '"raw"', '"ordered"', 'SYMBOL', '"}"', context=_context) == '"="':
+        if self._peek('"="', '"fast"', '"raw"', 'SYMBOL', '"}"', context=_context) == '"="':
             self._scan('"="', context=_context)
             self._scan('"0"', context=_context)
             abstract = True

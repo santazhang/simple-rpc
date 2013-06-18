@@ -14,7 +14,6 @@ service Demo {
     prime(i32 n | i32 flag)
     dot_prod(point3 p1, point3 p2 | double v)
     large_str_nop(string str | )
-    ordered print_i64(i64 v | )
 }
 
 service Null {
@@ -36,10 +35,6 @@ inline void DemoService::large_str_nop(const std::string& str) { }
 
 inline void DemoService::fast_vec_len(const std::vector<std::vector<std::string>>& v, rpc::i32* len) {
     *len = v.size();
-}
-
-inline void DemoService::print_i64(const rpc::i64& v) {
-    rpc::Log::debug("print_i64: %ld", v);
 }
 
 } // namespace demo

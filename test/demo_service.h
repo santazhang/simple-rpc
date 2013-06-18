@@ -44,7 +44,6 @@ public:
         PRIME = 0x1005,
         DOT_PROD = 0x1006,
         LARGE_STR_NOP = 0x1007,
-        PRINT_I64 = 0x1008,
     };
     void reg_to(rpc::Server* svr) {
         svr->reg(FAST_PRIME, this, &DemoService::__fast_prime__wrapper__);
@@ -54,7 +53,6 @@ public:
         svr->reg(PRIME, this, &DemoService::__prime__wrapper__);
         svr->reg(DOT_PROD, this, &DemoService::__dot_prod__wrapper__);
         svr->reg(LARGE_STR_NOP, this, &DemoService::__large_str_nop__wrapper__);
-        svr->reg(PRINT_I64, this, &DemoService::__print_i64__wrapper__);
     }
     // these RPC handler functions need to be implemented by user
     // for 'raw' handlers, remember to reply req, delete req, and sconn->release(); use sconn->run_async for heavy job
@@ -65,7 +63,6 @@ public:
     virtual void prime(const rpc::i32& n, rpc::i32* flag);
     virtual void dot_prod(const point3& p1, const point3& p2, double* v);
     virtual void large_str_nop(const std::string& str);
-    virtual void print_i64(const rpc::i64& v);
 private:
     void __fast_prime__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
         rpc::i32 in_0;
@@ -146,18 +143,6 @@ private:
             std::string in_0;
             req->m >> in_0;
             this->large_str_nop(in_0);
-            sconn->begin_reply(req);
-            sconn->end_reply();
-            delete req;
-            sconn->release();
-        };
-        sconn->run_async(f);
-    }
-    void __print_i64__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
-        auto f = [=] {
-            rpc::i64 in_0;
-            req->m >> in_0;
-            this->print_i64(in_0);
             sconn->begin_reply(req);
             sconn->end_reply();
             delete req;
@@ -308,29 +293,12 @@ public:
         __fu__->release();
         return __ret__;
     }
-    rpc::Future* async_print_i64(const rpc::i64& v, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
-        rpc::Future* __fu__ = __cl__->begin_request(DemoService::PRINT_I64, __fu_attr__);
-        if (__fu__ != nullptr) {
-            *__cl__ << v;
-        }
-        __cl__->end_request();
-        return __fu__;
-    }
-    rpc::i32 print_i64(const rpc::i64& v) {
-        rpc::Future* __fu__ = this->async_print_i64(v);
-        if (__fu__ == nullptr) {
-            return ENOTCONN;
-        }
-        rpc::i32 __ret__ = __fu__->get_error_code();
-        __fu__->release();
-        return __ret__;
-    }
 };
 
 class NullService: public rpc::Service {
 public:
     enum {
-        TEST = 0x1009,
+        TEST = 0x1008,
     };
     void reg_to(rpc::Server* svr) {
         svr->reg(TEST, this, &NullService::__test__wrapper__);
@@ -401,10 +369,6 @@ inline void DemoService::large_str_nop(const std::string& str) { }
 
 inline void DemoService::fast_vec_len(const std::vector<std::vector<std::string>>& v, rpc::i32* len) {
     *len = v.size();
-}
-
-inline void DemoService::print_i64(const rpc::i64& v) {
-    rpc::Log::debug("print_i64: %ld", v);
 }
 
 } // namespace demo
