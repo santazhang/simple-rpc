@@ -82,9 +82,9 @@ TEST(Run, Simple) {
 TEST(TheadPool, Simple) {
   rpc::ThreadPool* pool = new rpc::ThreadPool(1);
   Counter c;
-  pool->run_async([&] {c.inc();});
+  pool->run_async([&] {c.incBy(2);});
   pool->release();
-  EXPECT_EQ(c.count(), 3)
+  EXPECT_EQ(c.count(), 2)
 }
 
 } // unnamed namespace

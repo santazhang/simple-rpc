@@ -200,7 +200,7 @@ public:
 };
 
 class ShortLock: public Lockable {
-    int locked_;
+    int locked_ __attribute__ ((aligned (64)));;
     int lock_state() const volatile {
         return locked_;
     }
@@ -226,24 +226,7 @@ public:
     }
 };
 
-class LongLock: public Lockable {
-    pthread_mutex_t m_;
-public:
-    LongLock() {
-        Pthread_mutex_init(&m_, NULL);
-    }
-    ~LongLock() {
-        Pthread_mutex_destroy(&m_);
-    }
-    void lock() {
-        Pthread_mutex_lock(&m_);
-    }
-    void unlock() {
-        Pthread_mutex_unlock(&m_);
-    }
-};
-
-class Mutex {
+class Mutex : public Lockable {
 public:
     Mutex()         { Pthread_mutex_init(&m_, NULL); }
     ~Mutex()        { Pthread_mutex_destroy(&m_); }
@@ -261,17 +244,18 @@ private:
     Mutex& operator=(Mutex&);
 };
 
-class ScopedLock {
+typedef Mutex LongLock;
+
+class ScopedLock : NoCopy {
 public:
-    explicit ScopedLock(Mutex* lock) : m_(lock) { m_->lock(); }
+    explicit ScopedLock(Lockable* lock) : m_(lock) { m_->lock(); }
+    // Allow pass by reference.
+    explicit ScopedLock(Lockable& lock) : m_(&lock) { m_->lock(); }
+
     ~ScopedLock()   { m_->unlock(); }
 
 private:
-    Mutex* m_;
-
-    // Non-copyable, non-assignable
-    ScopedLock(ScopedLock&);
-    ScopedLock& operator=(ScopedLock&);
+    Lockable* m_;
 };
 
 class ConditionVar {

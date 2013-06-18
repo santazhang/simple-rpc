@@ -148,9 +148,17 @@ int main(int argc, char **argv) {
 
     verify(isserver || isclient);
 
+    const int n_io_threads = 8;
+    const int n_worker_threads = 64;
+
+    poll_options poll_opts;
+    poll_opts.n_threads = n_io_threads;
+    PollMgr* poll = new PollMgr(poll_opts);
+
     if (isserver) {
         printf("starting server on %s\n", svr_addr);
-        Server svr;
+        ThreadPool* thrpool = new ThreadPool(n_worker_threads);
+        Server svr(poll, thrpool);
         NullService null_svc;
         svr.reg(&null_svc);
         svr.start(svr_addr);
@@ -158,7 +166,8 @@ int main(int argc, char **argv) {
         while (1) {
             sleep(1);
         }
-    }else { //isclient
+        thrpool->release();
+    } else { //isclient
 
         if (!num_clients)
             num_clients = n_th;
@@ -171,7 +180,6 @@ int main(int argc, char **argv) {
         printf("Perf client to create %d rpc clients and %d threads\n", num_clients, n_th);
 
         for (int i = 0; i < num_clients; i++) {
-            PollMgr* poll = new PollMgr;
             Client *cl = new Client(poll);
             verify(cl->connect(svr_addr) == 0);
             allclients[i] = new NullProxy(cl);
