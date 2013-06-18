@@ -21,11 +21,12 @@ enum eval_case_t {
     FAST_LARGE_STR_NOP,
     PRIME,
     DOT_PROD,
-    LARGE_STR_NOP
+    LARGE_STR_NOP,
+    PRINT_I64,
 };
 
 enum eval_case_t eval_case;
-
+Counter g_counter;
 string long_str(16 * 1024, 'c');
 
 inline point3 rand_pt() {
@@ -40,22 +41,25 @@ inline void do_work(Client* cl, FutureAttr& fu_attr) {
     Future* fu;
     switch (eval_case) {
     case FAST_PRIME:
-        fu = MathProxy(cl).async_fast_prime(rand(), fu_attr);
+        fu = DemoProxy(cl).async_fast_prime(rand(), fu_attr);
         break;
     case PRIME:
-        fu = MathProxy(cl).async_prime(rand(), fu_attr);
+        fu = DemoProxy(cl).async_prime(rand(), fu_attr);
         break;
     case FAST_DOT_PROD:
-        fu = MathProxy(cl).async_fast_dot_prod(rand_pt(), rand_pt(), fu_attr);
+        fu = DemoProxy(cl).async_fast_dot_prod(rand_pt(), rand_pt(), fu_attr);
         break;
     case DOT_PROD:
-        fu = MathProxy(cl).async_dot_prod(rand_pt(), rand_pt(), fu_attr);
+        fu = DemoProxy(cl).async_dot_prod(rand_pt(), rand_pt(), fu_attr);
         break;
     case FAST_LARGE_STR_NOP:
-        fu = MathProxy(cl).async_fast_large_str_nop(long_str, fu_attr);
+        fu = DemoProxy(cl).async_fast_large_str_nop(long_str, fu_attr);
         break;
     case LARGE_STR_NOP:
-        fu = MathProxy(cl).async_large_str_nop(long_str, fu_attr);
+        fu = DemoProxy(cl).async_large_str_nop(long_str, fu_attr);
+        break;
+    case PRINT_I64:
+        fu = DemoProxy(cl).async_print_i64(g_counter.next(), fu_attr);
         break;
     default:
         Log::fatal("unexpected code reached!");
@@ -68,7 +72,7 @@ inline void do_work(Client* cl, FutureAttr& fu_attr) {
 
 int main(int argc, char* argv[]) {
     printf("usage: %s svr_addr eval_case\n", argv[0]);
-    printf("eval_case: fast_prime, fast_dot_prod, fast_large_str_nop, prime, dot_prod, large_str_nop\n");
+    printf("eval_case: fast_prime, fast_dot_prod, fast_large_str_nop, prime, dot_prod, large_str_nop, print_i64\n");
     if (argc < 3) {
         exit(1);
     }
@@ -86,6 +90,8 @@ int main(int argc, char* argv[]) {
         eval_case = DOT_PROD;
     } else if (streq(argv[2], "large_str_nop")) {
         eval_case = LARGE_STR_NOP;
+    } else if (streq(argv[2], "print_i64")) {
+        eval_case = PRINT_I64;
     } else {
         Log::fatal("eval case not supported: %s", argv[2]);
         exit(1);

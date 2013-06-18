@@ -34,7 +34,7 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, point3& o) {
     return m;
 }
 
-class MathService: public rpc::Service {
+class DemoService: public rpc::Service {
 public:
     enum {
         FAST_PRIME = 0x1001,
@@ -44,15 +44,17 @@ public:
         PRIME = 0x1005,
         DOT_PROD = 0x1006,
         LARGE_STR_NOP = 0x1007,
+        PRINT_I64 = 0x1008,
     };
     void reg_to(rpc::Server* svr) {
-        svr->reg(FAST_PRIME, this, &MathService::__fast_prime__wrapper__);
-        svr->reg(FAST_DOT_PROD, this, &MathService::__fast_dot_prod__wrapper__);
-        svr->reg(FAST_LARGE_STR_NOP, this, &MathService::__fast_large_str_nop__wrapper__);
-        svr->reg(FAST_VEC_LEN, this, &MathService::__fast_vec_len__wrapper__);
-        svr->reg(PRIME, this, &MathService::__prime__wrapper__);
-        svr->reg(DOT_PROD, this, &MathService::__dot_prod__wrapper__);
-        svr->reg(LARGE_STR_NOP, this, &MathService::__large_str_nop__wrapper__);
+        svr->reg(FAST_PRIME, this, &DemoService::__fast_prime__wrapper__);
+        svr->reg(FAST_DOT_PROD, this, &DemoService::__fast_dot_prod__wrapper__);
+        svr->reg(FAST_LARGE_STR_NOP, this, &DemoService::__fast_large_str_nop__wrapper__);
+        svr->reg(FAST_VEC_LEN, this, &DemoService::__fast_vec_len__wrapper__);
+        svr->reg(PRIME, this, &DemoService::__prime__wrapper__);
+        svr->reg(DOT_PROD, this, &DemoService::__dot_prod__wrapper__);
+        svr->reg(LARGE_STR_NOP, this, &DemoService::__large_str_nop__wrapper__);
+        svr->reg(PRINT_I64, this, &DemoService::__print_i64__wrapper__);
     }
     // these RPC handler functions need to be implemented by user
     // for 'raw' handlers, remember to reply req, delete req, and sconn->release(); use sconn->run_async for heavy job
@@ -63,6 +65,7 @@ public:
     virtual void prime(const rpc::i32& n, rpc::i32* flag);
     virtual void dot_prod(const point3& p1, const point3& p2, double* v);
     virtual void large_str_nop(const std::string& str);
+    virtual void print_i64(const rpc::i64& v);
 private:
     void __fast_prime__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
         rpc::i32 in_0;
@@ -150,15 +153,27 @@ private:
         };
         sconn->run_async(f);
     }
+    void __print_i64__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
+        auto f = [=] {
+            rpc::i64 in_0;
+            req->m >> in_0;
+            this->print_i64(in_0);
+            sconn->begin_reply(req);
+            sconn->end_reply();
+            delete req;
+            sconn->release();
+        };
+        sconn->run_async(f);
+    }
 };
 
-class MathProxy {
+class DemoProxy {
 protected:
     rpc::Client* __cl__;
 public:
-    MathProxy(rpc::Client* cl): __cl__(cl) { }
+    DemoProxy(rpc::Client* cl): __cl__(cl) { }
     rpc::Future* async_fast_prime(const rpc::i32& n, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
-        rpc::Future* __fu__ = __cl__->begin_request(MathService::FAST_PRIME, __fu_attr__);
+        rpc::Future* __fu__ = __cl__->begin_request(DemoService::FAST_PRIME, __fu_attr__);
         if (__fu__ != nullptr) {
             *__cl__ << n;
         }
@@ -178,7 +193,7 @@ public:
         return __ret__;
     }
     rpc::Future* async_fast_dot_prod(const point3& p1, const point3& p2, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
-        rpc::Future* __fu__ = __cl__->begin_request(MathService::FAST_DOT_PROD, __fu_attr__);
+        rpc::Future* __fu__ = __cl__->begin_request(DemoService::FAST_DOT_PROD, __fu_attr__);
         if (__fu__ != nullptr) {
             *__cl__ << p1;
             *__cl__ << p2;
@@ -199,7 +214,7 @@ public:
         return __ret__;
     }
     rpc::Future* async_fast_large_str_nop(const std::string& str, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
-        rpc::Future* __fu__ = __cl__->begin_request(MathService::FAST_LARGE_STR_NOP, __fu_attr__);
+        rpc::Future* __fu__ = __cl__->begin_request(DemoService::FAST_LARGE_STR_NOP, __fu_attr__);
         if (__fu__ != nullptr) {
             *__cl__ << str;
         }
@@ -216,7 +231,7 @@ public:
         return __ret__;
     }
     rpc::Future* async_fast_vec_len(const std::vector<std::vector<std::string>>& v, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
-        rpc::Future* __fu__ = __cl__->begin_request(MathService::FAST_VEC_LEN, __fu_attr__);
+        rpc::Future* __fu__ = __cl__->begin_request(DemoService::FAST_VEC_LEN, __fu_attr__);
         if (__fu__ != nullptr) {
             *__cl__ << v;
         }
@@ -236,7 +251,7 @@ public:
         return __ret__;
     }
     rpc::Future* async_prime(const rpc::i32& n, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
-        rpc::Future* __fu__ = __cl__->begin_request(MathService::PRIME, __fu_attr__);
+        rpc::Future* __fu__ = __cl__->begin_request(DemoService::PRIME, __fu_attr__);
         if (__fu__ != nullptr) {
             *__cl__ << n;
         }
@@ -256,7 +271,7 @@ public:
         return __ret__;
     }
     rpc::Future* async_dot_prod(const point3& p1, const point3& p2, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
-        rpc::Future* __fu__ = __cl__->begin_request(MathService::DOT_PROD, __fu_attr__);
+        rpc::Future* __fu__ = __cl__->begin_request(DemoService::DOT_PROD, __fu_attr__);
         if (__fu__ != nullptr) {
             *__cl__ << p1;
             *__cl__ << p2;
@@ -277,7 +292,7 @@ public:
         return __ret__;
     }
     rpc::Future* async_large_str_nop(const std::string& str, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
-        rpc::Future* __fu__ = __cl__->begin_request(MathService::LARGE_STR_NOP, __fu_attr__);
+        rpc::Future* __fu__ = __cl__->begin_request(DemoService::LARGE_STR_NOP, __fu_attr__);
         if (__fu__ != nullptr) {
             *__cl__ << str;
         }
@@ -293,12 +308,29 @@ public:
         __fu__->release();
         return __ret__;
     }
+    rpc::Future* async_print_i64(const rpc::i64& v, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
+        rpc::Future* __fu__ = __cl__->begin_request(DemoService::PRINT_I64, __fu_attr__);
+        if (__fu__ != nullptr) {
+            *__cl__ << v;
+        }
+        __cl__->end_request();
+        return __fu__;
+    }
+    rpc::i32 print_i64(const rpc::i64& v) {
+        rpc::Future* __fu__ = this->async_print_i64(v);
+        if (__fu__ == nullptr) {
+            return ENOTCONN;
+        }
+        rpc::i32 __ret__ = __fu__->get_error_code();
+        __fu__->release();
+        return __ret__;
+    }
 };
 
 class NullService: public rpc::Service {
 public:
     enum {
-        TEST = 0x1008,
+        TEST = 0x1009,
     };
     void reg_to(rpc::Server* svr) {
         svr->reg(TEST, this, &NullService::__test__wrapper__);
@@ -358,16 +390,20 @@ public:
 
 namespace demo {
 
-inline void MathService::fast_dot_prod(const point3& p1, const point3& p2, double* v) {
+inline void DemoService::fast_dot_prod(const point3& p1, const point3& p2, double* v) {
     *v = p1.x * p2.x + p1.y * p2.y + p1.z * p2.z;
 }
 
-inline void MathService::fast_large_str_nop(const std::string& str) { }
+inline void DemoService::fast_large_str_nop(const std::string& str) { }
 
-inline void MathService::large_str_nop(const std::string& str) { }
+inline void DemoService::large_str_nop(const std::string& str) { }
 
-inline void MathService::fast_vec_len(const std::vector<std::vector<std::string>>& v, rpc::i32* len) {
+inline void DemoService::fast_vec_len(const std::vector<std::vector<std::string>>& v, rpc::i32* len) {
     *len = v.size();
+}
+
+inline void DemoService::print_i64(const rpc::i64& v) {
+    rpc::Log::debug("print_i64: %ld", v);
 }
 
 }

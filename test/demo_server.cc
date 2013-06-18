@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
     poll->release();
     thrpool->release();
 
-    MathService math_svc;
+    DemoService math_svc;
     svr.reg(&math_svc);
     svr.start(bind_addr);
 

@@ -15,6 +15,10 @@ def std_rename(t):
         t = "std::" + t
     return t
 
+def check_param_name(name):
+    if name.startswith("__") and name.endswith("__"):
+        raise Exception("bad function param name '%s', __PARAM__ naming is reserved" % name)
+
 %%
 
 parser Rpc:
@@ -70,7 +74,7 @@ parser Rpc:
             {{ return functions }}
 
     rule service_function: {{ attr = None; abstract = False; input = []; output = [] }}
-        ["fast" {{ attr = "fast" }} | "raw" {{ attr = "raw" }}] SYMBOL
+        ["fast" {{ attr = "fast" }} | "raw" {{ attr = "raw" }} | "ordered" {{ attr = "ordered" }}] SYMBOL
         "\(" (func_arg_list {{ input = func_arg_list }}) ["\|" (func_arg_list {{ output = func_arg_list }})] "\)"
         ["=" "0" {{ abstract = True }}]
             {{ return pack(name=SYMBOL, attr=attr, abstract=abstract, input=input, output=output) }}
@@ -80,7 +84,7 @@ parser Rpc:
             {{ return args }}
 
     rule func_arg: {{ name = None }}
-        type [SYMBOL {{ name = SYMBOL }}]
+        type [SYMBOL {{ name = SYMBOL; check_param_name(name) }}]
             {{ return pack(name=name, type=type) }}
 
 %%
