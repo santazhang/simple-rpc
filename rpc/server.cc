@@ -206,8 +206,9 @@ Server::~Server() {
         (*it)->close();
     }
 
-    pollmgr_->release();
+    // always release ThreadPool before PollMgr, in case some running task want to access PollMgr
     threadpool_->release();
+    pollmgr_->release();
 
     for (map<i32, Handler*>::iterator it = handlers_.begin(); it != handlers_.end(); ++it) {
         delete it->second;
