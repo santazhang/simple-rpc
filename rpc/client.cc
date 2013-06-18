@@ -246,7 +246,9 @@ void Client::end_request() {
     out_l_.unlock();
 }
 
-ClientPool::ClientPool(PollMgr* pollmgr /* =? */) {
+ClientPool::ClientPool(PollMgr* pollmgr /* =? */, int parallel_connections /* =? */)
+        : parallel_connections_(parallel_connections) {
+
     if (pollmgr == NULL) {
         pollmgr_ = new PollMgr;
     } else {
@@ -255,8 +257,11 @@ ClientPool::ClientPool(PollMgr* pollmgr /* =? */) {
 }
 
 ClientPool::~ClientPool() {
-    for (map<string, Client*>::iterator it = cache_.begin(); it != cache_.end(); ++it) {
-        it->second->close_and_release();
+    for (auto it : cache_) {
+        for (int i = 0; i < parallel_connections_; i++) {
+            it.second[i]->close_and_release();
+        }
+        delete[] it.second;
     }
     pollmgr_->release();
 }
@@ -264,18 +269,30 @@ ClientPool::~ClientPool() {
 Client* ClientPool::get_client(const string& addr) {
     Client* cl = NULL;
     l_.lock();
-    map<string, Client*>::iterator it = cache_.find(addr);
+    map<string, Client**>::iterator it = cache_.find(addr);
     if (it != cache_.end()) {
-        cl = it->second;
+        cl = it->second[rand_() % parallel_connections_];
     } else {
-        cl = new Client(this->pollmgr_);
-        if (cl->connect(addr.c_str()) != 0) {
-            // connect failure
-            cl->close_and_release();
-            cl = NULL;
+        Client** parallel_clients = new Client*[parallel_connections_];
+        int i;
+        bool ok = true;
+        for (i = 0; i < parallel_connections_; i++) {
+            parallel_clients[i] = new Client(this->pollmgr_);
+            if (parallel_clients[i]->connect(addr.c_str()) != 0) {
+                ok = false;
+                break;
+            }
+        }
+        if (ok) {
+            cl = parallel_clients[rand_() % parallel_connections_];
+            cache_.insert(make_pair(addr, parallel_clients));
         } else {
-            // connect success
-            cache_.insert(make_pair(addr, cl));
+            // close connections
+            while (i >= 0) {
+                parallel_clients[i]->close_and_release();
+                i--;
+            }
+            delete[] parallel_clients;
         }
     }
     l_.unlock();

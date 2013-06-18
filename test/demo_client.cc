@@ -28,6 +28,9 @@ enum eval_case_t eval_case;
 
 string long_str(16 * 1024, 'c');
 
+Counter g_rpc_issued;
+static int g_n_rpc = 1000 * 1000;
+
 inline point3 rand_pt() {
     point3 pt;
     pt.x = ((double) rand()) / RAND_MAX;
@@ -36,7 +39,11 @@ inline point3 rand_pt() {
     return pt;
 }
 
-inline void do_work(Client* cl, FutureAttr& fu_attr) {
+inline void do_work(ClientPool* cl_pool, const char* svr_addr, FutureAttr& fu_attr) {
+    if (g_rpc_issued.next() > g_n_rpc) {
+        return;
+    }
+    Client* cl = cl_pool->get_client(svr_addr);
     Future* fu;
     switch (eval_case) {
     case FAST_PRIME:
@@ -93,8 +100,7 @@ int main(int argc, char* argv[]) {
 
     srand(getpid());
     PollMgr* poll = new PollMgr;
-    Client* cl = new Client(poll);
-    verify(cl->connect(svr_addr) == 0);
+    ClientPool* cl_pool = new ClientPool(poll, 10);
 
     const int concurrency = 1000;
     Counter rpc_counter;
@@ -102,19 +108,22 @@ int main(int argc, char* argv[]) {
     FutureAttr attr1;
     FutureAttr attr2;
     verify(attr1.callback == nullptr);
-    attr1.callback = [&] (Future*) { do_work(cl, attr2); rpc_counter.next(); };
-    attr2.callback = [&] (Future*) { do_work(cl, attr1); rpc_counter.next(); };
+    attr1.callback = [&] (Future*) { do_work(cl_pool, svr_addr, attr2); rpc_counter.next(); };
+    attr2.callback = [&] (Future*) { do_work(cl_pool, svr_addr, attr1); rpc_counter.next(); };
 
     for (int i = 0; i < concurrency; i++) {
-        do_work(cl, attr1);
+        do_work(cl_pool, svr_addr, attr1);
     }
 
     for (int i = 0; i < 20; i++) {
         Log::debug("clock tick, about %d rpc done", rpc_counter.peek_next());
+        if (g_rpc_issued.peek_next() > g_n_rpc) {
+            break;
+        }
         sleep(1);
     }
 
-    cl->close_and_release();
+    delete cl_pool;
     poll->release();
     return 0;
 }

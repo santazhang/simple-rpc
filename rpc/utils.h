@@ -2,7 +2,10 @@
 
 #include <list>
 #include <functional>
+#include <random>
 
+#include <sys/types.h>
+#include <sys/time.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -305,6 +308,22 @@ public:
 private:
     struct timeval start_;
     struct timeval end_;
+};
+
+class Rand {
+    std::mt19937 rand_;
+public:
+    Rand() {
+        struct timeval now;
+        gettimeofday(&now, NULL);
+        rand_.seed(now.tv_sec + now.tv_usec + (long long) pthread_self() + (long long) this);
+    }
+    std::mt19937::result_type next() {
+        return rand_();
+    }
+    std::mt19937::result_type operator() () {
+        return rand_();
+    }
 };
 
 int set_nonblocking(int fd, bool nonblocking);

@@ -153,18 +153,20 @@ public:
 
 };
 
-class ClientPool {
+class ClientPool: public NoCopy {
+    rpc::Rand rand_;
 
     // refcopy
     rpc::PollMgr* pollmgr_;
 
     // guard cache_
     ShortLock l_;
-    std::map<std::string, rpc::Client*> cache_;
+    std::map<std::string, rpc::Client**> cache_;
+    int parallel_connections_;
 
 public:
 
-    ClientPool(rpc::PollMgr* pollmgr = NULL);
+    ClientPool(rpc::PollMgr* pollmgr = NULL, int parallel_connections = 1);
     ~ClientPool();
 
     // return cached client connection
