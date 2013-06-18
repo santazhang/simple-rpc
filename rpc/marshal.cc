@@ -1,3 +1,5 @@
+#include <sstream>
+
 #include <sys/time.h>
 
 #include "marshal.h"
@@ -6,10 +8,37 @@ using namespace std;
 
 namespace rpc {
 
-#ifdef PERF_TEST
-int _perf_rpc_in_packet_size[PERF_SAMPLE_SIZE];
-int _perf_rpc_out_packet_size[PERF_SAMPLE_SIZE];
-#endif // PERF_TEST
+#ifdef PKT_SAMPLING
+int _pkt_sample_in[PKT_SAMPLE_SIZE];
+int _pkt_sample_out[PKT_SAMPLE_SIZE];
+
+void _pkt_sampling_report() {
+    static size_t ratelimit_counter = 0;
+    static int last_report_tm = 0;
+    if (ratelimit_counter++ % 1024 == 0) {
+        struct timeval now;
+        gettimeofday(&now, NULL);
+        if (now.tv_sec - last_report_tm >= 1) {
+            {
+                ostringstream ostr;
+                for (int i = 0; i < PKT_SAMPLE_SIZE; i++) {
+                    ostr << " " << _pkt_sample_in[i];
+                }
+                Log::info("PKT_SAMPLE_IN: %s", ostr.str().c_str());
+            }
+            {
+                ostringstream ostr;
+                for (int i = 0; i < PKT_SAMPLE_SIZE; i++) {
+                    ostr << " " << _pkt_sample_out[i];
+                }
+                Log::info("PKT_SAMPLE_OUT:%s", ostr.str().c_str());
+            }
+            last_report_tm = now.tv_sec;
+        }
+    }
+}
+
+#endif // PKT_SAMPLING
 
 /**
  * 8kb minimum chunk size.

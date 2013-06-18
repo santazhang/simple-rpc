@@ -13,15 +13,17 @@
 
 #include "utils.h"
 
-//#define PERF_TEST
+// sample packet size
+//#define PKT_SAMPLING
 
 namespace rpc {
 
-#ifdef PERF_TEST
-#define PERF_SAMPLE_SIZE 19
-extern int _perf_rpc_in_packet_size[PERF_SAMPLE_SIZE];
-extern int _perf_rpc_out_packet_size[PERF_SAMPLE_SIZE];
-#endif // PERF_TEST
+#ifdef PKT_SAMPLING
+#define PKT_SAMPLE_SIZE 19
+extern int _pkt_sample_in[PKT_SAMPLE_SIZE];
+extern int _pkt_sample_out[PKT_SAMPLE_SIZE];
+void _pkt_sampling_report();
+#endif // PKT_SAMPLING
 
 struct io_ratelimit {
     int min_size;
@@ -144,12 +146,12 @@ public:
         if (r > 0) {
             read_idx_ += r;
 
-#ifdef PERF_TEST
-            static int idx = 0;
-            const int out_stat_size = sizeof(_perf_rpc_out_packet_size) / sizeof(_perf_rpc_out_packet_size[0]);
-            _perf_rpc_out_packet_size[idx++ % out_stat_size] = r;
-            // not thread safe, but ok, since we only need to collect a few samples
-#endif // PERF_TEST
+#ifdef PKT_SAMPLING
+            // not thread safe, but ok, since we only need approximate results
+            static size_t _pkt_sample_counter = 0;
+            _pkt_sample_out[_pkt_sample_counter++ % PKT_SAMPLE_SIZE] = r;
+            _pkt_sampling_report();
+#endif // PKT_SAMPLING
 
         }
 
@@ -168,12 +170,13 @@ public:
         if (r > 0) {
             write_idx_ += r;
 
-#ifdef PERF_TEST
-            static int idx = 0;
-            const int in_stat_size = sizeof(_perf_rpc_in_packet_size) / sizeof(_perf_rpc_in_packet_size[0]);
-            _perf_rpc_in_packet_size[idx++ % in_stat_size] = r;
-            // not thread safe, but ok, since we only need to collect a few samples
-#endif // PERF_TEST
+#ifdef PKT_SAMPLING
+            // not thread safe, but ok, since we only need approximate results
+            static size_t _pkt_sample_counter = 0;
+            _pkt_sample_in[_pkt_sample_counter++ % PKT_SAMPLE_SIZE] = r;
+            _pkt_sampling_report();
+#endif // PKT_SAMPLING
+
         }
 
         assert(write_idx_ <= size_);

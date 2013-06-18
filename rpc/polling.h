@@ -43,14 +43,6 @@ class PollMgr: public RefCounted {
     PollThread* poll_threads_;
     poll_options opts_;
 
-#ifdef PERF_TEST
-    // for performance reporting
-    pthread_t perf_th_;
-    static void* start_perf_loop(void *arg);
-    void perf_loop();
-    bool perf_stop_flag_;
-#endif // PERF_TEST
-
 protected:
 
     // RefCounted object uses protected dtor to prevent accidental deletion
