@@ -387,6 +387,7 @@ public:
 
 } // namespace demo
 
+// optional %%: marks begining of C++ code, will be copied to end of generated header
 
 namespace demo {
 
@@ -406,5 +407,5 @@ inline void DemoService::print_i64(const rpc::i64& v) {
     rpc::Log::debug("print_i64: %ld", v);
 }
 
-}
+} // namespace demo
 
