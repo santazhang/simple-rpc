@@ -159,14 +159,18 @@ int main(int argc, char **argv) {
         printf("starting server on %s\n", svr_addr);
         ThreadPool* thrpool = new ThreadPool(n_worker_threads);
         Server svr(poll, thrpool);
+        thrpool->release();
+        poll->release();
+
         NullService null_svc;
         svr.reg(&null_svc);
         svr.start(svr_addr);
 
-        while (1) {
+        const int running_seconds = 20;
+        for (int i = 0; i < running_seconds; i++) {
             sleep(1);
         }
-        thrpool->release();
+        exit(0);
     } else { //isclient
 
         if (!num_clients)
