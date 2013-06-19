@@ -32,6 +32,25 @@ struct io_ratelimit {
     io_ratelimit(): min_size(-1), interval(-1) {}
 };
 
+
+class FastMarshal {
+    struct raw_bytes: public RefCounted {
+        void* ptr;
+        int len;
+    };
+
+    struct chunk {
+        raw_bytes* data;
+        int read_idx;
+        int write_idx;
+        chunk* next;
+    };
+
+    chunk* head_;
+    chunk* tail_;
+};
+
+
 class Marshal;
 
 /**
