@@ -46,7 +46,10 @@ diff_timespec(const struct timespec &end, const struct timespec &start)
 }
 
 void NullService::test(const i32& arg1, const i32& arg2, i32* result) {
+    *result = arg1 ^ arg2;
 }
+
+rpc::Rand g_rand;
 
 void *
 clt_run(void *x)
@@ -55,7 +58,10 @@ clt_run(void *x)
     if (n_batch == 1) {
         for (int i = 0; i < NUM; i++) {
             i32 x,y,r;
+            x = g_rand();
+            y = g_rand();
             d->np->test(x,y,&r);
+            verify(r == (x ^ y));
             *d->counter = *d->counter + 1;
         }
         printf("client finished\n");
