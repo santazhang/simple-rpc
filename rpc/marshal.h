@@ -58,8 +58,8 @@ class FastMarshal: public NoCopy {
         bool rdonly;
         chunk* next;
 
-        chunk(): data(new raw_bytes), read_idx(0), write_idx(0), rdonly(false), next(NULL) {}
-        chunk(const void* p, size_t n): data(new raw_bytes(p, n)), read_idx(0), write_idx(n), rdonly(false), next(NULL) {}
+        chunk(): data(new raw_bytes), read_idx(0), write_idx(0), rdonly(false), next(nullptr) {}
+        chunk(const void* p, size_t n): data(new raw_bytes(p, n)), read_idx(0), write_idx(n), rdonly(false), next(nullptr) {}
         ~chunk() {
             data->release();
         }
@@ -176,6 +176,13 @@ class FastMarshal: public NoCopy {
         }
     };
 
+    struct read_barrier {
+        raw_bytes* rb_data;
+        size_t rb_idx;
+
+        read_barrier(): rb_data(nullptr), rb_idx(0) {}
+    };
+
     struct bookmark: public NoCopy {
         size_t size;
         char** ptr;
@@ -186,16 +193,32 @@ class FastMarshal: public NoCopy {
 
 public:
 
+    FastMarshal(): head_(nullptr), tail_(nullptr) {}
+    ~FastMarshal();
+
     bool empty() const {
         return !content_size_gt(0);
     }
     bool content_size_gt(size_t n) const;
     size_t content_size() const;
+
     size_t write(const void* p, size_t n);
     size_t read(void* p, size_t n);
     size_t peek(void* p, size_t n) const;
-    bookmark* set_bookmark(size_t n);
 
+    size_t read_from_marshal(FastMarshal& m, size_t n = std::numeric_limits<size_t>::max());
+    size_t read_from_fd(int fd);
+    read_barrier get_read_barrier() const {
+        read_barrier rb;
+        if (tail_ != nullptr) {
+            rb.rb_data = tail_->data;
+            rb.rb_idx = tail_->read_idx;
+        }
+        return rb;
+    }
+    size_t write_to_fd(int fd, const read_barrier& rb, const io_ratelimit& rate);
+
+    bookmark* set_bookmark(size_t n);
     void write_bookmark(bookmark* bm, const void* p) {
         const char* pc = (const char *) p;
         assert(bm != nullptr && bm->ptr != nullptr && p != nullptr);
