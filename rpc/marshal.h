@@ -51,13 +51,11 @@ class FastMarshal {
 };
 
 
-class Marshal;
-
 /**
  * Not thread safe, for better performance.
  */
 class Chunk: public NoCopy {
-    friend class Marshal;
+public:
 
     char* data_;
     int size_;
@@ -67,8 +65,6 @@ class Chunk: public NoCopy {
     int write_idx_;
 
     static const int min_size;
-
-public:
 
     Chunk(int size = Chunk::min_size)
             : read_idx_(0), write_idx_(0) {
@@ -255,7 +251,7 @@ public:
 /**
  * Not thread safe, for better performance.
  */
-class Marshal: public NoCopy {
+class Marshal1: public NoCopy {
 
     std::list<Chunk*> chunk_;
     i32 write_counter_;
@@ -264,10 +260,10 @@ class Marshal: public NoCopy {
 public:
 
     class Bookmark: public NoCopy {
-        friend class Marshal;
+    public:
         int size_;
         char** ptr_;
-    public:
+
         Bookmark()
                 : size_(-1), ptr_(NULL) {
         }
@@ -276,11 +272,15 @@ public:
         }
     };
 
-    Marshal() : write_counter_(0), last_write_fd_tm_(0) { }
-    Marshal(const std::string& data) : write_counter_(0), last_write_fd_tm_(0) {
+    Marshal1() : write_counter_(0), last_write_fd_tm_(0) { }
+    Marshal1(const std::string& data) : write_counter_(0), last_write_fd_tm_(0) {
         chunk_.push_back(new Chunk(&data[0], data.length()));
     }
-    ~Marshal();
+    ~Marshal1() {
+        for (auto it : chunk_) {
+            delete it;
+        }
+    }
 
     /**
      * Note: Need to delete the bookmark manually.
@@ -298,7 +298,7 @@ public:
     int read(void* p, int n);
     int peek(void* p, int n) const;
 
-    int read_from_marshal(Marshal&, int n = std::numeric_limits<int>::max());
+    int read_from_marshal(Marshal1&, int n = std::numeric_limits<int>::max());
     int read_from_fd(int fd);
     int write_to_fd(int fd, const io_ratelimit& rate);
 
@@ -314,22 +314,12 @@ public:
     bool empty() const {
         return !content_size_gt(0);
     }
-
-    void write_i32(const rpc::i32& v) {
-        verify(write(&v, sizeof(v)) == sizeof(v));
-    }
-
-    void write_string(const std::string& v) {
-        rpc::i32 len = (rpc::i32) v.length();
-        write_i32(len);
-        if (len > 0) {
-            verify(write(v.c_str(), len) == len);
-        }
-    }
 };
 
+typedef Marshal1 Marshal;
+
 inline rpc::Marshal& operator <<(rpc::Marshal& m, const rpc::i32& v) {
-    m.write_i32(v);
+    verify(m.write(&v, sizeof(v)) == sizeof(v));
     return m;
 }
 
@@ -344,7 +334,11 @@ inline rpc::Marshal& operator <<(rpc::Marshal& m, const double& v) {
 }
 
 inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::string& v) {
-    m.write_string(v);
+    rpc::i32 len = (rpc::i32) v.length();
+    m << len;
+    if (len > 0) {
+        verify(m.write(v.c_str(), len) == len);
+    }
     return m;
 }
 

@@ -46,13 +46,7 @@ void _pkt_sampling_report() {
  */
 const int Chunk::min_size = 8192;
 
-Marshal::~Marshal() {
-    for (list<Chunk*>::iterator it = chunk_.begin(); it != chunk_.end(); ++it) {
-        delete *it;
-    }
-}
-
-Marshal::Bookmark* Marshal::set_bookmark(int size) {
+Marshal1::Bookmark* Marshal1::set_bookmark(int size) {
     verify(write_counter_ == 0);
 
     // invariant: head of chunk list is not fully read (otherwise it's a waste of memory)
@@ -72,7 +66,7 @@ Marshal::Bookmark* Marshal::set_bookmark(int size) {
     return bmark;
 }
 
-void Marshal::write_bookmark(Bookmark* bmark, const void* ptr) {
+void Marshal1::write_bookmark(Bookmark* bmark, const void* ptr) {
     char* pc = (char *) ptr;
     verify(bmark != NULL && bmark->ptr_ != NULL && bmark->size_ >= 0);
     for (int i = 0; i < bmark->size_; i++) {
@@ -80,7 +74,7 @@ void Marshal::write_bookmark(Bookmark* bmark, const void* ptr) {
     }
 }
 
-int Marshal::write(const void* p, int n) {
+int Marshal1::write(const void* p, int n) {
     assert(chunk_.empty() || !chunk_.front()->fully_read());
 
     if (chunk_.empty() || chunk_.back()->fully_written()) {
@@ -101,7 +95,7 @@ int Marshal::write(const void* p, int n) {
     return n;
 }
 
-int Marshal::read(void* p, int n) {
+int Marshal1::read(void* p, int n) {
     assert(chunk_.empty() || !chunk_.front()->fully_read());
 
     char* pc = (char *) p;
@@ -126,7 +120,7 @@ int Marshal::read(void* p, int n) {
     return n_read;
 }
 
-int Marshal::peek(void* p, int n) const {
+int Marshal1::peek(void* p, int n) const {
     assert(chunk_.empty() || !chunk_.front()->fully_read());
 
     char* pc = (char *) p;
@@ -151,7 +145,7 @@ int Marshal::peek(void* p, int n) const {
     return n_peek;
 }
 
-int Marshal::write_to_fd(int fd, const io_ratelimit& rate) {
+int Marshal1::write_to_fd(int fd, const io_ratelimit& rate) {
     assert(chunk_.empty() || !chunk_.front()->fully_read());
 
     if (rate.min_size > 0 || rate.interval > 0) {
@@ -197,7 +191,7 @@ int Marshal::write_to_fd(int fd, const io_ratelimit& rate) {
     return n_write;
 }
 
-string Marshal::dump() const {
+string Marshal1::dump() const {
     string s;
     s.reserve(this->content_size());
     for (list<Chunk*>::const_iterator it = chunk_.begin(); it != chunk_.end(); ++it) {
@@ -207,7 +201,7 @@ string Marshal::dump() const {
     return s;
 }
 
-int Marshal::read_from_marshal(Marshal& m, int n /* =? */) {
+int Marshal1::read_from_marshal(Marshal1& m, int n /* =? */) {
     assert(chunk_.empty() || !chunk_.front()->fully_read());
     assert(m.chunk_.empty() || !m.chunk_.front()->fully_read());
 
@@ -253,7 +247,7 @@ int Marshal::read_from_marshal(Marshal& m, int n /* =? */) {
     return n_read;
 }
 
-int Marshal::read_from_fd(int fd) {
+int Marshal1::read_from_fd(int fd) {
     assert(chunk_.empty() || !chunk_.front()->fully_read());
 
     int n_read = 0;
@@ -273,7 +267,7 @@ int Marshal::read_from_fd(int fd) {
     return n_read;
 }
 
-bool Marshal::content_size_gt(int size) const {
+bool Marshal1::content_size_gt(int size) const {
 
     int size_visited = 0;
     for (list<Chunk*>::const_iterator it = chunk_.begin(); it != chunk_.end(); ++it) {
@@ -286,7 +280,7 @@ bool Marshal::content_size_gt(int size) const {
     return size_visited > size;
 }
 
-size_t Marshal::content_size() const {
+size_t Marshal1::content_size() const {
     size_t size = 0;
     for (list<Chunk*>::const_iterator it = chunk_.begin(); it != chunk_.end(); ++it) {
         size += (*it)->content_size();
