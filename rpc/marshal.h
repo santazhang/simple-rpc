@@ -53,10 +53,127 @@ class FastMarshal: public NoCopy {
 
     struct chunk: public NoCopy {
         raw_bytes* data;
-        off_t read_idx;
-        off_t write_idx;
+        size_t read_idx;
+        size_t write_idx;
         bool rdonly;
         chunk* next;
+
+        chunk(): data(new raw_bytes), read_idx(0), write_idx(0), rdonly(false), next(NULL) {}
+        chunk(const void* p, size_t n): data(new raw_bytes(p, n)), read_idx(0), write_idx(n), rdonly(false), next(NULL) {}
+        ~chunk() {
+            data->release();
+        }
+
+        size_t content_size() const {
+            assert(write_idx <= data->size);
+            assert(read_idx <= write_idx);
+            return write_idx - read_idx;
+        }
+
+        char* set_bookmark() {
+            assert(write_idx <= data->size);
+            assert(read_idx <= write_idx);
+
+            verify(!rdonly);
+            char* p = &data->ptr[write_idx];
+            write_idx++;
+
+            assert(write_idx <= data->size);
+            assert(read_idx <= write_idx);
+            return p;
+        }
+
+        size_t write(const void* p, size_t n) {
+            assert(write_idx <= data->size);
+            assert(read_idx <= write_idx);
+
+            verify(!rdonly);
+            size_t n_write = std::min(n, data->size - write_idx);
+            if (n_write > 0) {
+                memcpy(data->ptr + write_idx, p, n_write);
+            }
+            write_idx += n_write;
+
+            assert(write_idx <= data->size);
+            assert(read_idx <= write_idx);
+            return n_write;
+        }
+
+        size_t read(void* p, size_t n) {
+            assert(write_idx <= data->size);
+            assert(read_idx <= write_idx);
+
+            size_t n_read = std::min(n, write_idx - read_idx);
+            if (n_read > 0) {
+                memcpy(p, data->ptr + read_idx, n_read);
+            }
+            read_idx += n_read;
+
+            assert(write_idx <= data->size);
+            assert(read_idx <= write_idx);
+            return n_read;
+        }
+
+        size_t peek(void* p, size_t n) const {
+            assert(write_idx <= data->size);
+            assert(read_idx <= write_idx);
+
+            size_t n_peek = std::min(n, write_idx - read_idx);
+            if (n_peek > 0) {
+                memcpy(p, data->ptr + read_idx, n_peek);
+            }
+
+            return n_peek;
+        }
+
+        int write_to_fd(int fd) {
+            assert(write_idx <= data->size);
+            assert(read_idx <= write_idx);
+
+            int cnt = 0;
+            if (write_idx > read_idx) {
+                cnt = ::write(fd, data->ptr + read_idx, write_idx - read_idx);
+                if (cnt > 0) {
+                    read_idx += cnt;
+                }
+            }
+
+            assert(write_idx <= data->size);
+            assert(read_idx <= write_idx);
+            return cnt;
+        }
+
+        int read_from_rd(int fd) {
+            assert(write_idx <= data->size);
+            assert(read_idx <= write_idx);
+
+            verify(!rdonly);
+            int cnt = 0;
+            if (write_idx < data->size) {
+                cnt = ::read(fd, data->ptr + write_idx, data->size - write_idx);
+                if (cnt > 0) {
+                    write_idx += cnt;
+                }
+            }
+
+            assert(write_idx <= data->size);
+            assert(read_idx <= write_idx);
+            return cnt;
+        }
+
+        // check if it is not possible to write to the chunk anymore.
+        bool fully_written() const {
+            assert(write_idx <= data->size);
+            assert(read_idx <= write_idx);
+            return write_idx == data->size;
+        }
+
+        // check if it is not possible to read any data even if retry later
+        bool fully_read() const {
+            assert(write_idx <= data->size);
+            assert(read_idx <= write_idx);
+            return read_idx == data->size;
+        }
     };
 
     struct bookmark: public NoCopy {
