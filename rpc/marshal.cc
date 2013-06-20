@@ -40,6 +40,44 @@ void _pkt_sampling_report() {
 
 #endif // PKT_SAMPLING
 
+
+FastMarshal::~FastMarshal() {
+    chunk* chnk = head_;
+    while (chnk != nullptr) {
+        chunk* next = chnk->next;
+        delete chnk;
+        chnk = next;
+    }
+}
+
+bool FastMarshal::content_size_gt(size_t n) const {
+    assert(tail_ == nullptr || tail_->next == nullptr);
+
+    size_t sz = 0;
+    chunk* chnk = head_;
+    while (chnk != nullptr) {
+        sz += chnk->content_size();
+        if (sz > n) {
+            return true;
+        }
+        chnk = chnk->next;
+    }
+    return sz > n;
+}
+
+size_t FastMarshal::content_size() const {
+    assert(tail_ == nullptr || tail_->next == nullptr);
+
+    size_t sz = 0;
+    chunk* chnk = head_;
+    while (chnk != nullptr) {
+        sz += chnk->content_size();
+        chnk = chnk->next;
+    }
+    return sz;
+}
+
+
 /**
  * 8kb minimum chunk size.
  * NOTE: this value directly affects how many read/write syscall will be issued.
