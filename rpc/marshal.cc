@@ -9,10 +9,12 @@ using namespace std;
 namespace rpc {
 
 #ifdef PKT_SAMPLING
-int _pkt_sample_in[PKT_SAMPLE_SIZE];
-int _pkt_sample_out[PKT_SAMPLE_SIZE];
 
-void _pkt_sampling_report() {
+#define PKT_SAMPLE_SIZE 19
+static size_t _pkt_sample_in_size[PKT_SAMPLE_SIZE];
+static size_t _pkt_sample_out_size[PKT_SAMPLE_SIZE];
+
+static void _pkt_sampling_report() {
     static size_t ratelimit_counter = 0;
     static int last_report_tm = 0;
     if (ratelimit_counter++ % 1024 == 0) {
@@ -22,20 +24,34 @@ void _pkt_sampling_report() {
             {
                 ostringstream ostr;
                 for (int i = 0; i < PKT_SAMPLE_SIZE; i++) {
-                    ostr << " " << _pkt_sample_in[i];
+                    ostr << " " << _pkt_sample_in_size[i];
                 }
                 Log::info("PKT_SAMPLE_IN: %s", ostr.str().c_str());
             }
             {
                 ostringstream ostr;
                 for (int i = 0; i < PKT_SAMPLE_SIZE; i++) {
-                    ostr << " " << _pkt_sample_out[i];
+                    ostr << " " << _pkt_sample_out_size[i];
                 }
                 Log::info("PKT_SAMPLE_OUT:%s", ostr.str().c_str());
             }
             last_report_tm = now.tv_sec;
         }
     }
+}
+
+void _pkt_sample_in(size_t size) {
+    // not thread safe, but ok, since we only need approximate results
+    static size_t _pkt_sample_counter = 0;
+    _pkt_sample_in_size[_pkt_sample_counter++ % PKT_SAMPLE_SIZE] = size;
+    _pkt_sampling_report();
+}
+
+void _pkt_sample_out(size_t size) {
+    // not thread safe, but ok, since we only need approximate results
+    static size_t _pkt_sample_counter = 0;
+    _pkt_sample_out_size[_pkt_sample_counter++ % PKT_SAMPLE_SIZE] = size;
+    _pkt_sampling_report();
 }
 
 #endif // PKT_SAMPLING

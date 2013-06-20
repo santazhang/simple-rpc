@@ -19,10 +19,10 @@
 namespace rpc {
 
 #ifdef PKT_SAMPLING
-#define PKT_SAMPLE_SIZE 19
-extern int _pkt_sample_in[PKT_SAMPLE_SIZE];
-extern int _pkt_sample_out[PKT_SAMPLE_SIZE];
-void _pkt_sampling_report();
+
+void _pkt_sample_in(size_t size);
+void _pkt_sample_out(size_t size);
+
 #endif // PKT_SAMPLING
 
 struct io_ratelimit {
@@ -135,6 +135,10 @@ class FastMarshal: public NoCopy {
                 cnt = ::write(fd, data->ptr + read_idx, write_idx - read_idx);
                 if (cnt > 0) {
                     read_idx += cnt;
+
+#ifdef PKT_SAMPLING
+                    _pkt_sample_out(cnt);
+#endif // PKT_SAMPLING
                 }
             }
 
@@ -153,6 +157,10 @@ class FastMarshal: public NoCopy {
                 cnt = ::read(fd, data->ptr + write_idx, data->size - write_idx);
                 if (cnt > 0) {
                     write_idx += cnt;
+
+#ifdef PKT_SAMPLING
+                    _pkt_sample_in(cnt);
+#endif // PKT_SAMPLING
                 }
             }
 
@@ -336,10 +344,7 @@ public:
             read_idx_ += r;
 
 #ifdef PKT_SAMPLING
-            // not thread safe, but ok, since we only need approximate results
-            static size_t _pkt_sample_counter = 0;
-            _pkt_sample_out[_pkt_sample_counter++ % PKT_SAMPLE_SIZE] = r;
-            _pkt_sampling_report();
+            _pkt_sample_out(r);
 #endif // PKT_SAMPLING
 
         }
@@ -360,10 +365,7 @@ public:
             write_idx_ += r;
 
 #ifdef PKT_SAMPLING
-            // not thread safe, but ok, since we only need approximate results
-            static size_t _pkt_sample_counter = 0;
-            _pkt_sample_in[_pkt_sample_counter++ % PKT_SAMPLE_SIZE] = r;
-            _pkt_sampling_report();
+            _pkt_sample_in(r);
 #endif // PKT_SAMPLING
 
         }
