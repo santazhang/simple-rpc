@@ -191,16 +191,6 @@ int Marshal1::write_to_fd(int fd, const io_ratelimit& rate) {
     return n_write;
 }
 
-string Marshal1::dump() const {
-    string s;
-    s.reserve(this->content_size());
-    for (list<Chunk*>::const_iterator it = chunk_.begin(); it != chunk_.end(); ++it) {
-        s += string((*it)->content_ptr(), (*it)->content_size());
-    }
-    assert(s.length() == this->content_size());
-    return s;
-}
-
 int Marshal1::read_from_marshal(Marshal1& m, int n /* =? */) {
     assert(chunk_.empty() || !chunk_.front()->fully_read());
     assert(m.chunk_.empty() || !m.chunk_.front()->fully_read());

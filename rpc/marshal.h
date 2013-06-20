@@ -86,10 +86,6 @@ public:
         delete[] data_;
     }
 
-    const char* content_ptr() const {
-        return &data_[read_idx_];
-    }
-
     size_t content_size() const {
         assert(write_idx_ <= size_);
         assert(read_idx_ <= write_idx_);
@@ -301,8 +297,6 @@ public:
     int read_from_marshal(Marshal1&, int n = std::numeric_limits<int>::max());
     int read_from_fd(int fd);
     int write_to_fd(int fd, const io_ratelimit& rate);
-
-    std::string dump() const;
 
     /**
      * Faster way to check if content_size > size.
