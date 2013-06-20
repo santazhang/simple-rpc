@@ -630,7 +630,11 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, std::map<K, V>& v) {
         K key;
         V value;
         m >> key >> value;
-        v[key] = value;
+
+        // http://stackoverflow.com/questions/4623610/c-value-type-versus-make-pair-which-is-faster-for-map-insert
+        // * value_type instead of make_pair to avoid potential additional copy
+        // * insert(...) is faster then []= when adding (not updating) elements
+        v.insert(std::map<K, V>::value_type(key, value));
     }
     return m;
 }
