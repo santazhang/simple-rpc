@@ -32,22 +32,60 @@ struct io_ratelimit {
     io_ratelimit(): min_size(-1), interval(-1) {}
 };
 
-
-class FastMarshal {
+// not thread safe, for better performance
+class FastMarshal: public NoCopy {
     struct raw_bytes: public RefCounted {
-        void* ptr;
-        int len;
+        char* ptr;
+        size_t size;
+        static const size_t min_size = 8192;
+
+        raw_bytes(size_t sz = min_size) {
+            size = std::max(sz, min_size);
+            ptr = new char[size];
+        }
+        raw_bytes(const void* p, size_t n) {
+            size = std::max(n, min_size);
+            ptr = new char[size];
+            memcpy(ptr, p, n);
+        }
+        ~raw_bytes() { delete[] ptr; }
     };
 
-    struct chunk {
+    struct chunk: public NoCopy {
         raw_bytes* data;
-        int read_idx;
-        int write_idx;
+        off_t read_idx;
+        off_t write_idx;
+        bool rdonly;
         chunk* next;
+    };
+
+    struct bookmark: public NoCopy {
+        size_t size;
+        char** ptr;
     };
 
     chunk* head_;
     chunk* tail_;
+
+public:
+
+    bool empty() const {
+        return !content_size_gt(0);
+    }
+    bool content_size_gt(size_t n) const;
+    size_t content_size() const;
+    size_t write(const void* p, size_t n);
+    size_t read(void* p, size_t n);
+    size_t peek(void* p, size_t n) const;
+    bookmark* set_bookmark(size_t n);
+
+    void write_bookmark(bookmark* bm, const void* p) {
+        const char* pc = (const char *) p;
+        assert(bm != nullptr && bm->ptr != nullptr && p != nullptr);
+        for (size_t i = 0; i < bm->size; i++) {
+            *(bm->ptr[i]) = pc[i];
+        }
+    }
 };
 
 
