@@ -165,7 +165,7 @@ void Client::handle_read() {
             in_ >> reply_xid >> error_code;
 
             pending_fu_l_.lock();
-            map<i64, Future*>::iterator it = pending_fu_.find(reply_xid);
+            unordered_map<i64, Future*>::iterator it = pending_fu_.find(reply_xid);
             if (it != pending_fu_.end()) {
                 Future* fu = it->second;
                 verify(fu->xid_ == reply_xid);
@@ -216,7 +216,7 @@ Future* Client::begin_request(i32 rpc_id, const FutureAttr& attr /* =... */) {
     // check if the client gets closed in the meantime
     if (status_ != CONNECTED) {
         pending_fu_l_.lock();
-        map<i64, Future*>::iterator it = pending_fu_.find(fu->xid_);
+        unordered_map<i64, Future*>::iterator it = pending_fu_.find(fu->xid_);
         if (it != pending_fu_.end()) {
             it->second->release();
             pending_fu_.erase(it);

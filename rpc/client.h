@@ -1,6 +1,6 @@
 #pragma once
 
-#include <map>
+#include <unordered_map>
 
 #include "marshal.h"
 #include "polling.h"
@@ -95,7 +95,7 @@ class Client: public Pollable {
     Marshal::bookmark* bmark_;
 
     Counter xid_counter_;
-    std::map<i64, Future*> pending_fu_;
+    std::unordered_map<i64, Future*> pending_fu_;
 
     ShortLock pending_fu_l_;
     ShortLock out_l_;

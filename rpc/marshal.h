@@ -5,6 +5,8 @@
 #include <string>
 #include <map>
 #include <set>
+#include <unordered_map>
+#include <unordered_set>
 #include <limits>
 
 #include <inttypes.h>
@@ -335,6 +337,26 @@ inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::map<K, V>& v) {
     return m;
 }
 
+template<class T>
+inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::unordered_set<T>& v) {
+    rpc::i32 len = (rpc::i32) v.size();
+    m << len;
+    for (typename std::unordered_set<T>::const_iterator it = v.begin(); it != v.end(); ++it) {
+        m << *it;
+    }
+    return m;
+}
+
+template<class K, class V>
+inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::unordered_map<K, V>& v) {
+    rpc::i32 len = (rpc::i32) v.size();
+    m << len;
+    for (typename std::unordered_map<K, V>::const_iterator it = v.begin(); it != v.end(); ++it) {
+        m << it->first << it->second;
+    }
+    return m;
+}
+
 inline rpc::Marshal& operator >>(rpc::Marshal& m, rpc::i32& v) {
     verify(m.read(&v, sizeof(v)) == sizeof(v));
     return m;
@@ -414,6 +436,33 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, std::map<K, V>& v) {
         // * value_type instead of make_pair to avoid potential additional copy
         // * insert(...) is faster then []= when adding (not updating) elements
         v.insert(std::map<K, V>::value_type(key, value));
+    }
+    return m;
+}
+
+template<class T>
+inline rpc::Marshal& operator >>(rpc::Marshal& m, std::unordered_set<T>& v) {
+    rpc::i32 len;
+    verify(m.read(&len, sizeof(len)) == sizeof(len));
+    v.clear();
+    for (rpc::i32 i = 0; i < len; i++) {
+        T elem;
+        m >> elem;
+        v.insert(elem);
+    }
+    return m;
+}
+
+template<class K, class V>
+inline rpc::Marshal& operator >>(rpc::Marshal& m, std::unordered_map<K, V>& v) {
+    rpc::i32 len;
+    verify(m.read(&len, sizeof(len)) == sizeof(len));
+    v.clear();
+    for (rpc::i32 i = 0; i < len; i++) {
+        K key;
+        V value;
+        m >> key >> value;
+        v[key] = value;
     }
     return m;
 }
