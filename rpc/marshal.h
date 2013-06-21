@@ -37,7 +37,7 @@ class FastMarshal: public NoCopy {
     struct raw_bytes: public RefCounted {
         char* ptr;
         size_t size;
-        static const size_t min_size = 8192;
+        static const size_t min_size;
 
         raw_bytes(size_t sz = min_size) {
             size = std::max(sz, min_size);
@@ -62,6 +62,18 @@ class FastMarshal: public NoCopy {
         chunk(const void* p, size_t n): data(new raw_bytes(p, n)), read_idx(0), write_idx(n), rdonly(false), next(nullptr) {}
         ~chunk() {
             data->release();
+        }
+
+    private:
+        // make readonly copy
+        chunk(raw_bytes* data, size_t read_idx, size_t write_idx)
+                : data((raw_bytes *) data->ref_copy()), read_idx(read_idx), write_idx(write_idx), rdonly(true), next(nullptr) {
+            assert(write_idx <= data->size);
+            assert(read_idx <= write_idx);
+        }
+    public:
+        chunk* rdonly_copy() const {
+            return new chunk(data, read_idx, write_idx);
         }
 
         size_t content_size() const {
@@ -147,7 +159,7 @@ class FastMarshal: public NoCopy {
             return cnt;
         }
 
-        int read_from_rd(int fd) {
+        int read_from_fd(int fd) {
             assert(write_idx <= data->size);
             assert(read_idx <= write_idx);
 
@@ -194,14 +206,22 @@ class FastMarshal: public NoCopy {
     struct bookmark: public NoCopy {
         size_t size;
         char** ptr;
+
+        ~bookmark() {
+            delete[] ptr;
+        }
     };
 
     chunk* head_;
     chunk* tail_;
+    i32 write_cnt_;
+    double last_write_fd_tm_;
 
 public:
 
-    FastMarshal(): head_(nullptr), tail_(nullptr) {}
+    FastMarshal(): head_(nullptr), tail_(nullptr), write_cnt_(0), last_write_fd_tm_(-1) {}
+    // quickly make a rdonly slice from another FastMarshal
+    FastMarshal(FastMarshal& m, size_t n);
     ~FastMarshal();
 
     bool empty() const {
@@ -214,16 +234,11 @@ public:
     size_t read(void* p, size_t n);
     size_t peek(void* p, size_t n) const;
 
-    size_t read_from_marshal(FastMarshal& m, size_t n = std::numeric_limits<size_t>::max());
     size_t read_from_fd(int fd);
-    read_barrier get_read_barrier() const {
-        read_barrier rb;
-        if (tail_ != nullptr) {
-            rb.rb_data = tail_->data;
-            rb.rb_idx = tail_->read_idx;
-        }
-        return rb;
-    }
+
+    // write content to fd with a read_barrier, which avoid modification on tail_ by
+    // output thread, thus does not require locking on tail_
+    read_barrier get_read_barrier();
     size_t write_to_fd(int fd, const read_barrier& rb, const io_ratelimit& rate);
 
     bookmark* set_bookmark(size_t n);
@@ -233,6 +248,12 @@ public:
         for (size_t i = 0; i < bm->size; i++) {
             *(bm->ptr[i]) = pc[i];
         }
+    }
+
+    i32 get_and_reset_write_cnt() {
+        i32 cnt = write_cnt_;
+        write_cnt_ = 0;
+        return cnt;
     }
 };
 
