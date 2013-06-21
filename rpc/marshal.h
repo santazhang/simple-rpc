@@ -153,7 +153,7 @@ class FastMarshal: public NoCopy {
         int write_to_fd(int fd, size_t barrier = std::numeric_limits<size_t>::max()) {
             assert(write_idx <= data->size);
             barrier = std::min(write_idx, barrier);
-            assert(read_idx <= barrier);
+            assert(barrier == 0 || read_idx <= barrier);
 
             int cnt = 0;
             if (barrier > read_idx) {
@@ -168,7 +168,7 @@ class FastMarshal: public NoCopy {
             }
 
             assert(write_idx <= data->size);
-            assert(read_idx <= barrier);
+            assert(barrier == 0 || read_idx <= barrier);
             return cnt;
         }
 
