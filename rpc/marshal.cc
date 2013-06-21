@@ -72,8 +72,6 @@ FastMarshal::~FastMarshal() {
 }
 
 bool FastMarshal::content_size_gt(size_t n) const {
-    assert(tail_ == nullptr || tail_->next == nullptr);
-
     size_t sz = 0;
     chunk* chnk = head_;
     while (chnk != nullptr) {
@@ -263,7 +261,6 @@ FastMarshal::read_barrier FastMarshal::get_read_barrier() {
 }
 
 size_t FastMarshal::write_to_fd(int fd, const FastMarshal::read_barrier& rb, const io_ratelimit& rate) {
-    assert(empty() || (head_ != nullptr && !head_->fully_read()));
 
     if (rb.rb_data == nullptr) {
         return 0;
@@ -316,8 +313,6 @@ size_t FastMarshal::write_to_fd(int fd, const FastMarshal::read_barrier& rb, con
         n_write += cnt;
     }
 
-    assert(tail_ == nullptr || tail_->next == nullptr);
-    assert(empty() || (head_ != nullptr && !head_->fully_read()));
     return n_write;
 }
 
