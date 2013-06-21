@@ -64,7 +64,7 @@ void ServerConnection::handle_read() {
             verify(in_.read(&packet_size, sizeof(i32)) == sizeof(i32));
 
             Request* req = new Request;
-            verify(req->m.read_from_marshal(in_, packet_size) == packet_size);
+            verify(req->m.read_from_marshal(in_, packet_size) == (size_t) packet_size);
 
             if (packet_size < (int) sizeof(i64)) {
                 Log::warn("rpc::ServerConnection: got an incomplete packet, xid not included");

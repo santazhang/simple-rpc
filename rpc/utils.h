@@ -18,9 +18,9 @@
  * Use verify() when the test is crucial for both debug and release binary.
  */
 #ifdef NDEBUG
-#define verify(expr, ...) do { if (!(expr)) { printf(__VA_ARGS__); abort(); } } while (0)
+#define verify(expr) do { if (!(expr)) { printf("verify failed: %s at %s, line %d", #expr, __FILE__, __LINE__); abort(); } } while (0)
 #else
-#define verify(expr, ...) assert(expr)
+#define verify(expr) assert(expr)
 #endif
 
 #define Pthread_spin_init(l, pshared) verify(pthread_spin_init(l, pshared) == 0)

@@ -36,7 +36,7 @@ int
 diff_timespec(const struct timespec &end, const struct timespec &start)
 {
     int diff = (end.tv_sec > start.tv_sec)?(end.tv_sec-start.tv_sec)*1000:0;
-    assert(diff || end.tv_sec == start.tv_sec);
+    verify(diff || end.tv_sec == start.tv_sec);
     if (end.tv_nsec > start.tv_nsec) {
         diff += (end.tv_nsec-start.tv_nsec)/1000000;
     } else {
@@ -154,7 +154,7 @@ int main(int argc, char **argv) {
 
     verify(isserver || isclient);
 
-    const int n_io_threads = 8;
+    const int n_io_threads = 64;
     const int n_worker_threads = 64;
 
     poll_options poll_opts;
@@ -201,11 +201,11 @@ int main(int argc, char **argv) {
             args[i].counter = &counters[i];
             args[i].n_outstanding = 0;
             verify(sem_init(&args[i].sem, 0, 1)==0);
-            assert(pthread_create(&cltth[i], NULL, clt_run, (void *)&args[i])==0);
+            Pthread_create(&cltth[i], NULL, clt_run, (void *)&args[i]);
         }
 
         pthread_t stat_th;
-        assert(pthread_create(&stat_th,NULL, print_stat, (void *)counters)==0);
+        Pthread_create(&stat_th,NULL, print_stat, (void *)counters);
 
         for (int i = 0; i < n_th; i++) {
             pthread_join(cltth[i], NULL);

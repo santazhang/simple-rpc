@@ -44,7 +44,7 @@ class ServerConnection: public Pollable {
     friend class Server;
 
     Marshal in_, out_;
-    LongLock out_l_;
+    ShortLock out_l_;
 
     Server* server_;
     int socket_;

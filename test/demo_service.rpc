@@ -17,7 +17,7 @@ service Demo {
 }
 
 service Null {
-    test(i32 n , i32 arg1 | i32 result)
+    fast test(i32 n , i32 arg1 | i32 result)
 }
 
 %%

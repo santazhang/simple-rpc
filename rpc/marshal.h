@@ -545,7 +545,7 @@ inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::string& v) {
     rpc::i32 len = (rpc::i32) v.length();
     m << len;
     if (len > 0) {
-        verify(m.write(v.c_str(), len) == len);
+        verify(m.write(v.c_str(), len) == (size_t) len);
     }
     return m;
 }
@@ -610,7 +610,7 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, std::string& v) {
     m >> len;
     v.resize(len);
     if (len > 0) {
-        verify(m.read(&v[0], len) == len);
+        verify(m.read(&v[0], len) == (size_t) len);
     }
     return m;
 }
