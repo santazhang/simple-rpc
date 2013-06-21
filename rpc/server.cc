@@ -97,7 +97,7 @@ void ServerConnection::handle_read() {
         i32 rpc_id;
         req->m >> rpc_id;
 
-        map<i32, Server::Handler*>::iterator it = server_->handlers_.find(rpc_id);
+        unordered_map<i32, Server::Handler*>::iterator it = server_->handlers_.find(rpc_id);
         if (it != server_->handlers_.end()) {
             // the handler should delete req, and release server_connection refcopy.
             it->second->handle(req, (ServerConnection *) this->ref_copy());
@@ -132,7 +132,7 @@ void ServerConnection::close() {
 
     if (status_ == CONNECTED) {
         server_->sconns_l_.lock();
-        set<ServerConnection*>::iterator it = server_->sconns_.find(this);
+        unordered_set<ServerConnection*>::iterator it = server_->sconns_.find(this);
         if (it == server_->sconns_.end()) {
             // another thread has already calling close()
             server_->sconns_l_.unlock();
@@ -210,8 +210,8 @@ Server::~Server() {
     threadpool_->release();
     pollmgr_->release();
 
-    for (map<i32, Handler*>::iterator it = handlers_.begin(); it != handlers_.end(); ++it) {
-        delete it->second;
+    for (auto it : handlers_) {
+        delete it.second;
     }
 
     //Log::debug("rpc::Server: destroyed");

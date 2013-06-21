@@ -1,7 +1,7 @@
 #pragma once
 
-#include <map>
-#include <set>
+#include <unordered_map>
+#include <unordered_set>
 
 #include <pthread.h>
 
@@ -120,13 +120,13 @@ class Server: public NoCopy {
         virtual void handle(Request* req, ServerConnection* sconn) = 0;
     };
 
-    std::map<i32, Handler*> handlers_;
+    std::unordered_map<i32, Handler*> handlers_;
     PollMgr* pollmgr_;
     ThreadPool* threadpool_;
     int server_sock_;
 
     ShortLock sconns_l_;
-    std::set<ServerConnection*> sconns_;
+    std::unordered_set<ServerConnection*> sconns_;
 
     enum {
         NEW, RUNNING, STOPPING, STOPPED

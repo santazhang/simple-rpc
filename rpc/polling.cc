@@ -8,6 +8,9 @@
 #include <sys/epoll.h>
 #endif
 
+#include <unordered_map>
+#include <unordered_set>
+
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
@@ -27,11 +30,11 @@ class PollMgr::PollThread {
 
     // guard mode_ and poll_set_
     ShortLock l_;
-    std::map<int, int> mode_;
-    std::set<Pollable*> poll_set_;
+    std::unordered_map<int, int> mode_;
+    std::unordered_set<Pollable*> poll_set_;
     int poll_fd_;
 
-    std::set<Pollable*> pending_remove_;
+    std::unordered_set<Pollable*> pending_remove_;
     ShortLock pending_remove_l_;
 
     pthread_t th_;
@@ -64,10 +67,10 @@ public:
 
     ~PollThread() {
         l_.lock();
-        set<Pollable*> poll_set_copy = poll_set_;
+        unordered_set<Pollable*> poll_set_copy = poll_set_;
         l_.unlock();
 
-        for (set<Pollable*>::iterator it = poll_set_copy.begin(); it != poll_set_copy.end(); ++it) {
+        for (unordered_set<Pollable*>::iterator it = poll_set_copy.begin(); it != poll_set_copy.end(); ++it) {
             remove(*it);
         }
 
@@ -201,7 +204,7 @@ void PollMgr::PollThread::poll_loop() {
     }
 
     // when stopping, release anything registered in pollmgr
-    for (set<Pollable*>::iterator it = poll_set_.begin(); it != poll_set_.end(); ++it) {
+    for (unordered_set<Pollable*>::iterator it = poll_set_.begin(); it != poll_set_.end(); ++it) {
         (*it)->release();
     }
 
@@ -269,7 +272,7 @@ void PollMgr::PollThread::add(Pollable* poll) {
 void PollMgr::PollThread::remove(Pollable* poll) {
     bool found = false;
     l_.lock();
-    set<Pollable*>::iterator it = poll_set_.find(poll);
+    unordered_set<Pollable*>::iterator it = poll_set_.find(poll);
     if (it != poll_set_.end()) {
         found = true;
         assert(mode_.find(poll->fd()) != mode_.end());
@@ -297,7 +300,7 @@ void PollMgr::PollThread::update_mode(Pollable* poll, int new_mode) {
         return;
     }
 
-    map<int, int>::iterator it = mode_.find(fd);
+    unordered_map<int, int>::iterator it = mode_.find(fd);
     verify(it != mode_.end());
     int old_mode = it->second;
     it->second = new_mode;
