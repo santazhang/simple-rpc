@@ -196,6 +196,13 @@ class FastMarshal: public NoCopy {
         }
     };
 
+    chunk* head_;
+    chunk* tail_;
+    i32 write_cnt_;
+    double last_write_fd_tm_;
+
+public:
+
     struct read_barrier {
         raw_bytes* rb_data;
         size_t rb_idx;
@@ -212,16 +219,7 @@ class FastMarshal: public NoCopy {
         }
     };
 
-    chunk* head_;
-    chunk* tail_;
-    i32 write_cnt_;
-    double last_write_fd_tm_;
-
-public:
-
     FastMarshal(): head_(nullptr), tail_(nullptr), write_cnt_(0), last_write_fd_tm_(-1) {}
-    // quickly make a rdonly slice from another FastMarshal
-    FastMarshal(FastMarshal& m, size_t n);
     ~FastMarshal();
 
     bool empty() const {
@@ -235,6 +233,9 @@ public:
     size_t peek(void* p, size_t n) const;
 
     size_t read_from_fd(int fd);
+
+    // this must be newly created empty FastMarshal, m must have at least n bytes of data
+    size_t read_from_marshal(FastMarshal& m, size_t n);
 
     // write content to fd with a read_barrier, which avoid modification on tail_ by
     // output thread, thus does not require locking on tail_
@@ -511,7 +512,8 @@ public:
     }
 };
 
-typedef Marshal1 Marshal;
+//typedef Marshal1 Marshal;
+typedef FastMarshal Marshal;
 
 inline rpc::Marshal& operator <<(rpc::Marshal& m, const rpc::i32& v) {
     verify(m.write(&v, sizeof(v)) == sizeof(v));

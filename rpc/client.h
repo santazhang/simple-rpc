@@ -92,7 +92,7 @@ class Client: public Pollable {
         NEW, CONNECTED, CLOSED
     } status_;
 
-    Marshal::Bookmark* bmark_;
+    Marshal::bookmark* bmark_;
 
     Counter xid_counter_;
     std::map<i64, Future*> pending_fu_;

@@ -31,7 +31,7 @@ void ServerConnection::begin_reply(Request* req, i32 error_code /* =... */) {
 void ServerConnection::end_reply() {
     // set reply size in packet
     if (bmark_ != NULL) {
-        i32 reply_size = out_.get_write_counter_and_reset();
+        i32 reply_size = out_.get_and_reset_write_cnt();
         out_.write_bookmark(bmark_, &reply_size);
         delete bmark_;
         bmark_ = NULL;
@@ -116,7 +116,12 @@ void ServerConnection::handle_write(const io_ratelimit& rate) {
     }
 
     out_l_.lock();
-    out_.write_to_fd(socket_, rate);
+    Marshal::read_barrier barrier = out_.get_read_barrier();
+    out_l_.unlock();
+
+    out_.write_to_fd(socket_, barrier, rate);
+
+    out_l_.lock();
     if (out_.empty()) {
         server_->pollmgr_->update_mode(this, Pollable::READ);
     }

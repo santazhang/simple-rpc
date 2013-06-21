@@ -49,7 +49,7 @@ class ServerConnection: public Pollable {
     Server* server_;
     int socket_;
 
-    Marshal::Bookmark* bmark_;
+    Marshal::bookmark* bmark_;
 
     enum {
         CONNECTED, CLOSED

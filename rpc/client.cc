@@ -130,7 +130,12 @@ void Client::handle_write(const io_ratelimit& rate) {
     }
 
     out_l_.lock();
-    out_.write_to_fd(sock_, rate);
+    Marshal::read_barrier barrier = out_.get_read_barrier();
+    out_l_.unlock();
+
+    out_.write_to_fd(sock_, barrier, rate);
+
+    out_l_.lock();
     if (out_.empty()) {
         pollmgr_->update_mode(this, Pollable::READ);
     }
@@ -233,7 +238,7 @@ Future* Client::begin_request(i32 rpc_id, const FutureAttr& attr /* =... */) {
 void Client::end_request() {
     // set reply size in packet
     if (bmark_ != NULL) {
-        i32 request_size = out_.get_write_counter_and_reset();
+        i32 request_size = out_.get_and_reset_write_cnt();
         out_.write_bookmark(bmark_, &request_size);
         delete bmark_;
         bmark_ = NULL;
