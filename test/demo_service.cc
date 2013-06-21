@@ -26,6 +26,7 @@ void DemoService::fast_prime(const i32& n, i32* flag) {
         }
         *flag = 1;
     }
+    Log::debug("%d is%s prime", n, *flag ? "" : " not");
 }
 
 void DemoService::prime(const i32& n, i32* flag) {

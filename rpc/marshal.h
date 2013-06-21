@@ -138,13 +138,14 @@ class FastMarshal: public NoCopy {
             return n_peek;
         }
 
-        int write_to_fd(int fd) {
+        int write_to_fd(int fd, size_t barrier = std::numeric_limits<size_t>::max()) {
             assert(write_idx <= data->size);
-            assert(read_idx <= write_idx);
+            barrier = std::min(write_idx, barrier);
+            assert(read_idx <= barrier);
 
             int cnt = 0;
-            if (write_idx > read_idx) {
-                cnt = ::write(fd, data->ptr + read_idx, write_idx - read_idx);
+            if (barrier > read_idx) {
+                cnt = ::write(fd, data->ptr + read_idx, barrier - read_idx);
                 if (cnt > 0) {
                     read_idx += cnt;
 
@@ -155,7 +156,7 @@ class FastMarshal: public NoCopy {
             }
 
             assert(write_idx <= data->size);
-            assert(read_idx <= write_idx);
+            assert(read_idx <= barrier);
             return cnt;
         }
 

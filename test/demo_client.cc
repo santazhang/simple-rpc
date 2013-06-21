@@ -47,10 +47,10 @@ inline void do_work(ClientPool* cl_pool, const char* svr_addr, FutureAttr& fu_at
     Future* fu;
     switch (eval_case) {
     case FAST_PRIME:
-        fu = DemoProxy(cl).async_fast_prime(rand(), fu_attr);
+        fu = DemoProxy(cl).async_fast_prime(1 + rand() % 99, fu_attr);
         break;
     case PRIME:
-        fu = DemoProxy(cl).async_prime(rand(), fu_attr);
+        fu = DemoProxy(cl).async_prime(1 + rand() % 99, fu_attr);
         break;
     case FAST_DOT_PROD:
         fu = DemoProxy(cl).async_fast_dot_prod(rand_pt(), rand_pt(), fu_attr);

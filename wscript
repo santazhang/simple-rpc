@@ -46,6 +46,7 @@ def build(bld):
     _prog("test/demo_client.cc", "demo_client")
     _prog("test/demo_server.cc test/demo_service.cc", "demo_server")
     _prog("test/perftest.cc", "perftest")
+    _prog("test/marshal_test.cc", "marshal_test")
     _prog("test/counter_bench.cc", "counter_bench")
 
     # Unit tests and benchmark, inherented from MCP code

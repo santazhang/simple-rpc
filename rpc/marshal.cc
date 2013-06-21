@@ -205,7 +205,7 @@ size_t FastMarshal::read_from_fd(int fd) {
 
 size_t FastMarshal::read_from_marshal(FastMarshal& m, size_t n) {
     assert(head_ == nullptr && tail_ == nullptr);
-    assert(n > 0 && m.content_size_gt(n - 1));   // require m.content_size() >= n > 0
+    assert(n == 0 || m.content_size_gt(n - 1));   // require m.content_size() >= n > 0
 
     size_t n_fetch = 0;
     while (n_fetch < n) {
@@ -252,7 +252,7 @@ FastMarshal::read_barrier FastMarshal::get_read_barrier() {
         }
 
         rb.rb_data = tail_->data;
-        rb.rb_idx = tail_->read_idx;
+        rb.rb_idx = tail_->write_idx;
     }
 
     assert(empty() || (head_ != nullptr && !head_->fully_read()));
@@ -261,6 +261,10 @@ FastMarshal::read_barrier FastMarshal::get_read_barrier() {
 
 size_t FastMarshal::write_to_fd(int fd, const FastMarshal::read_barrier& rb, const io_ratelimit& rate) {
     assert(empty() || (head_ != nullptr && !head_->fully_read()));
+
+    if (rb.rb_data == nullptr) {
+        return 0;
+    }
 
     if (rate.min_size > 0 || rate.interval > 0) {
         // rpc batching, check if should wait till next batch
@@ -288,12 +292,16 @@ size_t FastMarshal::write_to_fd(int fd, const FastMarshal::read_barrier& rb, con
 
     size_t n_write = 0;
     while (!empty()) {
-        int cnt = head_->write_to_fd(fd);
+        int cnt;
+        if (head_->data == rb.rb_data) {
+            cnt = head_->write_to_fd(fd, rb.rb_idx);
+        } else {
+            cnt = head_->write_to_fd(fd);
+        }
         if (head_->fully_read()) {
-            if (tail_ == head_) {
-                // deleted the only chunk
-                tail_ = nullptr;
-            }
+            // since read_barrier should have prevented any possibility to update (advance) tail_
+            assert(tail_ != head_);
+
             chunk* chnk = head_;
             head_ = head_->next;
             delete chnk;
