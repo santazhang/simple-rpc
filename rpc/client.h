@@ -98,7 +98,7 @@ class Client: public Pollable {
     std::map<i64, Future*> pending_fu_;
 
     ShortLock pending_fu_l_;
-    LongLock out_l_;
+    ShortLock out_l_;
 
     // reentrant, could be called multiple times before releasing
     void close();

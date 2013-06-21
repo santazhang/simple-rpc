@@ -154,7 +154,7 @@ int main(int argc, char **argv) {
 
     verify(isserver || isclient);
 
-    const int n_io_threads = 64;
+    const int n_io_threads = 8;
     const int n_worker_threads = 64;
 
     poll_options poll_opts;
@@ -172,8 +172,7 @@ int main(int argc, char **argv) {
         svr.reg(&null_svc);
         svr.start(svr_addr);
 
-        const int running_seconds = 20;
-        for (int i = 0; i < running_seconds; i++) {
+        for (;;) {
             sleep(1);
         }
         exit(0);
