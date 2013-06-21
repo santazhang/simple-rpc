@@ -60,7 +60,7 @@ void _pkt_sample_out(size_t size) {
  * 8kb minimum chunk size.
  * NOTE: this value directly affects how many read/write syscall will be issued.
  */
-const size_t FastMarshal::raw_bytes::min_size = 1;
+const size_t FastMarshal::raw_bytes::min_size = 8192;
 
 FastMarshal::~FastMarshal() {
     chunk* chnk = head_;
@@ -224,14 +224,14 @@ size_t FastMarshal::read_from_marshal(FastMarshal& m, size_t n) {
             tail_->next = chnk;
             tail_ = chnk;
         }
-        if (n_fetch < n) {
+        if (m.head_->fully_read()) {
+            if (m.tail_ == m.head_) {
+                // deleted the only chunk
+                m.tail_ = nullptr;
+            }
             chunk* next = m.head_->next;
             delete m.head_;
             m.head_ = next;
-            if (m.head_ == nullptr) {
-                // fetched the last piece of chunk
-                m.tail_ = nullptr;
-            }
         }
     }
     write_cnt_ += n_fetch;

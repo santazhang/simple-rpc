@@ -48,11 +48,9 @@ inline void do_work(ClientPool* cl_pool, const char* svr_addr, FutureAttr& fu_at
     i32 prime_test = 1 + rand() % 99;
     switch (eval_case) {
     case FAST_PRIME:
-        Log::debug("prime test: %d", prime_test);
         fu = DemoProxy(cl).async_fast_prime(prime_test, fu_attr);
         break;
     case PRIME:
-        Log::debug("prime test: %d", prime_test);
         fu = DemoProxy(cl).async_prime(prime_test, fu_attr);
         break;
     case FAST_DOT_PROD:
