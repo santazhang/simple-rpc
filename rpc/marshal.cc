@@ -214,8 +214,10 @@ size_t FastMarshal::read_from_marshal(FastMarshal& m, size_t n) {
             // only fetch enough bytes we need
             chnk->write_idx -= (n_fetch + chnk->content_size()) - n;
         }
-        assert(chnk->content_size() > 0);
-        n_fetch += chnk->content_size();
+        size_t cnt = chnk->content_size();
+        assert(cnt > 0);
+        n_fetch += cnt;
+        verify(m.head_->discard(cnt) == cnt);
         if (head_ == nullptr) {
             head_ = tail_ = chnk;
         } else {

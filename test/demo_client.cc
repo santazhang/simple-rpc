@@ -45,12 +45,15 @@ inline void do_work(ClientPool* cl_pool, const char* svr_addr, FutureAttr& fu_at
     }
     Client* cl = cl_pool->get_client(svr_addr);
     Future* fu;
+    i32 prime_test = 1 + rand() % 99;
     switch (eval_case) {
     case FAST_PRIME:
-        fu = DemoProxy(cl).async_fast_prime(1 + rand() % 99, fu_attr);
+        Log::debug("prime test: %d", prime_test);
+        fu = DemoProxy(cl).async_fast_prime(prime_test, fu_attr);
         break;
     case PRIME:
-        fu = DemoProxy(cl).async_prime(1 + rand() % 99, fu_attr);
+        Log::debug("prime test: %d", prime_test);
+        fu = DemoProxy(cl).async_prime(prime_test, fu_attr);
         break;
     case FAST_DOT_PROD:
         fu = DemoProxy(cl).async_fast_dot_prod(rand_pt(), rand_pt(), fu_attr);
@@ -100,9 +103,9 @@ int main(int argc, char* argv[]) {
 
     srand(getpid());
     PollMgr* poll = new PollMgr;
-    ClientPool* cl_pool = new ClientPool(poll, 10);
+    ClientPool* cl_pool = new ClientPool(poll, 1);
 
-    const int concurrency = 1000;
+    const int concurrency = 1;
     Counter rpc_counter;
 
     FutureAttr attr1;

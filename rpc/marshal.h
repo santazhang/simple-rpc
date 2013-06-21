@@ -138,6 +138,18 @@ class FastMarshal: public NoCopy {
             return n_peek;
         }
 
+        size_t discard(size_t n) {
+            assert(write_idx <= data->size);
+            assert(read_idx <= write_idx);
+
+            size_t n_discard = std::min(n, write_idx - read_idx);
+            read_idx += n_discard;
+
+            assert(write_idx <= data->size);
+            assert(read_idx <= write_idx);
+            return n_discard;
+        }
+
         int write_to_fd(int fd, size_t barrier = std::numeric_limits<size_t>::max()) {
             assert(write_idx <= data->size);
             barrier = std::min(write_idx, barrier);
