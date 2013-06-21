@@ -60,9 +60,7 @@ class FastMarshal: public NoCopy {
 
         chunk(): data(new raw_bytes), read_idx(0), write_idx(0), rdonly(false), next(nullptr) {}
         chunk(const void* p, size_t n): data(new raw_bytes(p, n)), read_idx(0), write_idx(n), rdonly(false), next(nullptr) {}
-        ~chunk() {
-            data->release();
-        }
+        ~chunk() { data->release(); }
 
     private:
         // make readonly copy
