@@ -416,7 +416,7 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, std::set<T>& v) {
     for (rpc::i32 i = 0; i < len; i++) {
         T elem;
         m >> elem;
-        v.insert(elem);
+        v.emplace(elem);
     }
     return m;
 }
@@ -430,11 +430,7 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, std::map<K, V>& v) {
         K key;
         V value;
         m >> key >> value;
-
-        // http://stackoverflow.com/questions/4623610/c-value-type-versus-make-pair-which-is-faster-for-map-insert
-        // * value_type instead of make_pair to avoid potential additional copy
-        // * insert(...) is faster then []= when adding (not updating) elements
-        v.insert(typename std::map<K, V>::value_type(key, value));
+        v.emplace(key, value);
     }
     return m;
 }
@@ -447,7 +443,7 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, std::unordered_set<T>& v) {
     for (rpc::i32 i = 0; i < len; i++) {
         T elem;
         m >> elem;
-        v.insert(elem);
+        v.emplace(elem);
     }
     return m;
 }
@@ -461,7 +457,7 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, std::unordered_map<K, V>& v) {
         K key;
         V value;
         m >> key >> value;
-        v[key] = value;
+        v.emplace(key, value);
     }
     return m;
 }
