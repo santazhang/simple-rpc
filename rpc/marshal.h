@@ -416,7 +416,7 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, std::set<T>& v) {
     for (rpc::i32 i = 0; i < len; i++) {
         T elem;
         m >> elem;
-        v.emplace(elem);
+        v.insert(elem);
     }
     return m;
 }
@@ -430,7 +430,7 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, std::map<K, V>& v) {
         K key;
         V value;
         m >> key >> value;
-        v.emplace(key, value);
+        v.insert(typename std::map<K, V>::value_type(key, value));
     }
     return m;
 }
@@ -443,7 +443,7 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, std::unordered_set<T>& v) {
     for (rpc::i32 i = 0; i < len; i++) {
         T elem;
         m >> elem;
-        v.emplace(elem);
+        v.insert(elem);
     }
     return m;
 }
@@ -457,7 +457,7 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, std::unordered_map<K, V>& v) {
         K key;
         V value;
         m >> key >> value;
-        v.emplace(key, value);
+        v.insert(typename std::unordered_map<K, V>::value_type(key, value));
     }
     return m;
 }

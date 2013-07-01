@@ -290,7 +290,7 @@ Client* ClientPool::get_client(const string& addr) {
         }
         if (ok) {
             cl = parallel_clients[rand_() % parallel_connections_];
-            cache_.emplace(addr, parallel_clients);
+            cache_.insert(std::map<std::string, rpc::Client**>::value_type(addr, parallel_clients));
         } else {
             // close connections
             while (i >= 0) {
