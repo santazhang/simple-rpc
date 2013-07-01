@@ -50,7 +50,7 @@ ThreadPool::~ThreadPool() {
 void ThreadPool::run_async(const std::function<void()>& f) {
     // Randomly select a thread for the job.
     // There could be better schedule policy.
-    int queue_id = rand() % n_;
+    int queue_id = rand_engine() % n_;
     q_[queue_id].push(new function<void()>(f));
 }
 
