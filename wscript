@@ -35,9 +35,15 @@ def build(bld):
             os.system(action)
 
     _depend("rpc/rpcgen.py", "rpc/rpcgen.g", "pylib/yapps/main.py rpc/rpcgen.g ; chmod a+x rpc/rpcgen.py")
+    _depend("logservice/log_service.h", "logservice/log_service.rpc", "simple-rpc/bin/rpcgen.py logservice/log_service.rpc")
     _depend("test/demo_service.h", "test/demo_service.rpc", "rpc/rpcgen.py test/demo_service.rpc")
 
     bld.stlib(source=bld.path.ant_glob("rpc/*.cc"), target="simplerpc", includes="rpc", lib="pthread")
+    bld.stlib(
+        source=bld.path.ant_glob("logservice/*.cc", excl="logservice/log_server.cc"),
+        target="logservice",
+        includes=". logservice simple-rpc",
+        use="PTHREAD")
     bld.stlib(source="test/param_map.cc", includes=".", target = 'test', name = 'test')
 
     def _prog(source, target, includes=".", use="simplerpc PTHREAD"):
@@ -48,6 +54,9 @@ def build(bld):
     _prog("test/perftest.cc", "perftest")
     _prog("test/marshal_test.cc", "marshal_test")
     _prog("test/counter_bench.cc", "counter_bench")
+
+    _prog("logservice/log_server.cc", "log_server", use="logservice simplerpc PTHREAD")
+    _prog("test/log_client.cc", "log_client", use="logservice simplerpc PTHREAD")
 
     # Unit tests and benchmark, inherented from MCP code
     _prog(source="test/param_map_test.cc", target="param_map_test", use="simplerpc test PTHREAD")
