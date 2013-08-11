@@ -54,6 +54,7 @@ def build(bld):
     _prog("test/perftest.cc", "perftest")
     _prog("test/marshal_test.cc", "marshal_test")
     _prog("test/counter_bench.cc", "counter_bench")
+    _prog("test/threadpool_bench.cc", "threadpool_bench")
 
     _prog("logservice/log_server.cc", "log_server", use="logservice simplerpc PTHREAD")
     _prog("test/log_client.cc", "log_client", use="logservice simplerpc PTHREAD")

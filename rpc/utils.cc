@@ -55,13 +55,18 @@ void ThreadPool::run_async(const std::function<void()>& f) {
 }
 
 void ThreadPool::run_thread(int id_in_pool) {
-    for (;;) {
-        function<void()>* f = q_[id_in_pool].pop();
-        if (f == nullptr) {
-            return;
+    bool should_stop = false;
+    while (!should_stop) {
+        list<function<void()>*>* jobs = q_[id_in_pool].pop_all();
+        for (auto f : *jobs) {
+            if (f == nullptr) {
+                should_stop = true;
+            } else {
+                (*f)();
+                delete f;
+            }
         }
-        (*f)();
-        delete f;
+        delete jobs;
     }
 }
 

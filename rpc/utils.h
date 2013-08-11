@@ -119,13 +119,13 @@ public:
  */
 template<class T>
 class Queue: public NoCopy {
-    std::list<T> q_;
+    std::list<T>* q_;
     pthread_cond_t not_empty_;
     pthread_mutex_t m_;
 
 public:
 
-    Queue() {
+    Queue(): q_(new std::list<T>) {
         Pthread_mutex_init(&m_, NULL);
         Pthread_cond_init(&not_empty_, NULL);
     }
@@ -133,32 +133,34 @@ public:
     ~Queue() {
         Pthread_cond_destroy(&not_empty_);
         Pthread_mutex_destroy(&m_);
+        delete q_;
     }
 
     void push(const T& e) {
         Pthread_mutex_lock(&m_);
-        q_.push_back(e);
+        q_->push_back(e);
         Pthread_cond_signal(&not_empty_);
         Pthread_mutex_unlock(&m_);
     }
 
-    void pop_all(std::list<T>* fill) {
+    std::list<T>* pop_all() {
         Pthread_mutex_lock(&m_);
-        while (q_.empty()) {
+        while (q_->empty()) {
             Pthread_cond_wait(&not_empty_, &m_);
         }
-        *fill = q_;
-        q_.clear();
+        std::list<T>* ret = q_;
+        q_ = new std::list<T>;
         Pthread_mutex_unlock(&m_);
+        return ret;
     }
 
     T pop() {
         Pthread_mutex_lock(&m_);
-        while (q_.empty()) {
+        while (q_->empty()) {
             Pthread_cond_wait(&not_empty_, &m_);
         }
-        T e = q_.front();
-        q_.pop_front();
+        T e = q_->front();
+        q_->pop_front();
         Pthread_mutex_unlock(&m_);
         return e;
     }
