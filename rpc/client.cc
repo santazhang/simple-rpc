@@ -262,7 +262,7 @@ ClientPool::ClientPool(PollMgr* pollmgr /* =? */, int parallel_connections /* =?
 }
 
 ClientPool::~ClientPool() {
-    for (auto it : cache_) {
+    for (auto& it : cache_) {
         for (int i = 0; i < parallel_connections_; i++) {
             it.second[i]->close_and_release();
         }

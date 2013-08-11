@@ -215,7 +215,7 @@ Server::~Server() {
     threadpool_->release();
     pollmgr_->release();
 
-    for (auto it : handlers_) {
+    for (auto& it : handlers_) {
         delete it.second;
     }
 

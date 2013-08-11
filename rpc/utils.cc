@@ -58,7 +58,7 @@ void ThreadPool::run_thread(int id_in_pool) {
     bool should_stop = false;
     while (!should_stop) {
         list<function<void()>*>* jobs = q_[id_in_pool].pop_all();
-        for (auto f : *jobs) {
+        for (auto& f : *jobs) {
             if (f == nullptr) {
                 should_stop = true;
             } else {
