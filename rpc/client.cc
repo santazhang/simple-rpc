@@ -107,7 +107,7 @@ int Client::connect(const char* addr) {
 
     if (rp == NULL) {
         // failed to connect
-        Log::error("rpc::Client: connect(): %s", strerror(errno));
+        Log::error("rpc::Client: connect(%s): %s", addr, strerror(errno));
         return -1;
     }
 
