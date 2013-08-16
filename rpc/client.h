@@ -79,6 +79,31 @@ public:
     }
 };
 
+class FutureGroup {
+private:
+  std::vector<Future*> futures_;
+
+public:
+  void add(Future* f) {
+    if (f == NULL) {
+      Log::fatal("Null future passed to FutureGroup");
+    }
+    futures_.push_back(f);
+  }
+
+  void wait_all() {
+    for (auto f : futures_) {
+      f->wait();
+    }
+  }
+
+  ~FutureGroup() {
+    for (auto f : futures_) {
+      f->release();
+    }
+  }
+};
+
 class Client: public Pollable {
     Marshal in_, out_;
 

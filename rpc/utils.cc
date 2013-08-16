@@ -3,7 +3,12 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <sys/time.h>
-
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 #include "utils.h"
 
 using namespace std;
@@ -112,6 +117,8 @@ void Log::fatal(const char* fmt, ...) {
     va_start(args, fmt);
     log_v(Log::FATAL, fmt, args);
     va_end(args);
+
+    abort();
 }
 
 void Log::error(const char* fmt, ...) {
@@ -186,6 +193,60 @@ double Timer::elapsed() const {
     usec = (end_.tv_usec - start_.tv_usec) / 1000000.0;
   }
   return sec+usec;
+}
+
+int find_open_port() {
+  int fd = socket(AF_INET, SOCK_STREAM, 0);
+
+  addrinfo *local_addr;
+
+  addrinfo hints;
+  bzero(&hints, sizeof(hints));
+  hints.ai_family = AF_INET;
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_flags = AI_PASSIVE;
+
+  if (getaddrinfo("localhost", NULL, NULL, &local_addr) != 0) {
+    Log::fatal("Failed to getaddrinfo");
+  }
+
+  int port = -1;
+
+  for (int i = 1024; i < 65000; ++i) {
+    ((sockaddr_in*)local_addr->ai_addr)->sin_port = i;
+    if (::bind(fd, local_addr->ai_addr, local_addr->ai_addrlen) != 0) {
+      continue;
+    }
+
+    sockaddr_in addr;
+    socklen_t addrlen;
+    if (getsockname(fd, (sockaddr*)&addr, &addrlen) != 0) {
+      Log::fatal("Failed to get socket address");
+    }
+
+    port = i;
+    break;
+  }
+
+  freeaddrinfo(local_addr);
+  ::close(fd);
+
+  if (port != -1) {
+    Log::info("Found open port: %d", port);
+    return port;
+  }
+
+  Log::fatal("Failed to find open port.");
+  return -1;
+}
+
+std::string get_host_name() {
+  char buffer[1024];
+  if (gethostname(buffer, 1024) != 0) {
+    Log::fatal("Failed to get hostname.");
+  }
+
+  return std::string(buffer);
 }
 
 }
