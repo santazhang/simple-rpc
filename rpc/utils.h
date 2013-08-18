@@ -331,5 +331,8 @@ private:
 
 int set_nonblocking(int fd, bool nonblocking);
 
+int find_open_port();
+std::string get_host_name();
+
 }
 

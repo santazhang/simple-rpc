@@ -5,6 +5,14 @@ import os
 import re
 sys.path += os.path.abspath(os.path.join(os.path.split(__file__)[0], "../pylib")),
 
+
+def error(msg, ctx):
+  from yapps import runtime
+  err = runtime.SyntaxError(None, msg, ctx)
+  runtime.print_error(err, ctx.scanner)
+  sys.exit(1)
+
+
 class pack:
     def __init__(self, **kv):
         self.__dict__.update(kv)
@@ -151,7 +159,7 @@ class Rpc(runtime.Parser):
                 self._scan('"unsigned"', context=_context)
             else: # == '"long"'
                 self._scan('"long"', context=_context)
-            raise TypeError("please use i32 or i64 for any integer types")
+            error("please use i32 or i64 for any integer types", _context)
 
     def full_symbol(self, _parent=None):
         _context = self.Context(_parent, self._scanner, 'full_symbol', [])
@@ -328,7 +336,7 @@ def emit_service_and_proxy(service, f):
             else:
                 postfix = ""
             if func.attr == "raw":
-                f.writeln("virtual void %s(rpc::Request* req, rpc::ServerConnection* sconn)%s;" % (func.name, postfix))
+                f.writeln("virtual void %s(rpc::Request* req, rpc::ServerConnection* sconn)%s = 0;" % (func.name, postfix))
             else:
                 func_args = []
                 for in_arg in func.input:
@@ -341,7 +349,7 @@ def emit_service_and_proxy(service, f):
                         func_args += "%s* %s" % (out_arg.type, out_arg.name),
                     else:
                         func_args += "%s*" % out_arg.type,
-                f.writeln("virtual void %s(%s)%s;" % (func.name, ", ".join(func_args), postfix))
+                f.writeln("virtual void %s(%s)%s = 0;" % (func.name, ", ".join(func_args), postfix))
     f.writeln("private:")
     with f.indent():
         for func in service.functions:
@@ -468,13 +476,8 @@ def rpcgen(rpc_fpath):
         f.writeln()
         f.writeln("#pragma once")
         f.writeln()
-        f.writeln("#ifndef RPC_SERVER_H_")
-        f.writeln("#error please include server.h before including this file")
-        f.writeln("#endif // RPC_SERVER_H_")
-        f.writeln()
-        f.writeln("#ifndef RPC_CLIENT_H_")
-        f.writeln("#error please include client.h before including this file")
-        f.writeln("#endif // RPC_CLIENT_H_")
+        f.writeln("#include \"rpc/server.h\"")
+        f.writeln("#include \"rpc/client.h\"")
         f.writeln()
         f.writeln("#include <errno.h>")
         f.writeln()
