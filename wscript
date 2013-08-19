@@ -35,7 +35,7 @@ def build(bld):
             os.system(action)
 
     _depend("rpc/rpcgen.py", "rpc/rpcgen.g", "pylib/yapps/main.py rpc/rpcgen.g ; chmod a+x rpc/rpcgen.py")
-    _depend("logservice/log_service.h", "logservice/log_service.rpc", "simple-rpc/bin/rpcgen.py logservice/log_service.rpc")
+    _depend("logservice/log_service.h", "logservice/log_service.rpc", "bin/rpcgen.py logservice/log_service.rpc")
     _depend("test/demo_service.h", "test/demo_service.rpc", "rpc/rpcgen.py test/demo_service.rpc")
 
     bld.stlib(source=bld.path.ant_glob("rpc/*.cc"), target="simplerpc", includes="rpc", lib="pthread")

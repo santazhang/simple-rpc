@@ -240,6 +240,7 @@ void Client::end_request() {
     if (bmark_ != NULL) {
         i32 request_size = out_.get_and_reset_write_cnt();
         out_.write_bookmark(bmark_, &request_size);
+        out_.update_read_barrier();
         delete bmark_;
         bmark_ = NULL;
     }

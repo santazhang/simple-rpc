@@ -33,6 +33,7 @@ void ServerConnection::end_reply() {
     if (bmark_ != NULL) {
         i32 reply_size = out_.get_and_reset_write_cnt();
         out_.write_bookmark(bmark_, &reply_size);
+        out_.update_read_barrier();
         delete bmark_;
         bmark_ = NULL;
     }
