@@ -38,9 +38,9 @@ void ServerConnection::end_reply() {
         bmark_ = NULL;
     }
 
-    if (!out_.empty()) {
-        server_->pollmgr_->update_mode(this, Pollable::READ | Pollable::WRITE);
-    }
+    // always enable write events since the code above gauranteed there
+    // will be some data to send
+    server_->pollmgr_->update_mode(this, Pollable::READ | Pollable::WRITE);
 
     out_l_.unlock();
 }

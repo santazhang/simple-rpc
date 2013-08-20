@@ -245,9 +245,9 @@ void Client::end_request() {
         bmark_ = NULL;
     }
 
-    if (!out_.empty()) {
-        pollmgr_->update_mode(this, Pollable::READ | Pollable::WRITE);
-    }
+    // always enable write events since the code above gauranteed there
+    // will be some data to send
+    pollmgr_->update_mode(this, Pollable::READ | Pollable::WRITE);
 
     out_l_.unlock();
 }
