@@ -49,11 +49,11 @@ int main(int argc, char **argv) {
     vector<Future*> f;
     for (int j = 0; j < 10000; ++j) {
       f.push_back(servers[j % 4]->async_prime(j));
-      Log::info("Sending... %d", j);
+      Log_info("Sending... %d", j);
     }
 
     for (int k = 0; k < f.size(); ++k) {
-      Log::info("Waiting... %d", k);
+      Log_info("Waiting... %d", k);
       f[k]->wait();
       f[k]->release();
     }
