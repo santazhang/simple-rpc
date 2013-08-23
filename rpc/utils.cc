@@ -92,12 +92,26 @@ void Log::set_file(FILE* fp) {
     Pthread_mutex_unlock(&Log::m);
 }
 
+static const char* basename(const char* fpath) {
+    const char sep = '/';
+    int len = strlen(fpath);
+    int idx = len - 1;
+    while (idx > 0) {
+        if (fpath[idx - 1] == sep) {
+            break;
+        }
+        idx--;
+    }
+    verify(idx >= 0 && idx < len);
+    return &fpath[idx];
+}
+
 void Log::log_v(int level, const char* file, int line, const char* fmt, va_list args) {
     static char indicator[] = { 'F', 'E', 'W', 'I', 'D' };
     assert(level <= Log::DEBUG);
     if (level <= Log::level) {
-        Pthread_mutex_lock(&Log::m);
         const char* filebase = basename(file);
+        Pthread_mutex_lock(&Log::m);
         fprintf(Log::fp, "%c ", indicator[level]);
         fprintf(Log::fp, "%s:%3d ", filebase, line);
         vfprintf(Log::fp, fmt, args);
