@@ -93,6 +93,10 @@ void Log::set_file(FILE* fp) {
 }
 
 static const char* basename(const char* fpath) {
+    if (fpath == nullptr) {
+        return nullptr;
+    }
+
     const char sep = '/';
     int len = strlen(fpath);
     int idx = len - 1;
@@ -106,14 +110,16 @@ static const char* basename(const char* fpath) {
     return &fpath[idx];
 }
 
-void Log::log_v(int level, const char* file, int line, const char* fmt, va_list args) {
+void Log::log_v(int level, int line, const char* file, const char* fmt, va_list args) {
     static char indicator[] = { 'F', 'E', 'W', 'I', 'D' };
     assert(level <= Log::DEBUG);
     if (level <= Log::level) {
         const char* filebase = basename(file);
         Pthread_mutex_lock(&Log::m);
         fprintf(Log::fp, "%c ", indicator[level]);
-        fprintf(Log::fp, "%s:%3d ", filebase, line);
+        if (filebase != nullptr) {
+            fprintf(Log::fp, "<%s:%d> ", filebase, line);
+        }
         vfprintf(Log::fp, fmt, args);
         fprintf(Log::fp, "\n");
         fflush(Log::fp);
@@ -121,47 +127,83 @@ void Log::log_v(int level, const char* file, int line, const char* fmt, va_list 
     }
 }
 
-void Log::log(int level, const char* file, int line, const char* fmt, ...) {
+void Log::log(int level, int line, const char* file, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    log_v(level, file, line, fmt, args);
+    log_v(level, line, file, fmt, args);
     va_end(args);
 }
 
-void Log::fatal(const char* file, int line, const char* fmt, ...) {
+void Log::fatal(int line, const char* file, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    log_v(Log::FATAL, file, line, fmt, args);
+    log_v(Log::FATAL, line, file, fmt, args);
     va_end(args);
-
     abort();
 }
 
-void Log::error(const char* file, int line, const char* fmt, ...) {
+void Log::error(int line, const char* file, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    log_v(Log::ERROR, file, line, fmt, args);
+    log_v(Log::ERROR, line, file, fmt, args);
     va_end(args);
 }
 
-void Log::warn(const char* file, int line, const char* fmt, ...) {
+void Log::warn(int line, const char* file, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    log_v(Log::WARN, file, line, fmt, args);
+    log_v(Log::WARN, line, file, fmt, args);
     va_end(args);
 }
 
-void Log::info(const char* file, int line, const char* fmt, ...) {
+void Log::info(int line, const char* file, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    log_v(Log::INFO, file, line, fmt, args);
+    log_v(Log::INFO, line, file, fmt, args);
     va_end(args);
 }
 
-void Log::debug(const char* file, int line, const char* fmt, ...) {
+void Log::debug(int line, const char* file, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    log_v(Log::DEBUG, file, line, fmt, args);
+    log_v(Log::DEBUG, line, file, fmt, args);
+    va_end(args);
+}
+
+
+void Log::fatal(const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    log_v(Log::FATAL, 0, nullptr, fmt, args);
+    va_end(args);
+    abort();
+}
+
+void Log::error(const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    log_v(Log::ERROR, 0, nullptr, fmt, args);
+    va_end(args);
+}
+
+void Log::warn(const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    log_v(Log::WARN, 0, nullptr, fmt, args);
+    va_end(args);
+}
+
+void Log::info(const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    log_v(Log::INFO, 0, nullptr, fmt, args);
+    va_end(args);
+}
+
+void Log::debug(const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    log_v(Log::DEBUG, 0, nullptr, fmt, args);
     va_end(args);
 }
 
