@@ -63,13 +63,13 @@ public:
     virtual void unlock() = 0;
 };
 
-class ShortLock: public Lockable {
+class SpinLock: public Lockable {
     int locked_ __attribute__ ((aligned (64)));;
     int lock_state() const volatile {
         return locked_;
     }
 public:
-    ShortLock(): locked_(0) { }
+    SpinLock(): locked_(0) { }
     void lock() {
         if (!lock_state() && !__sync_lock_test_and_set(&locked_, 1)) {
             return;
@@ -113,7 +113,15 @@ private:
     Mutex& operator=(Mutex&);
 };
 
+// use spinlock for short critical section
+typedef SpinLock ShortLock;
+
+// use mutex for long critical section
 typedef Mutex LongLock;
+
+// choice between spinlock & mutex:
+// * when n_thread > n_core, use mutex
+// * on virtual machines, use mutex
 
 class ScopedLock : NoCopy {
 public:
