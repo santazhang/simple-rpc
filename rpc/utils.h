@@ -157,15 +157,20 @@ public:
         Pthread_mutex_unlock(&m_);
     }
 
-    std::list<T>* pop_all() {
+    void pop_many(std::list<T>* out, int count) {
         Pthread_mutex_lock(&m_);
-        while (q_->empty()) {
-            Pthread_cond_wait(&not_empty_, &m_);
+        if (q_->empty()) {
+          Pthread_mutex_unlock(&m_);
+          return;
         }
-        std::list<T>* ret = q_;
-        q_ = new std::list<T>;
+
+        while (count > 0) {
+          out->push_back(q_->front());
+          q_->pop_front();
+          --count;
+        }
+
         Pthread_mutex_unlock(&m_);
-        return ret;
     }
 
     T pop() {
@@ -264,7 +269,12 @@ public:
 
 class Mutex : public Lockable {
 public:
-    Mutex()         { Pthread_mutex_init(&m_, NULL); }
+    Mutex()         {
+      pthread_mutexattr_t attr;
+      pthread_mutexattr_init(&attr);
+      pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
+      Pthread_mutex_init(&m_, &attr);
+    }
     ~Mutex()        { Pthread_mutex_destroy(&m_); }
 
     void lock()     { Pthread_mutex_lock(&m_); }
