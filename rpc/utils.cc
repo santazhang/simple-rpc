@@ -15,12 +15,6 @@ using namespace std;
 
 namespace rpc {
 
-static uint64_t rdtsc() {
-  uint32_t hi, lo;
-  __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
-  return (((uint64_t) hi) << 32) | ((uint64_t) lo);
-}
-
 struct start_thread_pool_args {
     ThreadPool* thrpool;
     int id_in_pool;
@@ -156,14 +150,23 @@ void Log::log_v(int level, int line, const char* file, const char* fmt, va_list 
     assert(level <= Log::DEBUG);
     if (level <= Log::level) {
         const char* filebase = basename(file);
+
+        const int tm_str_len = 80;
+        char tm_str[tm_str_len];
+        time_t now = time(NULL);
+        struct tm tm_val;
+        localtime_r(&now, &tm_val);
+        strftime(tm_str, tm_str_len - 1, "%F %T", &tm_val);
+        timeval tv;
+        gettimeofday(&tv, NULL);
+
         Pthread_mutex_lock(&Log::m);
         fprintf(Log::fp, "%c ", indicator[level]);
         if (filebase != nullptr) {
             fprintf(Log::fp, "<%s:%d> ", filebase, line);
         }
-        struct timeval now;
-        gettimeofday(&now, NULL);
-        fprintf(Log::fp, "%ld.%ld ", now.tv_sec, now.tv_usec / 1000);
+
+        fprintf(Log::fp, "%s.%03d| ", tm_str, tv.tv_usec / 1000);
         vfprintf(Log::fp, fmt, args);
         fprintf(Log::fp, "\n");
         fflush(Log::fp);
