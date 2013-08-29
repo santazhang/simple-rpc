@@ -64,10 +64,6 @@ public:
 };
 
 class SpinLock: public Lockable {
-    int locked_ __attribute__ ((aligned (64)));;
-    int lock_state() const volatile {
-        return locked_;
-    }
 public:
     SpinLock(): locked_(0) { }
     void lock() {
@@ -88,6 +84,14 @@ public:
     void unlock() {
         __sync_lock_release(&locked_);
     }
+
+private:
+
+    int locked_ __attribute__((aligned (64)));
+
+    int lock_state() const volatile {
+        return locked_;
+    }
 };
 
 class Mutex: public Lockable {
@@ -107,11 +111,12 @@ private:
     friend class CondVar;
 
     pthread_mutex_t m_;
-
-    // Non-copyable, non-assignable
-    Mutex(Mutex &);
-    Mutex& operator=(Mutex&);
 };
+
+// choice between spinlock & mutex:
+// * when n_thread > n_core, use mutex
+// * on virtual machines, use mutex
+
 
 // use spinlock for short critical section
 typedef SpinLock ShortLock;
@@ -119,15 +124,13 @@ typedef SpinLock ShortLock;
 // use mutex for long critical section
 typedef Mutex LongLock;
 
-// choice between spinlock & mutex:
-// * when n_thread > n_core, use mutex
-// * on virtual machines, use mutex
+
 
 class ScopedLock: public NoCopy {
 public:
-    explicit ScopedLock(Lockable* lock) : m_(lock) { m_->lock(); }
+    explicit ScopedLock(Lockable* lock): m_(lock)   { m_->lock(); }
     // Allow pass by reference.
-    explicit ScopedLock(Lockable& lock) : m_(&lock) { m_->lock(); }
+    explicit ScopedLock(Lockable& lock): m_(&lock)  { m_->lock(); }
 
     ~ScopedLock()   { m_->unlock(); }
 
