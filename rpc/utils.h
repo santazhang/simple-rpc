@@ -90,7 +90,7 @@ public:
     }
 };
 
-class Mutex : public Lockable {
+class Mutex: public Lockable {
 public:
     Mutex()         {
       pthread_mutexattr_t attr;
@@ -104,7 +104,7 @@ public:
     void unlock()   { Pthread_mutex_unlock(&m_); }
 
 private:
-    friend class ConditionVar;
+    friend class CondVar;
 
     pthread_mutex_t m_;
 
@@ -123,7 +123,7 @@ typedef Mutex LongLock;
 // * when n_thread > n_core, use mutex
 // * on virtual machines, use mutex
 
-class ScopedLock : NoCopy {
+class ScopedLock: public NoCopy {
 public:
     explicit ScopedLock(Lockable* lock) : m_(lock) { m_->lock(); }
     // Allow pass by reference.
@@ -135,10 +135,10 @@ private:
     Lockable* m_;
 };
 
-class ConditionVar {
+class CondVar: public NoCopy {
 public:
-    ConditionVar()          { Pthread_cond_init(&cv_, NULL); }
-    ~ConditionVar()         { Pthread_cond_destroy(&cv_); }
+    CondVar()               { Pthread_cond_init(&cv_, NULL); }
+    ~CondVar()              { Pthread_cond_destroy(&cv_); }
 
     void wait(Mutex* mutex) { Pthread_cond_wait(&cv_, &(mutex->m_)); }
     void signal()           { Pthread_cond_signal(&cv_); }
@@ -148,15 +148,9 @@ public:
         pthread_cond_timedwait(&cv_, &(mutex->m_), timeout);
     }
 
-
 private:
     pthread_cond_t cv_;
-
-    // Non-copyable, non-assignable
-    ConditionVar(ConditionVar&);
-    ConditionVar& operator=(ConditionVar&);
 };
-
 
 class Log {
     static int level;
