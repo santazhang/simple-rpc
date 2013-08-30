@@ -306,6 +306,7 @@ class ThreadPool: public RefCounted {
     Rand rand_engine_;
     pthread_t* th_;
     Queue<std::function<void()>*>* q_;
+    bool should_stop_;
 
     static void* start_thread_pool(void*);
     void run_thread(int id_in_pool);
@@ -316,7 +317,8 @@ protected:
 public:
     ThreadPool(int n = 64);
 
-    void run_async(const std::function<void()>&);
+    // return 0 when queuing ok, otherwise EPERM
+    int run_async(const std::function<void()>&);
 };
 
 class Counter: public NoCopy {
