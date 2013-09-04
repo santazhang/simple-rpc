@@ -235,6 +235,7 @@ public:
     virtual void unlock() = 0;
 };
 
+/*
 class ShortLock: public Lockable {
     int locked_ __attribute__ ((aligned (64)));;
     int lock_state() const volatile {
@@ -261,6 +262,7 @@ public:
         __sync_lock_release(&locked_);
     }
 };
+*/
 
 class Mutex : public Lockable {
 public:
@@ -281,6 +283,7 @@ private:
 };
 
 typedef Mutex LongLock;
+typedef Mutex ShortLock;
 
 class ScopedLock : NoCopy {
 public:
