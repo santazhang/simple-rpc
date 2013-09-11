@@ -28,8 +28,7 @@ void* ThreadPool::start_thread_pool(void* args) {
     return NULL;
 }
 
-ThreadPool::ThreadPool(int n /* =... */)
-        : n_(n) {
+ThreadPool::ThreadPool(int n /* =... */): n_(n), should_stop_(false) {
     th_ = new pthread_t[n_];
     q_ = new Queue<function<void()>*> [n_];
 
@@ -42,36 +41,74 @@ ThreadPool::ThreadPool(int n /* =... */)
 }
 
 ThreadPool::~ThreadPool() {
-    for (int i = 0; i < n_; i++) {
-        q_[i].push(nullptr);  // nullptr is used as a termination token
-    }
+    should_stop_ = true;
     for (int i = 0; i < n_; i++) {
         Pthread_join(th_[i], nullptr);
     }
+    // TODO probably need to check if there's jobs not executed yet in queues
     delete[] th_;
     delete[] q_;
 }
 
-void ThreadPool::run_async(const std::function<void()>& f) {
+int ThreadPool::run_async(const std::function<void()>& f) {
+    if (should_stop_) {
+        return EPERM;
+    }
     // Randomly select a thread for the job.
-    // There could be better schedule policy.
     int queue_id = rand_engine_() % n_;
     q_[queue_id].push(new function<void()>(f));
+    return 0;
 }
 
 void ThreadPool::run_thread(int id_in_pool) {
-    bool should_stop = false;
-    while (!should_stop) {
-        list<function<void()>*>* jobs = q_[id_in_pool].pop_all();
-        for (auto& f : *jobs) {
-            if (f == nullptr) {
-                should_stop = true;
-            } else {
-                (*f)();
-                delete f;
-            }
+    int64_t cycle_last_item_found = rdtsc();
+    list<function<void()>*> jobs;
+    struct timespec sleep_req;
+    sleep_req.tv_nsec = 1;
+    sleep_req.tv_sec = 0;
+
+    for (;;) {
+        if (sleep_req.tv_nsec > 1) {
+          nanosleep(&sleep_req, NULL);
         }
-        delete jobs;
+
+        int64_t cycle_now = rdtsc();
+
+        // How long should a thread wait before stealing from
+        // other queues.
+        static const int kStealCycles = 10 * 1000 * 1000;
+
+        if (cycle_now - cycle_last_item_found > kStealCycles) {
+            // start checking other queues
+            // TODO randomize each worker thread's stealing order
+            for (auto i = 0; i < n_; ++i) {
+                q_[i].pop_many(&jobs, 1);
+                if (!jobs.empty()) {
+                    break;
+                }
+            }
+        } else {
+            q_[id_in_pool].pop_many(&jobs, 1);
+        }
+
+        if (jobs.empty()) {
+            if (should_stop_) {
+                break;
+            }
+            sleep_req.tv_nsec = std::min(1000000L, sleep_req.tv_nsec * 2);
+            continue;
+        }
+
+        sleep_req.tv_nsec = 1;
+
+        while (!jobs.empty()) {
+            auto& f = jobs.front();
+            (*f)();
+            delete f;
+            jobs.pop_front();
+        }
+
+        cycle_last_item_found = rdtsc();
     }
 }
 
@@ -115,11 +152,23 @@ void Log::log_v(int level, int line, const char* file, const char* fmt, va_list 
     assert(level <= Log::DEBUG);
     if (level <= Log::level) {
         const char* filebase = basename(file);
+
+        const int tm_str_len = 80;
+        char tm_str[tm_str_len];
+        time_t now = time(NULL);
+        struct tm tm_val;
+        localtime_r(&now, &tm_val);
+        strftime(tm_str, tm_str_len - 1, "%F %T", &tm_val);
+        timeval tv;
+        gettimeofday(&tv, NULL);
+
         Pthread_mutex_lock(&Log::m);
         fprintf(Log::fp, "%c ", indicator[level]);
         if (filebase != nullptr) {
             fprintf(Log::fp, "<%s:%d> ", filebase, line);
         }
+
+        fprintf(Log::fp, "%s.%03d| ", tm_str, tv.tv_usec / 1000);
         vfprintf(Log::fp, fmt, args);
         fprintf(Log::fp, "\n");
         fflush(Log::fp);
