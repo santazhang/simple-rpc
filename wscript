@@ -58,7 +58,6 @@ def build(bld):
         target="logservice",
         includes=". logservice simple-rpc",
         use="PTHREAD")
-    bld.stlib(source="test/param_map.cc", includes=".", target = 'test', name = 'test')
 
     def _prog(source, target, includes=".", use="simplerpc PTHREAD B0"):
         bld.program(source=source, target=target, includes=includes, use=use)
@@ -73,6 +72,3 @@ def build(bld):
 
     _prog("logservice/log_server.cc", "log_server", use="logservice simplerpc PTHREAD")
     _prog("test/log_client.cc", "log_client", use="logservice simplerpc PTHREAD")
-
-    # Unit tests and benchmark, inherented from MCP code
-    _prog(source="test/param_map_test.cc", target="param_map_test", use="simplerpc test PTHREAD")
