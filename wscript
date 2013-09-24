@@ -76,5 +76,3 @@ def build(bld):
 
     # Unit tests and benchmark, inherented from MCP code
     _prog(source="test/param_map_test.cc", target="param_map_test", use="simplerpc test PTHREAD")
-    _prog(source="test/callback_test.cc", target="callback_test", use="simplerpc test PTHREAD")
-    _prog(source="test/callback_benchmark.cc", target="callback_benchmark", use="simplerpc test PTHREAD")
