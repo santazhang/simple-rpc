@@ -133,46 +133,8 @@ public:
     int run_async(const std::function<void()>&);
 };
 
-class Counter: public NoCopy {
-    volatile i64 next_;
-public:
-    Counter(i64 start = 0) : next_(start) { }
-    i64 peek_next() const {
-        return next_;
-    }
-    i64 next(i64 step = 1) {
-        return __sync_fetch_and_add(&next_, step);
-    }
-    void reset(i64 start = 0) {
-        next_ = start;
-    }
-};
-
-// A microsecond precision timer based on the gettimeofday() call
-// (which should be low overhead).
-//
-// Usage:
-//
-//   Timer t;
-//   t.start();
-//   ... event we want to clock
-//   t.end();
-//
-//   std::cout << "elapsed time in seconds" << t.elapsed();
-//
-class Timer {
-public:
-    Timer();
-
-    void start();
-    void end();
-    void reset();
-    double elapsed() const;
-
-private:
-    struct timeval start_;
-    struct timeval end_;
-};
+using b0::Counter;
+using b0::Timer;
 
 int set_nonblocking(int fd, bool nonblocking);
 

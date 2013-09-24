@@ -18,7 +18,7 @@ int main(int argc, char* argv[]) {
         thrpool->run_async(nop_job);
     }
     thrpool->release();
-    timer.end();
+    timer.stop();
     Log_info("running %d nop_jobs in ThreadPool(%d) took %lf seconds, throughput=%lf (1 issuing thread)",
         n_jobs, threadpool_size, timer.elapsed(), n_jobs / timer.elapsed());
 
