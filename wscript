@@ -52,12 +52,12 @@ def build(bld):
     _depend("logservice/log_service.h", "logservice/log_service.rpc", "bin/rpcgen.py logservice/log_service.rpc")
     _depend("test/demo_service.h", "test/demo_service.rpc", "rpc/rpcgen.py test/demo_service.rpc")
 
-    bld.stlib(source=bld.path.ant_glob("rpc/*.cc"), target="simplerpc", includes="rpc", lib="pthread")
+    bld.stlib(source=bld.path.ant_glob("rpc/*.cc"), target="simplerpc", includes="rpc", lib="pthread", use="B0")
     bld.stlib(
         source=bld.path.ant_glob("logservice/*.cc", excl="logservice/log_server.cc"),
         target="logservice",
         includes=". logservice simple-rpc",
-        use="PTHREAD")
+        use="PTHREAD B0")
 
     def _prog(source, target, includes=".", use="simplerpc PTHREAD B0"):
         bld.program(source=source, target=target, includes=includes, use=use)
