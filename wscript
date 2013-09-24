@@ -8,10 +8,15 @@ from waflib import Logs
 if sys.platform == 'darwin' and not os.environ.has_key("CXX"):
     os.environ["CXX"] = "clang++"   # use clang++ as default compiler (for c++11 support on mac)
 
+def _run_cmd(cmd):
+    Logs.pprint('PINK', cmd)
+    os.system(cmd)
+
 def options(opt):
     opt.load("compiler_cxx")
 
 def configure(conf):
+    _run_cmd("cd b0; ./waf configure")
     conf.load("compiler_cxx")
 
     if sys.platform == "darwin":
@@ -25,7 +30,16 @@ def configure(conf):
 
     conf.env.LIB_PTHREAD = 'pthread'
 
+    conf.env.INCLUDES_B0 = os.path.join(os.getcwd(), "b0")
+    conf.env.LIBPATH_B0 = os.path.join(os.getcwd(), "b0/build")
+    conf.env.LIB_B0 = 'b0'
+
 def build(bld):
+    if bld.cmd == "clean":
+        _run_cmd("cd b0; ./waf clean")
+    else:
+        _run_cmd("cd b0; ./waf --jobs %d" % bld.jobs)
+
     def _depend(target, source, action):
         if source != None and os.path.exists(source) == False:
             Logs.pprint('RED', "'%s' not found!" % source)
@@ -46,7 +60,7 @@ def build(bld):
         use="PTHREAD")
     bld.stlib(source="test/param_map.cc", includes=".", target = 'test', name = 'test')
 
-    def _prog(source, target, includes=".", use="simplerpc PTHREAD"):
+    def _prog(source, target, includes=".", use="simplerpc PTHREAD B0"):
         bld.program(source=source, target=target, includes=includes, use=use)
 
     _prog("test/demo_client.cc", "demo_client")
