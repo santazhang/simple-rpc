@@ -13,7 +13,6 @@ def options(opt):
     opt.load("compiler_cxx")
 
 def configure(conf):
-    _configure_subwaf(conf, "b0")
     conf.load("compiler_cxx")
     _use_cxx11(conf)
 
@@ -24,12 +23,13 @@ def configure(conf):
         conf.env.append_value("CXXFLAGS", "-Wall -pthread -O3 -ggdb -fno-omit-frame-pointer -DNDEBUG".split())
 
     conf.env.LIB_PTHREAD = 'pthread'
+
+    conf.env.INCLUDES_B0 = os.path.join(os.getcwd(), "../b0")
+    conf.env.LIBPATH_B0 = os.path.join(os.getcwd(), "../b0/build")
     conf.env.LIB_B0 = 'b0'
 
 
 def build(bld):
-    _build_subwaf(bld, "b0")
-
     _depend("rpc/rpcgen.py", "rpc/rpcgen.g", "pylib/yapps/main.py rpc/rpcgen.g ; chmod a+x rpc/rpcgen.py")
     _depend("logservice/log_service.h", "logservice/log_service.rpc", "bin/rpcgen.py logservice/log_service.rpc")
     _depend("test/demo_service.h", "test/demo_service.rpc", "rpc/rpcgen.py test/demo_service.rpc")
