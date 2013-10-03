@@ -17,23 +17,23 @@ def configure(conf):
     _enable_cxx11(conf)
     _enable_debug(conf)
     conf.env.LIB_PTHREAD = 'pthread'
-    conf.env.INCLUDES_B0 = os.path.join(os.getcwd(), "../b0")
-    conf.env.LIBPATH_B0 = os.path.join(os.getcwd(), "../b0/build")
-    conf.env.LIB_B0 = 'b0'
+    conf.env.INCLUDES_BASE = os.path.join(os.getcwd(), "../base-utils")
+    conf.env.LIBPATH_BASE = os.path.join(os.getcwd(), "../base-utils/build")
+    conf.env.LIB_BASE = 'base'
 
 def build(bld):
     _depend("rpc/rpcgen.py", "rpc/rpcgen.g", "pylib/yapps/main.py rpc/rpcgen.g ; chmod a+x rpc/rpcgen.py")
     _depend("logservice/log_service.h", "logservice/log_service.rpc", "bin/rpcgen.py logservice/log_service.rpc")
     _depend("test/demo_service.h", "test/demo_service.rpc", "rpc/rpcgen.py test/demo_service.rpc")
 
-    bld.stlib(source=bld.path.ant_glob("rpc/*.cc"), target="simplerpc", includes="rpc", use="PTHREAD B0")
+    bld.stlib(source=bld.path.ant_glob("rpc/*.cc"), target="simplerpc", includes="rpc", use="PTHREAD BASE")
     bld.stlib(
         source=bld.path.ant_glob("logservice/*.cc", excl="logservice/log_server.cc"),
         target="logservice",
         includes=". logservice simple-rpc",
-        use="PTHREAD B0")
+        use="PTHREAD BASE")
 
-    def _prog(source, target, includes=".", use="simplerpc PTHREAD B0"):
+    def _prog(source, target, includes=".", use="simplerpc PTHREAD BASE"):
         bld.program(source=source, target=target, includes=includes, use=use)
 
     _prog("test/demo_client.cc", "demo_client")

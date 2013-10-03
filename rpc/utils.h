@@ -12,25 +12,25 @@
 #include <pthread.h>
 #include <inttypes.h>
 
-#include "b0/b0all.h"
+#include "base/all.h"
 
 namespace rpc {
 
-using b0::i32;
-using b0::i64;
-using b0::NoCopy;
-using b0::Lockable;
-using b0::SpinLock;
-using b0::Mutex;
-using b0::ScopedLock;
-using b0::CondVar;
-using b0::Log;
-using b0::RefCounted;
-using b0::Queue;
-using b0::Counter;
-using b0::Timer;
-using b0::Rand;
-using b0::ThreadPool;
+using base::i32;
+using base::i64;
+using base::NoCopy;
+using base::Lockable;
+using base::SpinLock;
+using base::Mutex;
+using base::ScopedLock;
+using base::CondVar;
+using base::Log;
+using base::RefCounted;
+using base::Queue;
+using base::Counter;
+using base::Timer;
+using base::Rand;
+using base::ThreadPool;
 
 // use spinlock for short critical section
 typedef SpinLock ShortLock;
