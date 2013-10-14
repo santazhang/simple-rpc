@@ -40,7 +40,6 @@ def build(bld):
     _prog("test/demo_server.cc test/demo_service.cc", "demo_server")
     _prog("test/perftest.cc", "perftest")
     _prog("logservice/log_server.cc", "log_server", use="logservice simplerpc BASE PTHREAD")
-    _prog("test/log_client.cc", "log_client", use="logservice simplerpc BASE PTHREAD")
     _prog(bld.path.ant_glob("test/test*.cc") + ["test/demo_service.cc"], "testharness", use="logservice simplerpc BASE PTHREAD")
 
 #
