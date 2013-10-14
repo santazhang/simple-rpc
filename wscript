@@ -39,13 +39,9 @@ def build(bld):
     _prog("test/demo_client.cc", "demo_client")
     _prog("test/demo_server.cc test/demo_service.cc", "demo_server")
     _prog("test/perftest.cc", "perftest")
-    _prog("test/marshal_test.cc", "marshal_test")
-    _prog("test/counter_bench.cc", "counter_bench")
-    _prog("test/threadpool_bench.cc", "threadpool_bench")
-    _prog("test/synctest.cc test/demo_service.cc", "synctest")
-
     _prog("logservice/log_server.cc", "log_server", use="logservice simplerpc BASE PTHREAD")
     _prog("test/log_client.cc", "log_client", use="logservice simplerpc BASE PTHREAD")
+    _prog(bld.path.ant_glob("test/test*.cc") + ["test/demo_service.cc"], "testharness", use="logservice simplerpc BASE PTHREAD")
 
 #
 # waf helper functions

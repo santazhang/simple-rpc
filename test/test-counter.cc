@@ -78,8 +78,7 @@ static void* worker_thread(void* f) {
     return nullptr;
 }
 
-int main(int argc, char* argv[]) {
-    Log_info("This shall be done!");
+TEST(benchmarks, counter) {
     Timer tm;
     volatile int j = 0;
     int n = 1000 * 1000;
@@ -181,5 +180,4 @@ int main(int argc, char* argv[]) {
     tm.stop();
     Log_info("AtomicCounter %d thread: %.2lf/s (%.4lf)", t, n / tm.elapsed(), n / tm.elapsed() / base);
     delete[] th;
-    return 0;
 }

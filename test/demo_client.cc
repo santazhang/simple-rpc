@@ -3,13 +3,13 @@
 #include <unistd.h>
 #include <string>
 
+#include "base/defs.h"
+
 #include "rpc/client.h"
 #include "rpc/server.h"
 #include "rpc/marshal.h"
 
 #include "demo_service.h"
-
-#define streq(a, b) (strcmp((a), (b)) == 0)
 
 using namespace std;
 using namespace rpc;

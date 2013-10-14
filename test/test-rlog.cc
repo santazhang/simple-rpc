@@ -1,16 +1,34 @@
+#include <string>
+
 #include <stdio.h>
 #include <unistd.h>
 #include <signal.h>
 
+#include "base/all.h"
+
 #include "rpc/server.h"
 #include "rpc/client.h"
+#include "logservice/log_service_impl.h"
 #include "logservice/rlog.h"
 
+using namespace std;
 using namespace rpc;
 using namespace logservice;
 
-int main(int argc, char* argv[]) {
-    RLog::init();
+TEST(integration, rlog) {
+    // start rlog server
+    RLogService *g_ls = NULL;
+    Server *g_server = NULL;
+
+    string bind_addr = "0.0.0.0:8848";
+
+    g_ls = new RLogServiceImpl;
+    g_server = new Server;
+    g_server->reg(g_ls);
+
+    EXPECT_EQ(g_server->start(bind_addr.c_str()), 0);
+
+    RLog::init("unittest-client", "127.0.0.1:8848");
     RLog::info("starting the demo_client");
     RLog::info("stopping the demo_client");
     RLog::finalize();
@@ -32,5 +50,10 @@ int main(int argc, char* argv[]) {
 
     RLog::info("stopping the demo_client again");
     RLog::finalize();
-    return 0;
+
+
+
+    // shutdown log server
+    delete g_ls;
+    delete g_server;
 }
