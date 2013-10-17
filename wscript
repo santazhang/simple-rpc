@@ -23,14 +23,14 @@ def configure(conf):
 
 def build(bld):
     _depend("rpc/rpcgen.py", "rpc/rpcgen.g", "pylib/yapps/main.py rpc/rpcgen.g ; chmod a+x rpc/rpcgen.py")
-    _depend("logservice/log_service.h", "logservice/log_service.rpc", "bin/rpcgen.py logservice/log_service.rpc")
+    _depend("rlog/log_service.h", "rlog/log_service.rpc", "bin/rpcgen.py rlog/log_service.rpc")
     _depend("test/demo_service.h", "test/demo_service.rpc", "rpc/rpcgen.py test/demo_service.rpc")
 
     bld.stlib(source=bld.path.ant_glob("rpc/*.cc"), target="simplerpc", includes="rpc", use="BASE PTHREAD")
     bld.stlib(
-        source=bld.path.ant_glob("logservice/*.cc", excl="logservice/log_server.cc"),
-        target="logservice",
-        includes=". logservice simple-rpc",
+        source=bld.path.ant_glob("rlog/*.cc", excl="rlog/log_server.cc"),
+        target="rlog",
+        includes=". rlog simple-rpc",
         use="BASE PTHREAD")
 
     def _prog(source, target, includes=".", use="simplerpc BASE PTHREAD"):
@@ -39,8 +39,8 @@ def build(bld):
     _prog("test/demo_client.cc", "demo_client")
     _prog("test/demo_server.cc test/demo_service.cc", "demo_server")
     _prog("test/perftest.cc", "perftest")
-    _prog("logservice/log_server.cc", "log_server", use="logservice simplerpc BASE PTHREAD")
-    _prog(bld.path.ant_glob("test/test*.cc") + ["test/demo_service.cc"], "testharness", use="logservice simplerpc BASE PTHREAD")
+    _prog("rlog/log_server.cc", "log_server", use="rlog simplerpc BASE PTHREAD")
+    _prog(bld.path.ant_glob("test/test*.cc") + ["test/demo_service.cc"], "testharness", use="rlog simplerpc BASE PTHREAD")
 
 #
 # waf helper functions

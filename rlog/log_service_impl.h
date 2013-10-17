@@ -9,7 +9,7 @@
 
 #include "log_service.h"
 
-namespace logservice {
+namespace rlog {
 
 struct log_piece {
     rpc::i64 msg_id;

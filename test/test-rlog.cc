@@ -8,12 +8,12 @@
 
 #include "rpc/server.h"
 #include "rpc/client.h"
-#include "logservice/log_service_impl.h"
-#include "logservice/rlog.h"
+#include "rlog/log_service_impl.h"
+#include "rlog/rlog.h"
 
 using namespace std;
 using namespace rpc;
-using namespace logservice;
+using namespace rlog;
 
 TEST(integration, rlog) {
     // start rlog server

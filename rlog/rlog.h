@@ -7,7 +7,7 @@
 #include "rpc/utils.h"
 #include "log_service.h"
 
-namespace logservice {
+namespace rlog {
 
 class RLog {
 public:
@@ -99,4 +99,4 @@ private:
     static rpc::Counter msg_counter_s;
 };
 
-}
+} // namespace rlog

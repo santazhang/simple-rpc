@@ -6,7 +6,7 @@
 
 using namespace std;
 using namespace rpc;
-using namespace logservice;
+using namespace rlog;
 
 char* RLog::my_ident_s = NULL;
 RLogProxy* RLog::rp_s = NULL;
@@ -34,7 +34,7 @@ void RLog::init(const char* my_ident /* =? */, const char* rlog_addr /* =? */) {
         }
 
         if (rlog_addr == NULL) {
-            rlog_addr = getenv("RLOG_SERVER");
+            rlog_addr = getenv("RLOGSERVER");
         }
         if (poll_s == NULL) {
             poll_s = new PollMgr;

@@ -8,7 +8,7 @@
 
 using namespace rpc;
 using namespace std;
-using namespace logservice;
+using namespace rlog;
 
 void RLogServiceImpl::log(const i32& level, const std::string& source, const i64& msg_id, const std::string& message) {
     log_piece piece;

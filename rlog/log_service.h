@@ -7,13 +7,13 @@
 
 #include <errno.h>
 
-namespace logservice {
+namespace rlog {
 
 class RLogService: public rpc::Service {
 public:
     enum {
-        LOG = 0x2b077d20,
-        AGGREGATE_QPS = 0x59547fbd,
+        LOG = 0x2fe09542,
+        AGGREGATE_QPS = 0x62af0d9b,
     };
     int reg_to(rpc::Server* svr) {
         int ret = 0;
@@ -113,5 +113,5 @@ public:
     }
 };
 
-} // namespace logservice
+} // namespace rlog
 

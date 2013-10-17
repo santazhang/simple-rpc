@@ -10,7 +10,7 @@
 
 using namespace std;
 using namespace rpc;
-using namespace logservice;
+using namespace rlog;
 
 RLogService *g_ls = NULL;
 Server *g_server = NULL;
