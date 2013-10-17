@@ -8,3 +8,5 @@
 *.tar*
 *.sublime*
 *.swp
+*.prof
+
