@@ -51,7 +51,7 @@ def _enable_cxx11(conf):
     if sys.platform == "darwin":
         conf.env.append_value("CXXFLAGS", "-stdlib=libc++")
         conf.env.append_value("LINKFLAGS", "-stdlib=libc++")
-    conf.env.append_value("CXXFLAGS", "-std=c++11")
+    conf.env.append_value("CXXFLAGS", "-std=c++0x")
 
 def _enable_debug(conf):
     if os.getenv("DEBUG") in ["true", "1"]:
