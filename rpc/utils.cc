@@ -59,23 +59,19 @@ void ThreadPool::run_async(const std::function<void()>& f) {
     q_[queue_id].push(new function<void()>(f));
 }
 
-// How long should a thread wait before stealing from
+// How long (in cycles) should a thread wait before stealing from
 // other queues.
-static const int kStealThreshold = 10 * 1000 * 1000;
+static const int kStealThreshold = 1000 * 1000;
 
 void ThreadPool::run_thread(int id_in_pool) {
     bool should_stop = false;
     int64_t last_item_found = rdtsc();
     list<function<void()>*> jobs;
     struct timespec sleep_req;
-    sleep_req.tv_nsec = 1;
+    sleep_req.tv_nsec = 10;
     sleep_req.tv_sec = 0;
 
     while (!should_stop) {
-        if (sleep_req.tv_nsec > 1) {
-          nanosleep(&sleep_req, NULL);
-        }
-
         int64_t now = rdtsc();
         if (now - last_item_found > kStealThreshold) {
           // start checking other queues
@@ -90,12 +86,13 @@ void ThreadPool::run_thread(int id_in_pool) {
         }
 
         if (jobs.empty()) {
-            sleep_req.tv_nsec = std::min(1000000l, sleep_req.tv_nsec << 1);
+            nanosleep(&sleep_req, NULL);
+            sleep_req.tv_nsec = std::min(100000l, long(sleep_req.tv_nsec * 1.1));
             continue;
         }
 
         last_item_found = now;
-        sleep_req.tv_nsec = 1;
+        sleep_req.tv_nsec = 10;
 
         while (!jobs.empty()) {
             auto& f = jobs.front();
@@ -111,7 +108,7 @@ void ThreadPool::run_thread(int id_in_pool) {
 }
 
 int Log::level = Log::DEBUG;
-FILE* Log::fp = stdout;
+FILE* Log::fp = stderr;
 pthread_mutex_t Log::m = PTHREAD_MUTEX_INITIALIZER;
 
 void Log::set_level(int level) {
@@ -145,8 +142,14 @@ static const char* basename(const char* fpath) {
     return &fpath[idx];
 }
 
+static std::string hostname_;
+
 void Log::log_v(int level, int line, const char* file, const char* fmt, va_list args) {
     static char indicator[] = { 'F', 'E', 'W', 'I', 'D' };
+    if (hostname_.empty()) {
+      hostname_ = get_host_name();
+    }
+
     assert(level <= Log::DEBUG);
     if (level <= Log::level) {
         const char* filebase = basename(file);
@@ -162,11 +165,14 @@ void Log::log_v(int level, int line, const char* file, const char* fmt, va_list 
 
         Pthread_mutex_lock(&Log::m);
         fprintf(Log::fp, "%c ", indicator[level]);
+        fprintf(Log::fp, "%s.%03d| ", tm_str, tv.tv_usec / 1000);
+
         if (filebase != nullptr) {
             fprintf(Log::fp, "<%s:%d> ", filebase, line);
         }
 
-        fprintf(Log::fp, "%s.%03d| ", tm_str, tv.tv_usec / 1000);
+        fprintf(Log::fp, "%s ", hostname_.c_str());
+
         vfprintf(Log::fp, fmt, args);
         fprintf(Log::fp, "\n");
         fflush(Log::fp);
