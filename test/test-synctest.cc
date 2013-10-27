@@ -44,17 +44,21 @@ TEST(integration, sync_test) {
         servers.push_back(start_server(9999 + i));
     }
 
-    for (int i = 0; i < 100; ++i) {
+    int n_total_batches = 100;
+    for (int i = 1; i <= n_total_batches; ++i) {
+        if (i % 10 == 0) {
+            Log_info("Running %d/%d batch...", i, n_total_batches);
+        }
         vector<Future*> f;
         for (int j = 0; j < 10000; ++j) {
             f.push_back(servers[j % 4]->async_prime(j));
         }
-        Log_info("sent 10000 requests");
+//        Log_info("sent 10000 requests");
 
         for (int k = 0; k < f.size(); ++k) {
             f[k]->wait();
             f[k]->release();
         }
-        Log_info("got 10000 replies");
+//        Log_info("got 10000 replies");
     }
 }

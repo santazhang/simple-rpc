@@ -30,7 +30,7 @@ TEST(integration, rlog) {
 
     RLog::init("demo_client", "127.0.0.1:8848");
     RLog::info("starting the demo_client again");
-    for (int counter = 0; counter < 10; counter++) {
+    for (int counter = 0; counter < 5; counter++) {
         RLog::debug("demo debug message %d", counter);
         RLog::info("demo info message %d", counter);
         RLog::warn("demo warn message %d", counter);
