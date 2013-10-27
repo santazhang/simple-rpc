@@ -94,7 +94,7 @@ private:
     static rpc::Client* cl_s;
     static char* buf_s;
     static int buf_len_s;
-    static rpc::LongLock lock_s;
+    static rpc::Mutex lock_s;
     static rpc::PollMgr* poll_s;
     static rpc::Counter msg_counter_s;
 };

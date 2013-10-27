@@ -29,13 +29,13 @@ class PollMgr::PollThread {
     PollMgr* poll_mgr_;
 
     // guard mode_ and poll_set_
-    ShortLock l_;
+    SpinLock l_;
     std::unordered_map<int, int> mode_;
     std::unordered_set<Pollable*> poll_set_;
     int poll_fd_;
 
     std::unordered_set<Pollable*> pending_remove_;
-    ShortLock pending_remove_l_;
+    SpinLock pending_remove_l_;
 
     pthread_t th_;
     bool stop_flag_;

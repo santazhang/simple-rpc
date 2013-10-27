@@ -14,7 +14,7 @@ Client* RLog::cl_s = NULL;
 char* RLog::buf_s = NULL;
 int RLog::buf_len_s = -1;
 PollMgr* RLog::poll_s = NULL;
-rpc::LongLock RLog::lock_s;
+rpc::Mutex RLog::lock_s;
 rpc::Counter RLog::msg_counter_s;
 
 

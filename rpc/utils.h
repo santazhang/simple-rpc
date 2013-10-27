@@ -32,12 +32,6 @@ using base::Timer;
 using base::Rand;
 using base::ThreadPool;
 
-// use spinlock for short critical section
-typedef SpinLock ShortLock;
-
-// use mutex for long critical section
-typedef Mutex LongLock;
-
 int set_nonblocking(int fd, bool nonblocking);
 
 int find_open_port();

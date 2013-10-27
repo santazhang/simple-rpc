@@ -123,8 +123,8 @@ class Client: public Pollable {
     Counter xid_counter_;
     std::unordered_map<i64, Future*> pending_fu_;
 
-    ShortLock pending_fu_l_;
-    ShortLock out_l_;
+    SpinLock pending_fu_l_;
+    SpinLock out_l_;
 
     // reentrant, could be called multiple times before releasing
     void close();
@@ -186,7 +186,7 @@ class ClientPool: public NoCopy {
     rpc::PollMgr* pollmgr_;
 
     // guard cache_
-    ShortLock l_;
+    SpinLock l_;
     std::map<std::string, rpc::Client**> cache_;
     int parallel_connections_;
 

@@ -44,7 +44,7 @@ class ServerConnection: public Pollable {
     friend class Server;
 
     Marshal in_, out_;
-    ShortLock out_l_;
+    SpinLock out_l_;
 
     Server* server_;
     int socket_;
@@ -125,7 +125,7 @@ class Server: public NoCopy {
     ThreadPool* threadpool_;
     int server_sock_;
 
-    ShortLock sconns_l_;
+    SpinLock sconns_l_;
     std::unordered_set<ServerConnection*> sconns_;
 
     enum {

@@ -42,8 +42,8 @@ private:
     std::map<std::string, std::set<log_piece> > buffer_;
     std::map<std::string, std::list<agg_qps_record> > agg_qps_;
 
-    rpc::LongLock l_;
-    rpc::LongLock agg_qps_l_;
+    rpc::Mutex l_;
+    rpc::Mutex agg_qps_l_;
 
     double last_qps_report_tm_;
 };

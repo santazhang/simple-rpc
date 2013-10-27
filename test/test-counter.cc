@@ -5,11 +5,11 @@
 using namespace rpc;
 using namespace std;
 
-class ShortLockCounter: public NoCopy {
+class SpinLockCounter: public NoCopy {
     i64 next_;
-    ShortLock l_;
+    SpinLock l_;
 public:
-    ShortLockCounter(i64 start = 0) : next_(start) { }
+    SpinLockCounter(i64 start = 0) : next_(start) { }
     i64 peek_next() {
         l_.lock();
         i64 r = next_;
@@ -30,11 +30,11 @@ public:
     }
 };
 
-class LongLockCounter: public NoCopy {
+class MutexCounter: public NoCopy {
     i64 next_;
-    LongLock l_;
+    Mutex l_;
 public:
-    LongLockCounter(i64 start = 0) : next_(start) { }
+    MutexCounter(i64 start = 0) : next_(start) { }
     i64 peek_next() {
         l_.lock();
         i64 r = next_;
@@ -98,22 +98,22 @@ TEST(benchmarks, counter) {
     }
     tm.stop();
     Log_info("Counter 1 thread: %.2lf/s (%.4lf)", n / tm.elapsed(), n / tm.elapsed() / base);
-    ShortLockCounter s_ctr;
+    SpinLockCounter s_ctr;
     tm.reset();
     tm.start();
     for (int i = 0; i < n; i++) {
         s_ctr.next();
     }
     tm.stop();
-    Log_info("ShortLockCounter 1 thread: %.2lf/s (%.4lf)", n / tm.elapsed(), n / tm.elapsed() / base);
-    LongLockCounter l_ctr;
+    Log_info("SpinLockCounter 1 thread: %.2lf/s (%.4lf)", n / tm.elapsed(), n / tm.elapsed() / base);
+    MutexCounter l_ctr;
     tm.reset();
     tm.start();
     for (int i = 0; i < n; i++) {
         l_ctr.next();
     }
     tm.stop();
-    Log_info("LongLockCounter 1 thread: %.2lf/s (%.4lf)", n / tm.elapsed(), n / tm.elapsed() / base);
+    Log_info("MutexCounter 1 thread: %.2lf/s (%.4lf)", n / tm.elapsed(), n / tm.elapsed() / base);
     AtomicCounter a_ctr;
     tm.reset();
     tm.start();
@@ -150,7 +150,7 @@ TEST(benchmarks, counter) {
         Pthread_join(th[i], nullptr);
     }
     tm.stop();
-    Log_info("ShortLockCounter %d thread: %.2lf/s (%.4lf)", t, n / tm.elapsed(), n / tm.elapsed() / base);
+    Log_info("SpinLockCounter %d thread: %.2lf/s (%.4lf)", t, n / tm.elapsed(), n / tm.elapsed() / base);
     function<void()> worker3 = [&l_ctr, n] {
         while (l_ctr.next() < 2 * n)
             ;
@@ -164,7 +164,7 @@ TEST(benchmarks, counter) {
         Pthread_join(th[i], nullptr);
     }
     tm.stop();
-    Log_info("LongLockCounter %d thread: %.2lf/s (%.4lf)", t, n / tm.elapsed(), n / tm.elapsed() / base);
+    Log_info("MutexCounter %d thread: %.2lf/s (%.4lf)", t, n / tm.elapsed(), n / tm.elapsed() / base);
     function<void()> worker4 = [&a_ctr, n] {
         while (a_ctr.next() < 2 * n)
             ;
