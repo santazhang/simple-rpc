@@ -478,7 +478,7 @@ def rpcgen(rpc_fpath):
     with open(rpc_fpath) as f:
         rpc_src = f.read()
 
-    rpc_src_lines = [l.strip() for l in rpc_src.split("\n")]
+    rpc_src_lines = rpc_src.split("\n")
 
     header = footer = src = ''
 
