@@ -210,7 +210,6 @@ Future* Client::begin_request(i32 rpc_id, const FutureAttr& attr /* =... */) {
     Future* fu = new Future(xid_counter_.next(), attr);
     pending_fu_l_.lock();
     pending_fu_[fu->xid_] = fu;
-    pending_fu_.size();
     pending_fu_l_.unlock();
 
     // check if the client gets closed in the meantime
