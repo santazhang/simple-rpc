@@ -81,28 +81,28 @@ public:
 
 class FutureGroup {
 private:
-  std::vector<Future*> futures_;
+    std::vector<Future*> futures_;
 
 public:
-  void add(Future* f) {
-    if (f == NULL) {
-      Log_fatal("Null future passed to FutureGroup");
+    void add(Future* f) {
+        if (f == nullptr) {
+            Log_fatal("Invalid Future object passed to FutureGroup!");
+        }
+        futures_.push_back(f);
     }
-    futures_.push_back(f);
-  }
 
-  void wait_all() {
-    for (auto f : futures_) {
-      f->wait();
+    void wait_all() {
+        for (auto f : futures_) {
+            f->wait();
+        }
     }
-  }
 
-  ~FutureGroup() {
-    wait_all();
-    for (auto f : futures_) {
-      f->release();
+    ~FutureGroup() {
+        wait_all();
+        for (auto f : futures_) {
+            f->release();
+        }
     }
-  }
 };
 
 class Client: public Pollable {
