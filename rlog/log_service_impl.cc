@@ -65,7 +65,7 @@ void RLogServiceImpl::aggregate_qps(const std::string& metric_name, const rpc::i
     if (now - last_qps_report_tm_ > 1) {
         const int report_intervals[] = {1, 5, 15, 30, 60};
         ostringstream qps_ostr;
-        for (size_t i = 0; i < sizeof(report_intervals) / sizeof(report_intervals[0]); i++) {
+        for (size_t i = 0; i < arraysize(report_intervals); i++) {
             double increment = -1;
             const int report_interval = report_intervals[i];
             for (list<agg_qps_record>::reverse_iterator it = records.rbegin(); it != records.rend(); ++it) {
