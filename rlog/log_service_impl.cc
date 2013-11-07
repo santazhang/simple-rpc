@@ -16,14 +16,8 @@ void RLogServiceImpl::log(const i32& level, const std::string& source, const i64
     piece.level = level;
     piece.message = message;
 
-    const int tm_str_len = 80;
-    char tm_str[tm_str_len];
-    time_t now = time(NULL);
-    struct tm tm_val;
-    localtime_r(&now, &tm_val);
-    strftime(tm_str, tm_str_len - 1, "%F %T", &tm_val);
-    timeval tv;
-    gettimeofday(&tv, NULL);
+    char tm_str[TIME_NOW_STR_SIZE];
+    base::time_now_str(tm_str);
 
     l_.lock();
 
@@ -33,7 +27,7 @@ void RLogServiceImpl::log(const i32& level, const std::string& source, const i64
     i64& done = done_[source];
 
     while (!buffer.empty() && buffer.begin()->msg_id <= done + 1) {
-        Log::log(buffer.begin()->level, 0, "remote", "%s.%03d %s: %s", tm_str, tv.tv_usec / 1000, source.c_str(), buffer.begin()->message.c_str());
+        Log::log(buffer.begin()->level, 0, "remote", "%s %s: %s", tm_str, source.c_str(), buffer.begin()->message.c_str());
         done = max(done, buffer.begin()->msg_id);
         buffer.erase(buffer.begin());
     }
