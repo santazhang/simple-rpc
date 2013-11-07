@@ -12,14 +12,14 @@ using namespace std;
 using namespace rpc;
 using namespace rlog;
 
-RLogService *g_ls = NULL;
-Server *g_server = NULL;
+Mutex g_stop_mutex;
+CondVar g_stop_condvar;
+bool g_stop_flag = false;
 
 static void signal_handler(int sig) {
     Log_info("caught signal %d, stopping server now", sig);
-    delete g_server;
-    delete g_ls;
-    exit(0);
+    g_stop_flag = true;
+    g_stop_condvar.signal();
 }
 
 int main(int argc, char* argv[]) {
@@ -34,31 +34,30 @@ int main(int argc, char* argv[]) {
 
     Log::set_level(Log::INFO);
 
-    g_ls = new RLogServiceImpl;
-    g_server = new Server;
-    g_server->reg(g_ls);
+    RLogService* log_service = new RLogServiceImpl;
+    Server* server = new Server;
+    server->reg(log_service);
 
-    if (g_server->start(bind_addr.c_str()) != 0) {
-        delete g_server;
-        delete g_ls;
-        exit(1);
+    int ret;
+    if ((ret = server->start(bind_addr.c_str())) == 0) {
+        signal(SIGPIPE, SIG_IGN);
+        signal(SIGHUP, SIG_IGN);
+        signal(SIGCHLD, SIG_IGN);
+
+        signal(SIGALRM, signal_handler);
+        signal(SIGINT, signal_handler);
+        signal(SIGQUIT, signal_handler);
+        signal(SIGTERM, signal_handler);
+
+        g_stop_mutex.lock();
+        while (g_stop_flag == false) {
+            g_stop_condvar.wait(g_stop_mutex);
+        }
+        g_stop_mutex.unlock();
+
+        delete server;
+        delete log_service;
     }
 
-    signal(SIGPIPE, SIG_IGN);
-    signal(SIGHUP, SIG_IGN);
-    signal(SIGCHLD, SIG_IGN);
-
-    signal(SIGALRM, signal_handler);
-    signal(SIGINT, signal_handler);
-    signal(SIGQUIT, signal_handler);
-    signal(SIGTERM, signal_handler);
-
-    for (;;) {
-        sleep(100);
-    }
-
-    // should not reach here
-    verify(0);
-
-    return 0;
+    return ret;
 }
