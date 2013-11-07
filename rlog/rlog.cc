@@ -91,11 +91,9 @@ void RLog::aggregate_qps(const std::string& metric_name, const rpc::i32 incremen
         if (fu != NULL) {
             fu->release();
         } else {
-//            Log_error("RLog connection failed, cannot report qps");
+            Log_error("RLog connection failed, cannot report qps");
             do_finalize();
         }
-//    } else {
-//        Log_error("RLog not initialized, cannot report qps");
     }
     lock_s.unlock();
 }
