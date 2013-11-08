@@ -40,8 +40,9 @@ DemoProxy* start_server(int port) {
 
 TEST(integration, sync_test) {
     vector<DemoProxy*> servers;
+    int first_port = find_open_port();
     for (int i = 0; i < 4; ++i) {
-        servers.push_back(start_server(9999 + i));
+        servers.push_back(start_server(first_port + i));
     }
 
     int n_total_batches = 100;
