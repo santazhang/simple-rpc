@@ -14,12 +14,13 @@ Client* RLog::cl_s = NULL;
 char* RLog::buf_s = NULL;
 int RLog::buf_len_s = -1;
 PollMgr* RLog::poll_s = NULL;
-rpc::Mutex RLog::lock_s;
 rpc::Counter RLog::msg_counter_s;
 
+// no static Mutex class, use pthread_mutex_t and PTHREAD_MUTEX_INITIALIZER instead
+pthread_mutex_t RLog::mutex_s = PTHREAD_MUTEX_INITIALIZER;
 
 void RLog::init(const char* my_ident /* =? */, const char* rlog_addr /* =? */) {
-    lock_s.lock();
+    Pthread_mutex_lock(&mutex_s);
     if (RLog::cl_s == NULL) {
         if (my_ident == NULL) {
             const int len = 128;
@@ -50,11 +51,36 @@ void RLog::init(const char* my_ident /* =? */, const char* rlog_addr /* =? */) {
     } else {
         Log_warn("called RLog::init() multiple times without calling RLog::finalize() first");
     }
-    lock_s.unlock();
+    Pthread_mutex_unlock(&mutex_s);
+}
+
+
+// function called while holding lock on RLog
+void RLog::do_finalize() {
+    if (my_ident_s) {
+        free(my_ident_s);
+        my_ident_s = NULL;
+    }
+    if (cl_s) {
+        cl_s->close_and_release();
+        cl_s = NULL;
+    }
+    if (rp_s) {
+        delete rp_s;
+        rp_s = NULL;
+    }
+    if (buf_s) {
+        free(buf_s);
+        buf_s = NULL;
+    }
+    if (poll_s) {
+        poll_s->release();
+        poll_s = NULL;
+    }
 }
 
 void RLog::log_v(int level, const char* fmt, va_list args) {
-    lock_s.lock();
+    Pthread_mutex_lock(&mutex_s);
     if (buf_s == NULL) {
         buf_len_s = 8192;
         buf_s = (char *) malloc(buf_len_s);
@@ -80,11 +106,11 @@ void RLog::log_v(int level, const char* fmt, va_list args) {
             do_finalize();
         }
     }
-    lock_s.unlock();
+    Pthread_mutex_unlock(&mutex_s);
 }
 
 void RLog::aggregate_qps(const std::string& metric_name, const rpc::i32 increment) {
-    lock_s.lock();
+    Pthread_mutex_lock(&mutex_s);
     if (rp_s) {
         // always use async rpc
         Future* fu = rp_s->async_aggregate_qps(metric_name, increment);
@@ -95,5 +121,5 @@ void RLog::aggregate_qps(const std::string& metric_name, const rpc::i32 incremen
             do_finalize();
         }
     }
-    lock_s.unlock();
+    Pthread_mutex_unlock(&mutex_s);
 }

@@ -14,9 +14,9 @@ public:
     static void init(const char* my_ident = NULL, const char* rlog_addr = NULL);
 
     static void finalize() {
-        lock_s.lock();
+        Pthread_mutex_lock(&mutex_s);
         do_finalize();
-        lock_s.unlock();
+        Pthread_mutex_unlock(&mutex_s);
     }
 
     static void log(int level, const char* fmt, ...) {
@@ -64,39 +64,23 @@ public:
     static void aggregate_qps(const std::string& metric_name, const rpc::i32 increment);
 
 private:
+    // prevent creating objects of RLog class, it's only a utility class with static functions
+    RLog();
+
     static void log_v(int level, const char* fmt, va_list args);
 
-    static void do_finalize() {
-        if (my_ident_s) {
-            free(my_ident_s);
-            my_ident_s = NULL;
-        }
-        if (cl_s) {
-            cl_s->close_and_release();
-            cl_s = NULL;
-        }
-        if (rp_s) {
-            delete rp_s;
-            rp_s = NULL;
-        }
-        if (buf_s) {
-            free(buf_s);
-            buf_s = NULL;
-        }
-        if (poll_s) {
-            poll_s->release();
-            poll_s = NULL;
-        }
-    }
+    static void do_finalize();
 
     static char* my_ident_s;
     static RLogProxy* rp_s;
     static rpc::Client* cl_s;
     static char* buf_s;
     static int buf_len_s;
-    static rpc::Mutex lock_s;
     static rpc::PollMgr* poll_s;
     static rpc::Counter msg_counter_s;
+
+    // no static Mutex class, use pthread_mutex_t and PTHREAD_MUTEX_INITIALIZER instead
+    static pthread_mutex_t mutex_s;
 };
 
 } // namespace rlog
