@@ -25,41 +25,51 @@ char* fmt(const char* fmt, ...) {
     return buffer;
 }
 
-DemoProxy* start_server(int port) {
-    auto poll = new PollMgr();
-    auto pool = new ThreadPool(8);
-    auto svc = new DemoService();
-    auto server = new Server(poll, pool);
-    server->reg(svc);
-    server->start(fmt("localhost:%d", port));
-
-    auto client = new Client(poll);
-    client->connect(fmt("localhost:%d", port));
-    return new DemoProxy(client);
-}
-
 TEST(integration, sync_test) {
-    vector<DemoProxy*> servers;
+    const int n_servers = 4;
+
+    auto poll_mgr = new PollMgr;
+    auto thr_pool = new ThreadPool(8);
+    auto svc = new DemoService;
+    ClientPool* client_pool = new ClientPool(poll_mgr);
+    vector<DemoProxy*> clients;
+    vector<Server*> servers;
+
     int first_port = find_open_port();
-    for (int i = 0; i < 4; ++i) {
-        servers.push_back(start_server(first_port + i));
+    for (int i = 0; i < n_servers; ++i) {
+        int port = first_port + i;
+        auto server = new Server(poll_mgr, thr_pool);
+        server->reg(svc);
+        server->start(fmt("localhost:%d", port));
+        auto client = new DemoProxy(client_pool->get_client(fmt("localhost:%d", port)));
+
+        servers.push_back(server);
+        clients.push_back(client);
     }
 
-    int n_total_batches = 100;
+    const int n_total_batches = 100;
     for (int i = 1; i <= n_total_batches; ++i) {
         if (i % 10 == 0) {
             Log_info("Running %d/%d batch...", i, n_total_batches);
         }
         vector<Future*> f;
         for (int j = 0; j < 10000; ++j) {
-            f.push_back(servers[j % 4]->async_prime(j));
+            f.push_back(clients[j % n_servers]->async_prime(j));
         }
-//        Log_info("sent 10000 requests");
-
-        for (int k = 0; k < f.size(); ++k) {
-            f[k]->wait();
-            f[k]->release();
+        for (auto fu : f) {
+            fu->wait();
+            fu->release();
         }
-//        Log_info("got 10000 replies");
     }
+
+    delete client_pool;
+    for (auto clnt : clients) {
+        delete clnt;
+    }
+    for (auto svr : servers) {
+        delete svr;
+    }
+    delete svc;
+    thr_pool->release();
+    poll_mgr->release();
 }
