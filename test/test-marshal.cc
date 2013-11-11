@@ -47,11 +47,11 @@ static void* start_mt_benchmark_writers(void* args) {
 TEST(marshal, mt_benchmark) {
     const int n_writers = 10;
     pthread_t th_writers[n_writers];
-    
+
     for (int i = 0; i < n_writers; i++) {
         Pthread_create(&th_writers[i], nullptr, start_mt_benchmark_writers, nullptr);
     }
-    
+
     io_ratelimit no_rate;
     int null_fd = open("/dev/null", O_WRONLY);
     i64 n_bytes_read = 0;
@@ -78,7 +78,7 @@ TEST(marshal, mt_benchmark) {
     Log::info("marshal xfer speed = %.2lf M/s (%d writers, %d bytes per write)",
         n_bytes_read / 1024.0 / 1024.0 / xfer_timer.elapsed(), n_writers, g_chunk_size);
     close(null_fd);
-    
+
     for (int i = 0; i < n_writers; i++) {
         Pthread_join(th_writers[i], nullptr);
     }
