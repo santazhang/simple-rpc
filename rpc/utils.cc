@@ -39,7 +39,8 @@ int find_open_port() {
     hints.ai_flags = AI_PASSIVE;
 
     if (getaddrinfo("0.0.0.0", NULL, NULL, &local_addr) != 0) {
-        Log_fatal("Failed to getaddrinfo");
+        Log_error("Failed to getaddrinfo");
+        return -1;
     }
 
     int port = -1;
@@ -53,7 +54,8 @@ int find_open_port() {
         sockaddr_in addr;
         socklen_t addrlen;
         if (getsockname(fd, (sockaddr*)&addr, &addrlen) != 0) {
-            Log_fatal("Failed to get socket address");
+            Log_error("Failed to get socket address");
+            return -1;
         }
 
         port = i;
@@ -68,14 +70,15 @@ int find_open_port() {
         return port;
     }
 
-    Log_fatal("Failed to find open port.");
+    Log_error("Failed to find open port.");
     return -1;
 }
 
 std::string get_host_name() {
     char buffer[1024];
     if (gethostname(buffer, 1024) != 0) {
-        Log_fatal("Failed to get hostname.");
+        Log_error("Failed to get hostname.");
+        return "";
     }
     return std::string(buffer);
 }

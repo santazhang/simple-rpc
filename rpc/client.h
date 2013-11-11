@@ -86,7 +86,8 @@ private:
 public:
     void add(Future* f) {
         if (f == nullptr) {
-            Log_fatal("Invalid Future object passed to FutureGroup!");
+            Log_error("Invalid Future object passed to FutureGroup!");
+            return;
         }
         futures_.push_back(f);
     }
