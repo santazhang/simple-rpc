@@ -8,10 +8,6 @@
 #include "marshal.h"
 #include "polling.h"
 
-#ifndef RPC_SERVER_H_
-#define RPC_SERVER_H_
-#endif // RPC_SERVER_H_
-
 // for getaddrinfo() used in Server::start()
 struct addrinfo;
 

@@ -5,10 +5,6 @@
 #include "marshal.h"
 #include "polling.h"
 
-#ifndef RPC_CLIENT_H_
-#define RPC_CLIENT_H_
-#endif // RPC_CLIENT_H_
-
 namespace rpc {
 
 class Future;
