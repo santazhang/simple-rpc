@@ -56,17 +56,17 @@ TEST(integration, sync_test) {
         for (int j = 0; j < 10000; ++j) {
             f.push_back(clients[j % n_servers]->async_prime(j));
         }
-        for (auto fu : f) {
+        for (auto& fu : f) {
             fu->wait();
             fu->release();
         }
     }
 
     delete client_pool;
-    for (auto clnt : clients) {
+    for (auto& clnt : clients) {
         delete clnt;
     }
-    for (auto svr : servers) {
+    for (auto& svr : servers) {
         delete svr;
     }
     delete svc;

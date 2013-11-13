@@ -38,7 +38,7 @@ int find_open_port() {
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
 
-    if (getaddrinfo("0.0.0.0", NULL, NULL, &local_addr) != 0) {
+    if (getaddrinfo("0.0.0.0", nullptr, nullptr, &local_addr) != 0) {
         Log_error("Failed to getaddrinfo");
         return -1;
     }

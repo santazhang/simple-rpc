@@ -2,6 +2,7 @@
 
 #include <list>
 #include <map>
+#include <unordered_map>
 #include <functional>
 
 #include <sys/types.h>
@@ -38,5 +39,14 @@ int find_open_port();
 
 std::string get_host_name();
 
+template<class K, class V>
+inline void insert_to_map(std::map<K, V>& dict, const K& key, const V& value) {
+    dict.insert(typename std::map<K, V>::value_type(key, value));
 }
 
+template<class K, class V>
+inline void insert_to_map(std::unordered_map<K, V>& dict, const K& key, const V& value) {
+    dict.insert(typename std::unordered_map<K, V>::value_type(key, value));
+}
+
+}

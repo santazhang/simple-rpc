@@ -30,12 +30,12 @@ void ServerConnection::begin_reply(Request* req, i32 error_code /* =... */) {
 
 void ServerConnection::end_reply() {
     // set reply size in packet
-    if (bmark_ != NULL) {
+    if (bmark_ != nullptr) {
         i32 reply_size = out_.get_and_reset_write_cnt();
         out_.write_bookmark(bmark_, &reply_size);
         out_.update_read_barrier();
         delete bmark_;
-        bmark_ = NULL;
+        bmark_ = nullptr;
     }
 
     // always enable write events since the code above gauranteed there
@@ -60,7 +60,7 @@ void ServerConnection::handle_read() {
     for (;;) {
         i32 packet_size;
         int n_peek = in_.peek(&packet_size, sizeof(i32));
-        if (n_peek == sizeof(i32) && in_.content_size_gt(packet_size + sizeof(i32) - 1)) {
+        if (n_peek == sizeof(i32) && in_.content_size_ge(packet_size + sizeof(i32))) {
             // consume the packet size
             verify(in_.read(&packet_size, sizeof(i32)) == sizeof(i32));
 
@@ -84,10 +84,9 @@ void ServerConnection::handle_read() {
         }
     }
 
-    for (list<Request*>::iterator iter = complete_requests.begin(); iter != complete_requests.end(); ++iter) {
-        Request* req = *iter;
+    for (auto& req: complete_requests) {
 
-        if (!req->m.content_size_gt(sizeof(i32) - 1)) {
+        if (!req->m.content_size_ge(sizeof(i32))) {
             // rpc id not provided
             begin_reply(req, EINVAL);
             end_reply();
@@ -98,10 +97,10 @@ void ServerConnection::handle_read() {
         i32 rpc_id;
         req->m >> rpc_id;
 
-        unordered_map<i32, Server::Handler*>::iterator it = server_->handlers_.find(rpc_id);
+        auto it = server_->handlers_.find(rpc_id);
         if (it != server_->handlers_.end()) {
             // the handler should delete req, and release server_connection refcopy.
-            it->second->handle(req, (ServerConnection *) this->ref_copy());
+            it->second(req, (ServerConnection *) this->ref_copy());
         } else {
             Log_error("rpc::ServerConnection: no handler for rpc_id=%d", rpc_id);
             begin_reply(req, ENOENT);
@@ -158,7 +157,7 @@ void ServerConnection::close() {
         ::close(socket_);
     }
 
-    // this call might actually DELETE this object, so we put it to the end of function
+    // this call might actually DELETE this object, so we put it at the end of function
     if (should_release) {
         this->release();
     }
@@ -180,7 +179,7 @@ Server::Server(PollMgr* pollmgr /* =... */, ThreadPool* thrpool /* =? */)
     // get rid of eclipse warning
     memset(&loop_th_, 0, sizeof(loop_th_));
 
-    if (pollmgr == NULL) {
+    if (pollmgr == nullptr) {
         poll_options opt;
         opt.n_threads = 8;
         pollmgr_ = new PollMgr(opt);
@@ -188,7 +187,7 @@ Server::Server(PollMgr* pollmgr /* =... */, ThreadPool* thrpool /* =? */)
         pollmgr_ = (PollMgr *) pollmgr->ref_copy();
     }
 
-    if (thrpool == NULL) {
+    if (thrpool == nullptr) {
         threadpool_ = new ThreadPool;
     } else {
         threadpool_ = (ThreadPool *) thrpool->ref_copy();
@@ -199,26 +198,25 @@ Server::~Server() {
     if (status_ == RUNNING) {
         status_ = STOPPING;
         // wait till accepting thread done
-        Pthread_join(loop_th_, NULL);
+        Pthread_join(loop_th_, nullptr);
 
         verify(server_sock_ == -1 && status_ == STOPPED);
     }
 
     sconns_l_.lock();
     vector<ServerConnection*> sconns(sconns_.begin(), sconns_.end());
+    // NOTE: do NOT clear sconns_ here, because when running the following
+    // it->close(), the ServerConnection object will check the sconns_ to
+    // ensure it still resides in sconns_
     sconns_l_.unlock();
 
-    for (vector<ServerConnection*>::iterator it = sconns.begin(); it != sconns.end(); ++it) {
-        (*it)->close();
+    for (auto& it: sconns) {
+        it->close();
     }
 
     // always release ThreadPool before PollMgr, in case some running task want to access PollMgr
     threadpool_->release();
     pollmgr_->release();
-
-    for (auto& it : handlers_) {
-        delete it.second;
-    }
 
     //Log_debug("rpc::Server: destroyed");
 }
@@ -284,8 +282,7 @@ int Server::start(const char* bind_addr) {
     size_t idx = addr.find(":");
     if (idx == string::npos) {
         Log_error("rpc::Server: bad bind address: %s", bind_addr);
-        errno = EINVAL;
-        return -1;
+        return EINVAL;
     }
     string host = addr.substr(0, idx);
     string port = addr.substr(idx + 1);
@@ -300,7 +297,7 @@ int Server::start(const char* bind_addr) {
     int r = getaddrinfo((host == "0.0.0.0") ? NULL : host.c_str(), port.c_str(), &hints, &result);
     if (r != 0) {
         Log_error("rpc::Server: getaddrinfo(): %s", gai_strerror(r));
-        return -1;
+        return EINVAL;
     }
 
     for (rp = result; rp != NULL; rp = rp->ai_next) {
@@ -320,11 +317,11 @@ int Server::start(const char* bind_addr) {
         server_sock_ = -1;
     }
 
-    if (rp == NULL) {
+    if (rp == nullptr) {
         // failed to bind
         Log_error("rpc::Server: bind(): %s", strerror(errno));
         freeaddrinfo(result);
-        return -1;
+        return EINVAL;
     }
 
     // about backlog: http://www.linuxjournal.com/files/linuxjournal.com/linuxjournal/articles/023/2333/2333s2.html
@@ -347,21 +344,13 @@ int Server::start(const char* bind_addr) {
 int Server::reg(i32 rpc_id, void (*svc_func)(Request*, ServerConnection*)) {
     // disallow duplicate rpc_id
     if (handlers_.find(rpc_id) != handlers_.end()) {
-        return -EEXIST;
+        return EEXIST;
     }
 
-    class H: public Handler {
-        void (*svc_func_)(Request*, ServerConnection*);
-    public:
-        H(void (*svc_func)(Request*, ServerConnection*))
-                : svc_func_(svc_func) {
-        }
-        void handle(Request* req, ServerConnection* sconn) {
-            svc_func_(req, sconn);
-        }
+    handlers_[rpc_id] = [svc_func] (Request* req, ServerConnection* sconn) {
+        svc_func(req, sconn);
     };
 
-    handlers_[rpc_id] = new H(svc_func);
     return 0;
 }
 

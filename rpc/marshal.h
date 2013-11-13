@@ -236,13 +236,18 @@ private:
 
 public:
 
-    FastMarshal(): head_(nullptr), tail_(nullptr), write_cnt_(0), last_write_fd_tm_(-1) {}
+    FastMarshal(): head_(nullptr), tail_(nullptr), write_cnt_(0), last_write_fd_tm_(-1) { }
     ~FastMarshal();
 
     bool empty() const {
         return !content_size_gt(0);
     }
+    // gt: greater than
     bool content_size_gt(size_t n) const;
+    // ge: greater than or equal to
+    bool content_size_ge(size_t n) const {
+        return content_size_gt(n - 1);
+    }
     size_t content_size() const;
 
     size_t write(const void* p, size_t n);
@@ -438,7 +443,7 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, std::map<K, V>& v) {
         K key;
         V value;
         m >> key >> value;
-        v.insert(typename std::map<K, V>::value_type(key, value));
+        insert_to_map(v, key, value);
     }
     return m;
 }
@@ -465,7 +470,7 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, std::unordered_map<K, V>& v) {
         K key;
         V value;
         m >> key >> value;
-        v.insert(typename std::unordered_map<K, V>::value_type(key, value));
+        insert_to_map(v, key, value);
     }
     return m;
 }

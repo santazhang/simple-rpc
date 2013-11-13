@@ -89,14 +89,14 @@ public:
     }
 
     void wait_all() {
-        for (auto f : futures_) {
+        for (auto& f : futures_) {
             f->wait();
         }
     }
 
     ~FutureGroup() {
         wait_all();
-        for (auto f : futures_) {
+        for (auto& f : futures_) {
             f->release();
         }
     }
@@ -139,7 +139,7 @@ protected:
 
 public:
 
-    Client(PollMgr* pollmgr): pollmgr_(pollmgr), sock_(-1), status_(NEW), bmark_(NULL) { }
+    Client(PollMgr* pollmgr): pollmgr_(pollmgr), sock_(-1), status_(NEW), bmark_(nullptr) { }
 
     /**
      * Start a new request. Must be paired with end_request(), even if NULL returned.
@@ -189,11 +189,11 @@ class ClientPool: public NoCopy {
 
 public:
 
-    ClientPool(rpc::PollMgr* pollmgr = NULL, int parallel_connections = 1);
+    ClientPool(rpc::PollMgr* pollmgr = nullptr, int parallel_connections = 1);
     ~ClientPool();
 
     // return cached client connection
-    // on error, return NULL
+    // on error, return nullptr
     rpc::Client* get_client(const std::string& addr);
 
 };

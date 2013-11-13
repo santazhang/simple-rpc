@@ -20,8 +20,8 @@ struct poll_options {
 class Pollable: public RefCounted {
 protected:
 
-    virtual ~Pollable() {
-    }
+    // RefCounted class requires protected destructor
+    virtual ~Pollable() {}
 
 public:
 

@@ -34,15 +34,14 @@ void Future::notify_ready() {
 void Client::invalidate_pending_futures() {
     list<Future*> futures;
     pending_fu_l_.lock();
-    while (pending_fu_.empty() == false) {
-        futures.push_back(pending_fu_.begin()->second);
-        pending_fu_.erase(pending_fu_.begin());
+    for (auto& it: pending_fu_) {
+        futures.push_back(it.second);
     }
+    pending_fu_.clear();
     pending_fu_l_.unlock();
 
-    for (list<Future*>::iterator it = futures.begin(); it != futures.end(); ++it) {
-        Future* fu = *it;
-        if (fu != NULL) {
+    for (auto& fu: futures) {
+        if (fu != nullptr) {
             fu->error_code_ = ENOTCONN;
             fu->notify_ready();
 
@@ -50,18 +49,15 @@ void Client::invalidate_pending_futures() {
             fu->release();
         }
     }
-
 }
 
 void Client::close() {
     if (status_ == CONNECTED) {
         pollmgr_->remove(this);
         ::close(sock_);
-        status_ = CLOSED;
-
-        invalidate_pending_futures();
     }
     status_ = CLOSED;
+    invalidate_pending_futures();
 }
 
 int Client::connect(const char* addr) {
@@ -69,8 +65,7 @@ int Client::connect(const char* addr) {
     size_t idx = addr_str.find(":");
     if (idx == string::npos) {
         Log_error("rpc::Client: bad connect address: %s", addr);
-        errno = EINVAL;
-        return -1;
+        return EINVAL;
     }
     string host = addr_str.substr(0, idx);
     string port = addr_str.substr(idx + 1);
@@ -84,10 +79,10 @@ int Client::connect(const char* addr) {
     int r = getaddrinfo(host.c_str(), port.c_str(), &hints, &result);
     if (r != 0) {
         Log_error("rpc::Client: getaddrinfo(): %s", gai_strerror(r));
-        return -1;
+        return EINVAL;
     }
 
-    for (rp = result; rp != NULL; rp = rp->ai_next) {
+    for (rp = result; rp != nullptr; rp = rp->ai_next) {
         sock_ = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
         if (sock_ == -1) {
             continue;
@@ -105,10 +100,10 @@ int Client::connect(const char* addr) {
     }
     freeaddrinfo(result);
 
-    if (rp == NULL) {
+    if (rp == nullptr) {
         // failed to connect
         Log_error("rpc::Client: connect(%s): %s", addr, strerror(errno));
-        return -1;
+        return ENOTCONN;
     }
 
     verify(set_nonblocking(sock_, true) == 0);
@@ -155,7 +150,7 @@ void Client::handle_read() {
     for (;;) {
         i32 packet_size;
         int n_peek = in_.peek(&packet_size, sizeof(i32));
-        if (n_peek == sizeof(i32) && in_.content_size_gt(packet_size + sizeof(i32) - 1)) {
+        if (n_peek == sizeof(i32) && in_.content_size_ge(packet_size + sizeof(i32))) {
             // consume the packet size
             verify(in_.read(&packet_size, sizeof(i32)) == sizeof(i32));
 
@@ -204,7 +199,7 @@ Future* Client::begin_request(i32 rpc_id, const FutureAttr& attr /* =... */) {
     out_l_.lock();
 
     if (status_ != CONNECTED) {
-        return NULL;
+        return nullptr;
     }
 
     Future* fu = new Future(xid_counter_.next(), attr);
@@ -222,7 +217,7 @@ Future* Client::begin_request(i32 rpc_id, const FutureAttr& attr /* =... */) {
         }
         pending_fu_l_.unlock();
 
-        return NULL;
+        return nullptr;
     }
 
     bmark_ = out_.set_bookmark(sizeof(i32)); // will fill packet size later
@@ -236,12 +231,12 @@ Future* Client::begin_request(i32 rpc_id, const FutureAttr& attr /* =... */) {
 
 void Client::end_request() {
     // set reply size in packet
-    if (bmark_ != NULL) {
+    if (bmark_ != nullptr) {
         i32 request_size = out_.get_and_reset_write_cnt();
         out_.write_bookmark(bmark_, &request_size);
         out_.update_read_barrier();
         delete bmark_;
-        bmark_ = NULL;
+        bmark_ = nullptr;
     }
 
     // always enable write events since the code above gauranteed there
@@ -254,7 +249,8 @@ void Client::end_request() {
 ClientPool::ClientPool(PollMgr* pollmgr /* =? */, int parallel_connections /* =? */)
         : parallel_connections_(parallel_connections) {
 
-    if (pollmgr == NULL) {
+    verify(parallel_connections_ > 0);
+    if (pollmgr == nullptr) {
         pollmgr_ = new PollMgr;
     } else {
         pollmgr_ = (PollMgr *) pollmgr->ref_copy();
@@ -272,7 +268,7 @@ ClientPool::~ClientPool() {
 }
 
 Client* ClientPool::get_client(const string& addr) {
-    Client* cl = NULL;
+    Client* cl = nullptr;
     l_.lock();
     map<string, Client**>::iterator it = cache_.find(addr);
     if (it != cache_.end()) {
@@ -290,7 +286,7 @@ Client* ClientPool::get_client(const string& addr) {
         }
         if (ok) {
             cl = parallel_clients[rand_() % parallel_connections_];
-            cache_.insert(std::map<std::string, rpc::Client**>::value_type(addr, parallel_clients));
+            insert_to_map(cache_, addr, parallel_clients);
         } else {
             // close connections
             while (i >= 0) {

@@ -30,8 +30,7 @@ struct Request {
 
 class Service {
 public:
-    virtual ~Service() {
-    }
+    virtual ~Service() {}
     virtual int reg_to(Server*) = 0;
 };
 
@@ -67,8 +66,7 @@ protected:
 
 public:
 
-    ServerConnection(Server* server, int socket)
-            : server_(server), socket_(socket), bmark_(NULL), status_(CONNECTED) { }
+    ServerConnection(Server* server, int socket): server_(server), socket_(socket), bmark_(NULL), status_(CONNECTED) {}
 
     /**
      * Start a reply message. Must be paired with end_reply().
@@ -111,12 +109,7 @@ class Server: public NoCopy {
 
     friend class ServerConnection;
 
-    class Handler: public NoCopy {
-    public:
-        virtual void handle(Request* req, ServerConnection* sconn) = 0;
-    };
-
-    std::unordered_map<i32, Handler*> handlers_;
+    std::unordered_map<i32, std::function<void(Request*, ServerConnection*)>> handlers_;
     PollMgr* pollmgr_;
     ThreadPool* threadpool_;
     int server_sock_;
@@ -163,44 +156,17 @@ public:
      */
     int reg(i32 rpc_id, void (*svc_func)(Request*, ServerConnection*));
 
-    /**
-     * The svc_func need to do this:
-     *
-     *  {
-     *     // process request
-     *     ..
-     *
-     *     // send reply
-     *     server_connection->begin_packet();
-     *     *server_connection << {packet_content};
-     *     server_connection->end_packet();
-     *
-     *     // cleanup resource
-     *     delete request;
-     *     server_connection->release();
-     *  }
-     */
     template<class S>
     int reg(i32 rpc_id, S* svc, void (S::*svc_func)(Request*, ServerConnection*)) {
 
         // disallow duplicate rpc_id
         if (handlers_.find(rpc_id) != handlers_.end()) {
-            return -EEXIST;
+            return EEXIST;
         }
 
-        class H: public Handler {
-            S* svc_;
-            void (S::*svc_func_)(Request*, ServerConnection*);
-        public:
-            H(S* svc, void (S::*svc_func)(Request*, ServerConnection*))
-                    : svc_(svc), svc_func_(svc_func) {
-            }
-            void handle(Request* req, ServerConnection* sconn) {
-                (svc_->*svc_func_)(req, sconn);
-            }
+        handlers_[rpc_id] = [svc, svc_func] (Request* req, ServerConnection* sconn) {
+            (svc->*svc_func)(req, sconn);
         };
-
-        handlers_[rpc_id] = new H(svc, svc_func);
 
         return 0;
     }
