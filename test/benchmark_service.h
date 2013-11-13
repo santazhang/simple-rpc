@@ -7,6 +7,9 @@
 
 #include <errno.h>
 
+// #include <math.h>
+
+// optional %%: marks header section, code above will be copied into begin of generated C++ header
 namespace benchmark {
 
 struct point3 {
@@ -32,11 +35,11 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, point3& o) {
 class BenchmarkService: public rpc::Service {
 public:
     enum {
-        FAST_PRIME = 0x31c7a8c8,
-        FAST_DOT_PROD = 0x5b97a858,
-        FAST_XOR = 0x66214938,
-        PRIME = 0x12c3f86b,
-        DOT_PROD = 0x621cd7ec,
+        FAST_PRIME = 0x14165dc3,
+        FAST_DOT_PROD = 0x16efbfb8,
+        FAST_XOR = 0x69d6439d,
+        PRIME = 0x36768a87,
+        DOT_PROD = 0x1ada2f70,
     };
     int reg_to(rpc::Server* svr) {
         int ret = 0;
@@ -253,7 +256,8 @@ public:
 
 } // namespace benchmark
 
-// optional %%: marks begining of C++ code, will be copied to end of generated header
+
+// optional %%: marks footer section, code below will be copied into end of generated C++ header
 
 namespace benchmark {
 
@@ -274,3 +278,4 @@ inline void BenchmarkService::dot_prod(const point3& p1, const point3& p2, doubl
 }
 
 } // namespace benchmark
+

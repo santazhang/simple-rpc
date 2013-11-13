@@ -487,7 +487,7 @@ def rpcgen(rpc_fpath):
         first = rpc_src_lines.index("%%")
         next = rpc_src_lines.index("%%", first + 1)
         header =  '\n'.join(rpc_src_lines[:first])
-        src = '\n'.join(rpc_src_lines[first+1:next])
+        src = '\n'.join(rpc_src_lines[first + 1:next])
         footer = '\n'.join(rpc_src_lines[next + 1:])
     elif rpc_src_lines.count('%%') == 1:
         # source + footer
@@ -510,8 +510,11 @@ def rpcgen(rpc_fpath):
         f.writeln("#include <errno.h>")
         f.writeln()
         f.write(header)
+        f.writeln()
         emit_rpc_source(rpc_source, f)
+        f.writeln()
         f.write(footer)
+        f.writeln()
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

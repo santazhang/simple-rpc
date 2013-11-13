@@ -1,21 +1,26 @@
+// #include <math.h>
+
+// optional %%: marks header section, code above will be copied into begin of generated C++ header
+%%
+
 namespace benchmark
 
 struct point3 {
-    double x
-    double y
-    double z
-}
+    double x;
+    double y;
+    double z;
+};
 
 service Benchmark {
-    fast fast_prime(i32 n | i32 flag)
-    fast fast_dot_prod(point3 p1, point3 p2 | double v)
-    fast fast_xor(i32 a, i32 b | i32 a_xor_b)
-    prime(i32 n | i32 flag)
-    dot_prod(point3 p1, point3 p2 | double v)
-}
+    fast fast_prime(i32 n | i32 flag);
+    fast fast_dot_prod(point3 p1, point3 p2 | double v);
+    fast fast_xor(i32 a, i32 b | i32 a_xor_b);
+    prime(i32 n | i32 flag);
+    dot_prod(point3 p1, point3 p2 | double v);
+};
 
 %%
-// optional %%: marks begining of C++ code, will be copied to end of generated header
+// optional %%: marks footer section, code below will be copied into end of generated C++ header
 
 namespace benchmark {
 
