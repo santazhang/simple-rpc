@@ -7,18 +7,18 @@
 
 #include "rpc/client.h"
 #include "rpc/server.h"
-#include "demo_service.h"
+#include "benchmark_service.h"
 
 #define NUM 10000000
 
-using namespace demo;
+using namespace benchmark;
 using namespace rpc;
 
 int n_th = 1;
 int n_batch = 1;
 
 typedef struct {
-    NullProxy *np;
+    BenchmarkProxy *np;
     int *counter;
     int n_outstanding;
     sem_t sem;
@@ -45,10 +45,6 @@ diff_timespec(const struct timespec &end, const struct timespec &start)
     return diff;
 }
 
-void NullService::test(const i32& arg1, const i32& arg2, i32* result) {
-    *result = arg1 ^ arg2;
-}
-
 rpc::Rand g_rand;
 
 void *
@@ -60,7 +56,7 @@ clt_run(void *x)
             i32 x,y,r;
             x = g_rand();
             y = g_rand();
-            d->np->test(x,y,&r);
+            d->np->fast_xor(x,y,&r);
             verify(r == (x ^ y));
             *d->counter = *d->counter + 1;
         }
@@ -77,7 +73,7 @@ clt_run(void *x)
             int diff = n_batch - d->n_outstanding;
             if (diff > n_batch/2) {
                 for (int i = 0; i < diff; i++) {
-                    Future *fu = d->np->async_test(x,y, attr);
+                    Future *fu = d->np->async_fast_xor(x,y, attr);
                     if (fu) {
                         fu->release();
                     }
@@ -168,8 +164,8 @@ int main(int argc, char **argv) {
         thrpool->release();
         poll->release();
 
-        NullService null_svc;
-        svr.reg(&null_svc);
+        BenchmarkService bench_svc;
+        svr.reg(&bench_svc);
         svr.start(svr_addr);
 
         for (;;) {
@@ -181,7 +177,7 @@ int main(int argc, char **argv) {
         if (!num_clients)
             num_clients = n_th;
 
-        NullProxy** allclients = (NullProxy **)malloc(sizeof(NullProxy *)*num_clients);
+        BenchmarkProxy** allclients = (BenchmarkProxy **)malloc(sizeof(BenchmarkProxy *)*num_clients);
 
         pthread_t *cltth = (pthread_t *)malloc(sizeof(pthread_t)*n_th);
         int * counters = (int *)malloc(sizeof(int)*n_th);
@@ -191,7 +187,7 @@ int main(int argc, char **argv) {
         for (int i = 0; i < num_clients; i++) {
             Client *cl = new Client(poll);
             verify(cl->connect(svr_addr) == 0);
-            allclients[i] = new NullProxy(cl);
+            allclients[i] = new BenchmarkProxy(cl);
         }
 
         clt_data args[n_th];

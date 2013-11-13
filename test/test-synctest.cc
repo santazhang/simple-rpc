@@ -10,9 +10,9 @@
 #include "base/all.h"
 #include "rpc/client.h"
 #include "rpc/server.h"
-#include "demo_service.h"
+#include "benchmark_service.h"
 
-using namespace demo;
+using namespace benchmark;
 using namespace rpc;
 using namespace std;
 
@@ -30,9 +30,9 @@ TEST(integration, sync_test) {
 
     auto poll_mgr = new PollMgr;
     auto thr_pool = new ThreadPool(8);
-    auto svc = new DemoService;
+    auto svc = new BenchmarkService;
     ClientPool* client_pool = new ClientPool(poll_mgr);
-    vector<DemoProxy*> clients;
+    vector<BenchmarkProxy*> clients;
     vector<Server*> servers;
 
     int first_port = find_open_port();
@@ -41,7 +41,7 @@ TEST(integration, sync_test) {
         auto server = new Server(poll_mgr, thr_pool);
         server->reg(svc);
         server->start(fmt("localhost:%d", port));
-        auto client = new DemoProxy(client_pool->get_client(fmt("localhost:%d", port)));
+        auto client = new BenchmarkProxy(client_pool->get_client(fmt("localhost:%d", port)));
 
         servers.push_back(server);
         clients.push_back(client);

@@ -2,12 +2,12 @@
 
 #include "rpc/client.h"
 #include "rpc/server.h"
-#include "demo_service.h"
+#include "benchmark_service.h"
 
-using namespace demo;
+using namespace benchmark;
 using namespace rpc;
 
-void DemoService::fast_prime(const i32& n, i32* flag) {
+void BenchmarkService::fast_prime(const i32& n, i32* flag) {
     if (n <= 0) {
         *flag = -1;
     } else if (n <= 3) {
@@ -26,12 +26,4 @@ void DemoService::fast_prime(const i32& n, i32* flag) {
         }
         *flag = 1;
     }
-}
-
-void DemoService::prime(const i32& n, i32* flag) {
-    return fast_prime(n, flag);
-}
-
-void DemoService::dot_prod(const point3& p1, const point3& p2, double *v) {
-    return fast_dot_prod(p1, p2, v);
 }

@@ -1,0 +1,38 @@
+namespace benchmark
+
+struct point3 {
+    double x
+    double y
+    double z
+}
+
+service Benchmark {
+    fast fast_prime(i32 n | i32 flag)
+    fast fast_dot_prod(point3 p1, point3 p2 | double v)
+    fast fast_xor(i32 a, i32 b | i32 a_xor_b)
+    prime(i32 n | i32 flag)
+    dot_prod(point3 p1, point3 p2 | double v)
+}
+
+%%
+// optional %%: marks begining of C++ code, will be copied to end of generated header
+
+namespace benchmark {
+
+inline void BenchmarkService::fast_dot_prod(const point3& p1, const point3& p2, double* v) {
+    *v = p1.x * p2.x + p1.y * p2.y + p1.z * p2.z;
+}
+
+inline void BenchmarkService::fast_xor(const rpc::i32& a, const rpc::i32& b, rpc::i32* a_xor_b) {
+    *a_xor_b = a ^ b;
+}
+
+inline void BenchmarkService::prime(const rpc::i32& n, rpc::i32* flag) {
+    return fast_prime(n, flag);
+}
+
+inline void BenchmarkService::dot_prod(const point3& p1, const point3& p2, double *v) {
+    return fast_dot_prod(p1, p2, v);
+}
+
+} // namespace benchmark
