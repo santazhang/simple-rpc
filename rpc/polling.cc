@@ -43,15 +43,15 @@ class PollMgr::PollThread {
     static void* start_poll_loop(void* arg) {
         PollThread* thiz = (PollThread *) arg;
         thiz->poll_loop();
-        pthread_exit(NULL);
-        return NULL;
+        pthread_exit(nullptr);
+        return nullptr;
     }
 
     void poll_loop();
 
     void start(PollMgr* poll_mgr) {
         poll_mgr_ = poll_mgr;
-        Pthread_create(&th_, NULL, PollMgr::PollThread::start_poll_loop, this);
+        Pthread_create(&th_, nullptr, PollMgr::PollThread::start_poll_loop, this);
     }
 
 public:
@@ -70,12 +70,14 @@ public:
         unordered_set<Pollable*> poll_set_copy = poll_set_;
         l_.unlock();
 
-        for (unordered_set<Pollable*>::iterator it = poll_set_copy.begin(); it != poll_set_copy.end(); ++it) {
-            remove(*it);
+        // NOTE: do NOT clear poll_set_, as when doing this->remove(it)
+        // the code will check if the Pollable is still in poll_set_
+        for (auto& it: poll_set_copy) {
+            this->remove(it);
         }
 
         stop_flag_ = true;
-        Pthread_join(th_, NULL);
+        Pthread_join(th_, nullptr);
     }
 
     void add(Pollable*);
@@ -111,11 +113,11 @@ void PollMgr::PollThread::poll_loop() {
         timeout.tv_sec = 0;
         timeout.tv_nsec = 50 * 1000 * 1000; // 0.05 sec
 
-        int nev = kevent(poll_fd_, NULL, 0, evlist, max_nev, &timeout);
+        int nev = kevent(poll_fd_, nullptr, 0, evlist, max_nev, &timeout);
 
         for (int i = 0; i < nev; i++) {
             Pollable* poll = (Pollable *) evlist[i].udata;
-            verify(poll != NULL);
+            verify(poll != nullptr);
 
             if (evlist[i].filter == EVFILT_READ) {
                 poll->handle_read();
@@ -143,7 +145,7 @@ void PollMgr::PollThread::poll_loop() {
 
         for (int i = 0; i < nev; i++) {
             Pollable* poll = (Pollable *) evlist[i].data.ptr;
-            verify(poll != NULL);
+            verify(poll != nullptr);
 
             if (evlist[i].events & EPOLLIN) {
                 poll->handle_read();
@@ -166,8 +168,7 @@ void PollMgr::PollThread::poll_loop() {
         pending_remove_.clear();
         pending_remove_l_.unlock();
 
-        for (list<Pollable*>::iterator it = remove_poll.begin(); it != remove_poll.end(); ++it) {
-            Pollable* poll = *it;
+        for (auto& poll: remove_poll) {
             int fd = poll->fd();
 
             l_.lock();
@@ -182,13 +183,13 @@ void PollMgr::PollThread::poll_loop() {
                 ev.ident = fd;
                 ev.flags = EV_DELETE;
                 ev.filter = EVFILT_READ;
-                kevent(poll_fd_, &ev, 1, NULL, 0, NULL);
+                kevent(poll_fd_, &ev, 1, nullptr, 0, nullptr);
 
                 bzero(&ev, sizeof(ev));
                 ev.ident = fd;
                 ev.flags = EV_DELETE;
                 ev.filter = EVFILT_WRITE;
-                kevent(poll_fd_, &ev, 1, NULL, 0, NULL);
+                kevent(poll_fd_, &ev, 1, nullptr, 0, nullptr);
 
 #else
                 struct epoll_event ev;
@@ -204,8 +205,8 @@ void PollMgr::PollThread::poll_loop() {
     }
 
     // when stopping, release anything registered in pollmgr
-    for (unordered_set<Pollable*>::iterator it = poll_set_.begin(); it != poll_set_.end(); ++it) {
-        (*it)->release();
+    for (auto& it: poll_set_) {
+        it->release();
     }
 
     close(poll_fd_);
@@ -238,7 +239,7 @@ void PollMgr::PollThread::add(Pollable* poll) {
         ev.flags = EV_ADD;
         ev.filter = EVFILT_READ;
         ev.udata = poll;
-        verify(kevent(poll_fd_, &ev, 1, NULL, 0, NULL) == 0);
+        verify(kevent(poll_fd_, &ev, 1, nullptr, 0, nullptr) == 0);
     }
     if (poll_mode & Pollable::WRITE) {
         bzero(&ev, sizeof(ev));
@@ -246,7 +247,7 @@ void PollMgr::PollThread::add(Pollable* poll) {
         ev.flags = EV_ADD;
         ev.filter = EVFILT_WRITE;
         ev.udata = poll;
-        verify(kevent(poll_fd_, &ev, 1, NULL, 0, NULL) == 0);
+        verify(kevent(poll_fd_, &ev, 1, nullptr, 0, nullptr) == 0);
     }
 
 #else
@@ -317,7 +318,7 @@ void PollMgr::PollThread::update_mode(Pollable* poll, int new_mode) {
             ev.udata = poll;
             ev.flags = EV_ADD;
             ev.filter = EVFILT_READ;
-            verify(kevent(poll_fd_, &ev, 1, NULL, 0, NULL) == 0);
+            verify(kevent(poll_fd_, &ev, 1, nullptr, 0, nullptr) == 0);
         }
         if (!(new_mode & Pollable::READ) && (old_mode & Pollable::READ)) {
             // del READ
@@ -326,7 +327,7 @@ void PollMgr::PollThread::update_mode(Pollable* poll, int new_mode) {
             ev.udata = poll;
             ev.flags = EV_DELETE;
             ev.filter = EVFILT_READ;
-            verify(kevent(poll_fd_, &ev, 1, NULL, 0, NULL) == 0);
+            verify(kevent(poll_fd_, &ev, 1, nullptr, 0, nullptr) == 0);
         }
         if ((new_mode & Pollable::WRITE) && !(old_mode & Pollable::WRITE)) {
             // add WRITE
@@ -335,7 +336,7 @@ void PollMgr::PollThread::update_mode(Pollable* poll, int new_mode) {
             ev.udata = poll;
             ev.flags = EV_ADD;
             ev.filter = EVFILT_WRITE;
-            verify(kevent(poll_fd_, &ev, 1, NULL, 0, NULL) == 0);
+            verify(kevent(poll_fd_, &ev, 1, nullptr, 0, nullptr) == 0);
         }
         if (!(new_mode & Pollable::WRITE) && (old_mode & Pollable::WRITE)) {
             // del WRITE
@@ -344,7 +345,7 @@ void PollMgr::PollThread::update_mode(Pollable* poll, int new_mode) {
             ev.udata = poll;
             ev.flags = EV_DELETE;
             ev.filter = EVFILT_WRITE;
-            verify(kevent(poll_fd_, &ev, 1, NULL, 0, NULL) == 0);
+            verify(kevent(poll_fd_, &ev, 1, nullptr, 0, nullptr) == 0);
         }
 
 #else

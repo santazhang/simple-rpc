@@ -67,7 +67,7 @@ TEST(marshal, mt_benchmark) {
         n_bytes_read += ret;
 
         struct timeval tm;
-        gettimeofday(&tm, NULL);
+        gettimeofday(&tm, nullptr);
         double now = tm.tv_sec + tm.tv_usec / 1000.0 / 1000.0;
         if (now - report_time > 1) {
             Log::info("bytes transferred = %ld (%.2lf%%)", n_bytes_read, n_bytes_read * 100.0 / (n_writers * g_bytes_per_writer));

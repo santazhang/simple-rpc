@@ -8,12 +8,12 @@ using namespace std;
 using namespace rpc;
 using namespace rlog;
 
-char* RLog::my_ident_s = NULL;
-RLogProxy* RLog::rp_s = NULL;
-Client* RLog::cl_s = NULL;
-char* RLog::buf_s = NULL;
+char* RLog::my_ident_s = nullptr;
+RLogProxy* RLog::rp_s = nullptr;
+Client* RLog::cl_s = nullptr;
+char* RLog::buf_s = nullptr;
 int RLog::buf_len_s = -1;
-PollMgr* RLog::poll_s = NULL;
+PollMgr* RLog::poll_s = nullptr;
 rpc::Counter RLog::msg_counter_s;
 
 // no static Mutex class, use pthread_mutex_t and PTHREAD_MUTEX_INITIALIZER instead
@@ -21,8 +21,8 @@ pthread_mutex_t RLog::mutex_s = PTHREAD_MUTEX_INITIALIZER;
 
 void RLog::init(const char* my_ident /* =? */, const char* rlog_addr /* =? */) {
     Pthread_mutex_lock(&mutex_s);
-    if (RLog::cl_s == NULL) {
-        if (my_ident == NULL) {
+    if (RLog::cl_s == nullptr) {
+        if (my_ident == nullptr) {
             const int len = 128;
             char cstr[len];
             verify(gethostname(cstr, len) == 0);
@@ -34,14 +34,14 @@ void RLog::init(const char* my_ident /* =? */, const char* rlog_addr /* =? */) {
             RLog::my_ident_s = strdup(my_ident);
         }
 
-        if (rlog_addr == NULL) {
+        if (rlog_addr == nullptr) {
             rlog_addr = getenv("RLOGSERVER");
         }
-        if (poll_s == NULL) {
+        if (poll_s == nullptr) {
             poll_s = new PollMgr;
         }
         cl_s = new Client(poll_s);
-        if (rlog_addr == NULL || cl_s->connect(rlog_addr) != 0) {
+        if (rlog_addr == nullptr || cl_s->connect(rlog_addr) != 0) {
             Log_info("RLog working in local mode");
             do_finalize();
         } else {
@@ -59,29 +59,29 @@ void RLog::init(const char* my_ident /* =? */, const char* rlog_addr /* =? */) {
 void RLog::do_finalize() {
     if (my_ident_s) {
         free(my_ident_s);
-        my_ident_s = NULL;
+        my_ident_s = nullptr;
     }
     if (cl_s) {
         cl_s->close_and_release();
-        cl_s = NULL;
+        cl_s = nullptr;
     }
     if (rp_s) {
         delete rp_s;
-        rp_s = NULL;
+        rp_s = nullptr;
     }
     if (buf_s) {
         free(buf_s);
-        buf_s = NULL;
+        buf_s = nullptr;
     }
     if (poll_s) {
         poll_s->release();
-        poll_s = NULL;
+        poll_s = nullptr;
     }
 }
 
 void RLog::log_v(int level, const char* fmt, va_list args) {
     Pthread_mutex_lock(&mutex_s);
-    if (buf_s == NULL) {
+    if (buf_s == nullptr) {
         buf_len_s = 8192;
         buf_s = (char *) malloc(buf_len_s);
         memset(buf_s, 0, buf_len_s);
@@ -99,7 +99,7 @@ void RLog::log_v(int level, const char* fmt, va_list args) {
         // always use async rpc
         string message = buf_s;
         Future* fu = rp_s->async_log(level, my_ident_s, msg_counter_s.next(), message);
-        if (fu != NULL) {
+        if (fu != nullptr) {
             fu->release();
         } else {
             Log_error("RLog connection failed, fall back to local mode");
@@ -114,7 +114,7 @@ void RLog::aggregate_qps(const std::string& metric_name, const rpc::i32 incremen
     if (rp_s) {
         // always use async rpc
         Future* fu = rp_s->async_aggregate_qps(metric_name, increment);
-        if (fu != NULL) {
+        if (fu != nullptr) {
             fu->release();
         } else {
             Log_error("RLog connection failed, cannot report qps");

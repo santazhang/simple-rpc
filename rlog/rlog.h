@@ -11,7 +11,7 @@ namespace rlog {
 
 class RLog {
 public:
-    static void init(const char* my_ident = NULL, const char* rlog_addr = NULL);
+    static void init(const char* my_ident = nullptr, const char* rlog_addr = nullptr);
 
     static void finalize() {
         Pthread_mutex_lock(&mutex_s);

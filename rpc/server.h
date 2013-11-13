@@ -66,7 +66,7 @@ protected:
 
 public:
 
-    ServerConnection(Server* server, int socket): server_(server), socket_(socket), bmark_(NULL), status_(CONNECTED) {}
+    ServerConnection(Server* server, int socket): server_(server), socket_(socket), bmark_(nullptr), status_(CONNECTED) {}
 
     /**
      * Start a reply message. Must be paired with end_reply().
@@ -128,7 +128,7 @@ class Server: public NoCopy {
 
 public:
 
-    Server(PollMgr* pollmgr = NULL, ThreadPool* thrpool = NULL);
+    Server(PollMgr* pollmgr = nullptr, ThreadPool* thrpool = nullptr);
     virtual ~Server();
 
     int start(const char* bind_addr);

@@ -19,7 +19,7 @@ static void _pkt_sampling_report() {
     static int last_report_tm = 0;
     if (ratelimit_counter++ % 1024 == 0) {
         struct timeval now;
-        gettimeofday(&now, NULL);
+        gettimeofday(&now, nullptr);
         if (now.tv_sec - last_report_tm >= 1) {
             {
                 ostringstream ostr;
@@ -273,7 +273,7 @@ size_t FastMarshal::write_to_fd(int fd, const FastMarshal::read_barrier& rb, con
 
         if (rate.interval > 0) {
             struct timeval tm;
-            gettimeofday(&tm, NULL);
+            gettimeofday(&tm, nullptr);
             double now = tm.tv_sec + tm.tv_usec / 1000.0 / 1000.0;
             if (should_wait && now - last_write_fd_tm_ > rate.interval) {
                 should_wait = false;

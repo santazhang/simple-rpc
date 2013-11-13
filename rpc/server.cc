@@ -235,8 +235,8 @@ void* Server::start_server_loop(void* arg) {
     freeaddrinfo(start_server_loop_args->gai_result);
     delete start_server_loop_args;
 
-    pthread_exit(NULL);
-    return NULL;
+    pthread_exit(nullptr);
+    return nullptr;
 }
 
 void Server::server_loop(struct addrinfo* svr_addr) {
@@ -251,7 +251,7 @@ void Server::server_loop(struct addrinfo* svr_addr) {
         tv.tv_usec = 50 * 1000; // 0.05 sec
         int fdmax = server_sock_;
 
-        int n_ready = select(fdmax + 1, &fds, NULL, NULL, &tv);
+        int n_ready = select(fdmax + 1, &fds, nullptr, nullptr, &tv);
         if (n_ready == 0) {
             continue;
         }
@@ -294,13 +294,13 @@ int Server::start(const char* bind_addr) {
     hints.ai_socktype = SOCK_STREAM; // tcp
     hints.ai_flags = AI_PASSIVE; // server side
 
-    int r = getaddrinfo((host == "0.0.0.0") ? NULL : host.c_str(), port.c_str(), &hints, &result);
+    int r = getaddrinfo((host == "0.0.0.0") ? nullptr : host.c_str(), port.c_str(), &hints, &result);
     if (r != 0) {
         Log_error("rpc::Server: getaddrinfo(): %s", gai_strerror(r));
         return EINVAL;
     }
 
-    for (rp = result; rp != NULL; rp = rp->ai_next) {
+    for (rp = result; rp != nullptr; rp = rp->ai_next) {
         server_sock_ = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
         if (server_sock_ == -1) {
             continue;
@@ -336,7 +336,7 @@ int Server::start(const char* bind_addr) {
     start_server_loop_args->server = this;
     start_server_loop_args->gai_result = result;
     start_server_loop_args->svr_addr = rp;
-    Pthread_create(&loop_th_, NULL, Server::start_server_loop, start_server_loop_args);
+    Pthread_create(&loop_th_, nullptr, Server::start_server_loop, start_server_loop_args);
 
     return 0;
 }

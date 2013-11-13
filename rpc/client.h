@@ -44,8 +44,8 @@ public:
 
     Future(i64 xid, const FutureAttr& attr = FutureAttr())
             : xid_(xid), error_code_(0), attr_(attr), ready_(false) {
-        Pthread_mutex_init(&ready_m_, NULL);
-        Pthread_cond_init(&ready_cond_, NULL);
+        Pthread_mutex_init(&ready_m_, nullptr);
+        Pthread_cond_init(&ready_cond_, nullptr);
     }
 
     bool ready() {
@@ -142,7 +142,7 @@ public:
     Client(PollMgr* pollmgr): pollmgr_(pollmgr), sock_(-1), status_(NEW), bmark_(nullptr) { }
 
     /**
-     * Start a new request. Must be paired with end_request(), even if NULL returned.
+     * Start a new request. Must be paired with end_request(), even if nullptr returned.
      *
      * The request packet format is: <size> <xid> <rpc_id> <arg1> <arg2> ... <argN>
      */

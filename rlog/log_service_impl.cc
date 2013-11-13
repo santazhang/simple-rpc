@@ -40,7 +40,7 @@ void RLogServiceImpl::aggregate_qps(const std::string& metric_name, const rpc::i
     list<agg_qps_record>& records = agg_qps_[metric_name];
     agg_qps_record new_rec;
     timeval tv;
-    gettimeofday(&tv, NULL);
+    gettimeofday(&tv, nullptr);
     double now = tv.tv_sec + tv.tv_usec / 1000.0 / 1000.0;
     new_rec.tm = now;
     if (records.empty()) {
