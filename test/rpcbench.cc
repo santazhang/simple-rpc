@@ -56,8 +56,8 @@ clt_run(void *x)
             i32 x,y,r;
             x = g_rand();
             y = g_rand();
-            d->np->fast_xor(x,y,&r);
-            verify(r == (x ^ y));
+            d->np->fast_add(x,y,&r);
+            verify(r == (x + y));
             *d->counter = *d->counter + 1;
         }
         printf("client finished\n");
@@ -73,7 +73,7 @@ clt_run(void *x)
             int diff = n_batch - d->n_outstanding;
             if (diff > n_batch/2) {
                 for (int i = 0; i < diff; i++) {
-                    Future *fu = d->np->async_fast_xor(x,y, attr);
+                    Future *fu = d->np->async_fast_add(x,y, attr);
                     if (fu) {
                         fu->release();
                     }
