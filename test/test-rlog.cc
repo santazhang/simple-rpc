@@ -47,6 +47,6 @@ TEST(integration, rlog) {
     RLog::finalize();
 
     // shutdown log server
-    delete ls;
     delete server;
+    delete ls;
 }
