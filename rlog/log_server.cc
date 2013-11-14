@@ -12,14 +12,16 @@ using namespace std;
 using namespace rpc;
 using namespace rlog;
 
-Mutex g_stop_mutex;
-CondVar g_stop_condvar;
+pthread_mutex_t g_stop_mutex;
+pthread_cond_t g_stop_cond;
 bool g_stop_flag = false;
 
 static void signal_handler(int sig) {
     Log_info("caught signal %d, stopping server now", sig);
     g_stop_flag = true;
-    g_stop_condvar.signal();
+    Pthread_mutex_lock(&g_stop_mutex);
+    Pthread_cond_signal(&g_stop_cond);
+    Pthread_mutex_unlock(&g_stop_mutex);
 }
 
 int main(int argc, char* argv[]) {
@@ -31,6 +33,9 @@ int main(int argc, char* argv[]) {
             bind_addr = "0.0.0.0:" + bind_addr;
         }
     }
+
+    Pthread_mutex_init(&g_stop_mutex, nullptr);
+    Pthread_cond_init(&g_stop_cond, nullptr);
 
     Log::set_level(Log::INFO);
 
@@ -49,15 +54,18 @@ int main(int argc, char* argv[]) {
         signal(SIGQUIT, signal_handler);
         signal(SIGTERM, signal_handler);
 
-        g_stop_mutex.lock();
+        Pthread_mutex_lock(&g_stop_mutex);
         while (g_stop_flag == false) {
-            g_stop_condvar.wait(g_stop_mutex);
+            Pthread_cond_wait(&g_stop_cond, &g_stop_mutex);
         }
-        g_stop_mutex.unlock();
+        Pthread_mutex_unlock(&g_stop_mutex);
 
         delete server;
         delete log_service;
     }
+
+    Pthread_mutex_destroy(&g_stop_mutex);
+    Pthread_cond_destroy(&g_stop_cond);
 
     return ret;
 }
