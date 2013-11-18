@@ -71,17 +71,17 @@ FastMarshal::~FastMarshal() {
     }
 }
 
-bool FastMarshal::content_size_gt(size_t n) const {
+bool FastMarshal::content_size_ge(size_t n) const {
     size_t sz = 0;
     chunk* chnk = head_;
     while (chnk != nullptr) {
         sz += chnk->content_size();
-        if (sz > n) {
+        if (sz >= n) {
             return true;
         }
         chnk = chnk->next;
     }
-    return sz > n;
+    return sz >= n;
 }
 
 size_t FastMarshal::content_size() const {

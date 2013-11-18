@@ -243,11 +243,11 @@ public:
         return !content_size_gt(0);
     }
     // gt: greater than
-    bool content_size_gt(size_t n) const;
-    // ge: greater than or equal to
-    bool content_size_ge(size_t n) const {
-        return content_size_gt(n - 1);
+    bool content_size_gt(size_t n) const {
+        return content_size_ge(n + 1);
     }
+    // ge: greater than or equal to
+    bool content_size_ge(size_t n) const;
     size_t content_size() const;
 
     size_t write(const void* p, size_t n);
