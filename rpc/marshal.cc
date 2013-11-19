@@ -60,9 +60,9 @@ void _pkt_sample_out(size_t size) {
  * 8kb minimum chunk size.
  * NOTE: this value directly affects how many read/write syscall will be issued.
  */
-const size_t FastMarshal::raw_bytes::min_size = 8192;
+const size_t Marshal::raw_bytes::min_size = 8192;
 
-FastMarshal::~FastMarshal() {
+Marshal::~Marshal() {
     chunk* chnk = head_;
     while (chnk != nullptr) {
         chunk* next = chnk->next;
@@ -71,7 +71,7 @@ FastMarshal::~FastMarshal() {
     }
 }
 
-bool FastMarshal::content_size_ge(size_t n) const {
+bool Marshal::content_size_ge(size_t n) const {
     size_t sz = 0;
     chunk* chnk = head_;
     while (chnk != nullptr) {
@@ -84,7 +84,7 @@ bool FastMarshal::content_size_ge(size_t n) const {
     return sz >= n;
 }
 
-size_t FastMarshal::content_size() const {
+size_t Marshal::content_size() const {
     assert(tail_ == nullptr || tail_->next == nullptr);
 
     size_t sz = 0;
@@ -96,7 +96,7 @@ size_t FastMarshal::content_size() const {
     return sz;
 }
 
-size_t FastMarshal::write(const void* p, size_t n) {
+size_t Marshal::write(const void* p, size_t n) {
     assert(tail_ == nullptr || tail_->next == nullptr);
 
     if (head_ == nullptr) {
@@ -124,7 +124,7 @@ size_t FastMarshal::write(const void* p, size_t n) {
     return n;
 }
 
-size_t FastMarshal::read(void* p, size_t n) {
+size_t Marshal::read(void* p, size_t n) {
     assert(tail_ == nullptr || tail_->next == nullptr);
     assert(empty() || (head_ != nullptr && !head_->fully_read()));
 
@@ -154,7 +154,7 @@ size_t FastMarshal::read(void* p, size_t n) {
     return n_read;
 }
 
-size_t FastMarshal::peek(void* p, size_t n) const {
+size_t Marshal::peek(void* p, size_t n) const {
     assert(tail_ == nullptr || tail_->next == nullptr);
     assert(empty() || (head_ != nullptr && !head_->fully_read()));
 
@@ -177,7 +177,7 @@ size_t FastMarshal::peek(void* p, size_t n) const {
     return n_peek;
 }
 
-size_t FastMarshal::read_from_fd(int fd) {
+size_t Marshal::read_from_fd(int fd) {
     assert(empty() || (head_ != nullptr && !head_->fully_read()));
 
     size_t n_bytes = 0;
@@ -201,7 +201,7 @@ size_t FastMarshal::read_from_fd(int fd) {
     return n_bytes;
 }
 
-size_t FastMarshal::read_from_marshal(FastMarshal& m, size_t n) {
+size_t Marshal::read_from_marshal(Marshal& m, size_t n) {
     assert(head_ == nullptr && tail_ == nullptr);
     assert(n == 0 || m.content_size_gt(n - 1));   // require m.content_size() >= n > 0
 
@@ -239,7 +239,7 @@ size_t FastMarshal::read_from_marshal(FastMarshal& m, size_t n) {
 }
 
 
-void FastMarshal::update_read_barrier() {
+void Marshal::update_read_barrier() {
     if (tail_ != nullptr) {
         // advance tail_ if it's fully written
         // this ensures that reading till read_barrier will not update tail_
@@ -258,7 +258,7 @@ void FastMarshal::update_read_barrier() {
     }
 }
 
-size_t FastMarshal::write_to_fd(int fd, const FastMarshal::read_barrier& rb, const io_ratelimit& rate) {
+size_t Marshal::write_to_fd(int fd, const Marshal::read_barrier& rb, const io_ratelimit& rate) {
 
     if (rb.rb_data == nullptr) {
         return 0;
@@ -314,7 +314,7 @@ size_t FastMarshal::write_to_fd(int fd, const FastMarshal::read_barrier& rb, con
     return n_write;
 }
 
-FastMarshal::bookmark* FastMarshal::set_bookmark(size_t n) {
+Marshal::bookmark* Marshal::set_bookmark(size_t n) {
     verify(write_cnt_ == 0);
 
     bookmark* bm = new bookmark;

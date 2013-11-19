@@ -35,7 +35,7 @@ struct io_ratelimit {
 };
 
 // not thread safe, for better performance
-class FastMarshal: public NoCopy {
+class Marshal: public NoCopy {
     struct raw_bytes: public RefCounted {
         char* ptr;
         size_t size;
@@ -236,8 +236,8 @@ private:
 
 public:
 
-    FastMarshal(): head_(nullptr), tail_(nullptr), write_cnt_(0), last_write_fd_tm_(-1) { }
-    ~FastMarshal();
+    Marshal(): head_(nullptr), tail_(nullptr), write_cnt_(0), last_write_fd_tm_(-1) { }
+    ~Marshal();
 
     bool empty() const {
         return !content_size_gt(0);
@@ -256,8 +256,8 @@ public:
 
     size_t read_from_fd(int fd);
 
-    // this must be newly created empty FastMarshal, m must have at least n bytes of data
-    size_t read_from_marshal(FastMarshal& m, size_t n);
+    // this must be newly created empty Marshal, m must have at least n bytes of data
+    size_t read_from_marshal(Marshal& m, size_t n);
 
     // write content to fd with a read_barrier, which avoid modification on tail_ by
     // output thread, thus does not require locking on tail_
@@ -282,8 +282,6 @@ public:
         return cnt;
     }
 };
-
-typedef FastMarshal Marshal;
 
 inline rpc::Marshal& operator <<(rpc::Marshal& m, const rpc::i32& v) {
     verify(m.write(&v, sizeof(v)) == sizeof(v));
