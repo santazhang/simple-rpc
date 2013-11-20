@@ -50,51 +50,37 @@ void* stat_proc(void*) {
 void* client_proc(void*) {
     Client* cl = new Client(poll);
     verify(cl->connect(svr_addr) == 0);
-    BenchmarkProxy bm(cl);
+    i32 rpc_id;
     if (fast_requests) {
-        FutureAttr fu_attr;
-        auto do_work = [&bm, &fu_attr] {
-            if (!should_stop) {
-                Future* fu = bm.async_fast_nop(request_str, fu_attr);
-                Future::safe_release(fu);
-                req_counter.next();
-            }
-        };
-        fu_attr.callback = [&do_work] (Future* fu) {
-            if (fu->get_error_code() != 0) {
-                return;
-            }
-            thrpool->run_async([&do_work] {
-                do_work();
-            });
-        };
-        for (int i = 0; i < outgoing_requests; i++) {
-            do_work();
-        }
+        rpc_id = BenchmarkService::FAST_NOP;
     } else {
-        FutureAttr fu_attr;
-        auto do_work = [&bm, &fu_attr] {
-            if (!should_stop) {
-                Future* fu = bm.async_nop(request_str, fu_attr);
-                Future::safe_release(fu);
-                req_counter.next();
-            }
-        };
-        fu_attr.callback = [&do_work] (Future* fu) {
-            if (fu->get_error_code() != 0) {
-                return;
-            }
-            thrpool->run_async([&do_work] {
-                do_work();
-            });
-        };
-        for (int i = 0; i < outgoing_requests; i++) {
-            do_work();
+        rpc_id = BenchmarkService::NOP;
+    }
+    FutureAttr fu_attr;
+    auto do_work = [cl, &fu_attr, rpc_id] {
+        if (!should_stop) {
+            Future* fu = cl->begin_request(rpc_id, fu_attr);
+            *cl << request_str;
+            cl->end_request();
+            Future::safe_release(fu);
+            req_counter.next();
         }
+    };
+    fu_attr.callback = [&do_work] (Future* fu) {
+        if (fu->get_error_code() != 0) {
+            return;
+        }
+        thrpool->run_async([&do_work] {
+            do_work();
+        });
+    };
+    for (int i = 0; i < outgoing_requests; i++) {
+        do_work();
     }
     while (!should_stop) {
         sleep(1);
     }
+
     cl->close_and_release();
     pthread_exit(nullptr);
     return nullptr;
