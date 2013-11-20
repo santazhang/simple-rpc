@@ -20,6 +20,10 @@ def configure(conf):
     conf.env.INCLUDES_BASE = os.path.join(os.getcwd(), "../base-utils")
     conf.env.LIBPATH_BASE = os.path.join(os.getcwd(), "../base-utils/build")
     conf.env.LIB_BASE = 'base'
+    conf.find_program('protoc', var='PROTOC', mandatory=False)
+    if conf.env.PROTOC != []:
+        Logs.pprint("PINK", "Google protocol buffer support enabled")
+        conf.env.LIB_PROTOBUF = 'protobuf'
 
 def build(bld):
     _depend("rpc/rpcgen.py", "rpc/rpcgen.g", "pylib/yapps/main.py rpc/rpcgen.g ; chmod a+x rpc/rpcgen.py")
@@ -38,7 +42,15 @@ def build(bld):
 
     _prog("test/rpcbench.cc test/benchmark_service.cc", "rpcbench")
     _prog("rlog/log_server.cc", "rlogserver", use="rlog simplerpc BASE PTHREAD")
-    _prog(bld.path.ant_glob("test/test*.cc") + ["test/benchmark_service.cc"], "testharness", use="rlog simplerpc BASE PTHREAD")
+
+    test_src = bld.path.ant_glob("test/test*.cc") + ["test/benchmark_service.cc"]
+    test_use = "rlog simplerpc BASE PTHREAD"
+    if bld.env.PROTOC != []:
+        _depend("test/person.pb.cc", "test/person.proto", "%s --cpp_out=test -Itest test/person.proto" % bld.env.PROTOC)
+        _depend("test/person.pb.h", "test/person.proto", "%s --cpp_out=test -Itest test/person.proto" % bld.env.PROTOC)
+        test_src += bld.path.ant_glob("test/*.pb.cc") + bld.path.ant_glob("test/protobuf-test*.cc")
+        test_use += " PROTOBUF"
+    _prog(test_src, "testharness", use=test_use)
 
 #
 # waf helper functions
