@@ -7,6 +7,8 @@
 using namespace benchmark;
 using namespace rpc;
 
+static Counter g_nop_counter;
+
 void BenchmarkService::fast_prime(const i32& n, i32* flag) {
     if (n <= 0) {
         *flag = -1;
@@ -25,5 +27,12 @@ void BenchmarkService::fast_prime(const i32& n, i32* flag) {
             d++;
         }
         *flag = 1;
+    }
+}
+
+void BenchmarkService::nop(const std::string&) {
+    int cnt = g_nop_counter.next();
+    if (cnt % 10000 == 0) {
+        Log::info("%d nop requests", cnt);
     }
 }

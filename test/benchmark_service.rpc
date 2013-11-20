@@ -15,9 +15,11 @@ service Benchmark {
     fast fast_prime(i32 n | i32 flag);
     fast fast_dot_prod(point3 p1, point3 p2 | double v);
     fast fast_add(i32 a, i32 b | i32 a_add_b);
+    fast fast_nop(string);
     prime(i32 n | i32 flag);
     dot_prod(point3 p1, point3 p2 | double v);
     add(i32 a, i32 b | i32 a_add_b);
+    nop(string);
 };
 
 %%
@@ -43,6 +45,10 @@ inline void BenchmarkService::dot_prod(const point3& p1, const point3& p2, doubl
 
 inline void BenchmarkService::add(const rpc::i32& a, const rpc::i32& b, rpc::i32* a_add_b) {
     *a_add_b = a + b;
+}
+
+inline void BenchmarkService::fast_nop(const std::string& str) {
+    nop(str);
 }
 
 } // namespace benchmark

@@ -1,3 +1,5 @@
+#include <string>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <semaphore.h>
@@ -9,106 +11,92 @@
 #include "rpc/server.h"
 #include "benchmark_service.h"
 
-#define NUM 10000000
-
 using namespace benchmark;
 using namespace rpc;
+using namespace std;
 
-int n_th = 1;
-int n_batch = 1;
+const char *svr_addr = "127.0.0.1:8848";
+int byte_size = 10;
+int epoll_instances = 2;
+bool fast_requests = false;
+int seconds = 10;
+int outgoing_requests = 1000;
+int client_threads = 8;
+int worker_threads = 16;
 
-typedef struct {
-    BenchmarkProxy *np;
-    int *counter;
-    int n_outstanding;
-    sem_t sem;
-} clt_data;
+static string request_str;
+PollMgr* poll;
+ThreadPool* thrpool;
 
-void client_cb(clt_data* cl, Future* fu) {
-    __sync_add_and_fetch(&cl->n_outstanding, -1);
-    if (cl->n_outstanding < (n_batch/2)) {
-        verify(sem_post(&cl->sem)==0);
-    }
-}
+Counter req_counter;
 
+bool should_stop = false;
 
-int
-diff_timespec(const struct timespec &end, const struct timespec &start)
-{
-    int diff = (end.tv_sec > start.tv_sec)?(end.tv_sec-start.tv_sec)*1000:0;
-    verify(diff || end.tv_sec == start.tv_sec);
-    if (end.tv_nsec > start.tv_nsec) {
-        diff += (end.tv_nsec-start.tv_nsec)/1000000;
-    } else {
-        diff -= (start.tv_nsec-end.tv_nsec)/1000000;
-    }
-    return diff;
-}
-
-rpc::Rand g_rand;
-
-void *
-clt_run(void *x)
-{
-    clt_data *d = (clt_data *)x;
-    if (n_batch == 1) {
-        for (int i = 0; i < NUM; i++) {
-            i32 x,y,r;
-            x = g_rand();
-            y = g_rand();
-            d->np->fast_add(x,y,&r);
-            verify(r == (x + y));
-            *d->counter = *d->counter + 1;
+void* stat_proc(void*) {
+    i64 last_cnt = 0;
+    for (int i = 0; i < seconds; i++) {
+        int cnt = req_counter.peek_next();
+        if (last_cnt != 0) {
+            Log::debug("qps: %ld", cnt - last_cnt);
         }
-        printf("client finished\n");
-    } else {
-        FutureAttr attr;
-        attr.callback = std::bind(client_cb, d, std::placeholders::_1);
-
-        i32 x,y;
-        d->n_outstanding = 0;
-
-        while (1) {
-            verify(sem_wait(&d->sem)==0);
-            int diff = n_batch - d->n_outstanding;
-            if (diff > n_batch/2) {
-                for (int i = 0; i < diff; i++) {
-                    Future *fu = d->np->async_fast_add(x,y, attr);
-                    if (fu) {
-                        fu->release();
-                    }
-                }
-                *d->counter = *d->counter + diff;
-                /*don't get out of the loop, i'll live with that*/
-                if (*d->counter == NUM) sleep(1);
-
-                __sync_add_and_fetch(&d->n_outstanding, diff);
-            }
-        }
+        last_cnt = cnt;
+        sleep(1);
     }
-
+    should_stop = true;
+    pthread_exit(nullptr);
     return nullptr;
 }
 
-void *
-print_stat(void *x)
-{
-    int *allcounters = (int *)x;
-    int last = 0, curr = 0;
-    struct timeval now, past;
-    gettimeofday(&now, 0);
-    do {
-        last = curr;
-        past = now;
-        curr = 0;
-        for (int i = 0; i < n_th; i++) {
-            curr += allcounters[i];
+void* client_proc(void*) {
+    Client* cl = new Client(poll);
+    verify(cl->connect(svr_addr) == 0);
+    BenchmarkProxy bm(cl);
+    if (fast_requests) {
+        FutureAttr fu_attr;
+        auto do_work = [&bm, &fu_attr] {
+            if (!should_stop) {
+                Future* fu = bm.async_fast_nop(request_str, fu_attr);
+                Future::safe_release(fu);
+                req_counter.next();
+            }
+        };
+        fu_attr.callback = [&do_work] (Future* fu) {
+            if (fu->get_error_code() != 0) {
+                return;
+            }
+            thrpool->run_async([&do_work] {
+                do_work();
+            });
+        };
+        for (int i = 0; i < outgoing_requests; i++) {
+            do_work();
         }
-        gettimeofday(&now, 0);
-        double diff_sec = now.tv_sec - past.tv_sec + (now.tv_usec - past.tv_usec) / 1000000.0;
-        printf("%.2f s processed %d rpcs = %.2f rpcs/sec\n", diff_sec, curr-last, (curr-last)/diff_sec);
+    } else {
+        FutureAttr fu_attr;
+        auto do_work = [&bm, &fu_attr] {
+            if (!should_stop) {
+                Future* fu = bm.async_nop(request_str, fu_attr);
+                Future::safe_release(fu);
+                req_counter.next();
+            }
+        };
+        fu_attr.callback = [&do_work] (Future* fu) {
+            if (fu->get_error_code() != 0) {
+                return;
+            }
+            thrpool->run_async([&do_work] {
+                do_work();
+            });
+        };
+        for (int i = 0; i < outgoing_requests; i++) {
+            do_work();
+        }
+    }
+    while (!should_stop) {
         sleep(1);
-    }while (!curr || curr != last);
+    }
+    cl->close_and_release();
+    pthread_exit(nullptr);
     return nullptr;
 }
 
@@ -117,93 +105,98 @@ int main(int argc, char **argv) {
     signal(SIGHUP, SIG_IGN);
     signal(SIGCHLD, SIG_IGN);
 
-    bool isclient = false, isserver = false;
-    int num_clients = 0;
-    const char *svr_addr = "127.0.0.1:7777";
+    bool is_client = false, is_server = false;
 
     if (argc < 2) {
-        printf("usage: perftest -s|-c ip:port  -t <num_client_threads> -b <batch_size>\n");
+        printf("usage: perftest OPTIONS\n");
+        printf("                -c|-s ip:port\n");
+        printf("                -b    byte_size\n");
+        printf("                -e    epoll_instances\n");
+        printf("                -f    fast_requests\n");
+        printf("                -n    seconds\n");
+        printf("                -o    outgoing_requests\n");
+        printf("                -t    client_threads\n");
+        printf("                -w    worker_threads\n");
         exit(1);
     }
 
     char ch = 0;
-    while ((ch = getopt(argc, argv, "s:c:t:b:"))!= -1) {
+    while ((ch = getopt(argc, argv, "c:s:b:e:fn:o:t:w:"))!= -1) {
         switch (ch) {
         case 'c':
-            isclient = true;
-            if (optarg) svr_addr = optarg;
+            is_client = true;
+            svr_addr = optarg;
             break;
         case 's':
-            isserver = true;
-            if (optarg) svr_addr = optarg;
+            is_server = true;
+            svr_addr = optarg;
+            break;
+        case 'b':
+            byte_size = atoi(optarg);
+            break;
+        case 'e':
+            epoll_instances = atoi(optarg);
+            break;
+        case 'f':
+            fast_requests = true;
+            break;
+        case 'n':
+            seconds = atoi(optarg);
+            break;
+        case 'o':
+            outgoing_requests = atoi(optarg);
             break;
         case 't':
-            n_th = atoi(optarg);
+            client_threads = atoi(optarg);
             break;
-        case 'b': /* batch of simultaneous rpcs */
-            n_batch = atoi(optarg);
+        case 'w':
+            worker_threads = atoi(optarg);
             break;
         default:
             break;
         }
     }
+    verify(is_server || is_client);
+    if (is_server) {
+        Log::info("server will start at     %s", svr_addr);
+    } else {
+        Log::info("client will connect to   %s", svr_addr);
+    }
+    Log::info("packet byte size:        %d", byte_size);
+    Log::info("epoll instances:         %d", epoll_instances);
+    Log::info("fast reqeust:            %s", fast_requests ? "true" : "false");
+    Log::info("running seconds:         %d", seconds);
+    Log::info("outgoing requests:       %d", outgoing_requests);
+    Log::info("client threads:          %d", client_threads);
+    Log::info("worker threads:          %d", worker_threads);
 
-    verify(isserver || isclient);
-
-    const int n_io_threads = 8;
-    const int n_worker_threads = 64;
-
-    poll_options poll_opts;
-    poll_opts.n_threads = n_io_threads;
-    PollMgr* poll = new PollMgr(poll_opts);
-
-    if (isserver) {
-        printf("starting server on %s\n", svr_addr);
-        ThreadPool* thrpool = new ThreadPool(n_worker_threads);
+    poll_options poll_opt;
+    poll_opt.n_threads = epoll_instances;
+    poll = new PollMgr(poll_opt);
+    thrpool = new ThreadPool(worker_threads);
+    if (is_server) {
         Server svr(poll, thrpool);
-        thrpool->release();
-        poll->release();
-
-        BenchmarkService bench_svc;
-        svr.reg(&bench_svc);
-        svr.start(svr_addr);
-
+        BenchmarkService svc;
+        svr.reg(&svc);
+        verify(svr.start(svr_addr) == 0);
         for (;;) {
             sleep(1);
         }
-        exit(0);
-    } else { //isclient
-
-        if (!num_clients)
-            num_clients = n_th;
-
-        BenchmarkProxy** allclients = (BenchmarkProxy **)malloc(sizeof(BenchmarkProxy *)*num_clients);
-
-        pthread_t *cltth = (pthread_t *)malloc(sizeof(pthread_t)*n_th);
-        int * counters = (int *)malloc(sizeof(int)*n_th);
-        bzero(counters, sizeof(int)*n_th);
-        printf("Perf client to create %d rpc clients and %d threads\n", num_clients, n_th);
-
-        for (int i = 0; i < num_clients; i++) {
-            Client *cl = new Client(poll);
-            verify(cl->connect(svr_addr) == 0);
-            allclients[i] = new BenchmarkProxy(cl);
+    } else {
+        pthread_t* client_th = new pthread_t[client_threads];
+        for (int i = 0; i < client_threads; i++) {
+            Pthread_create(&client_th[i], nullptr, client_proc, nullptr);
         }
-
-        clt_data args[n_th];
-        for (int i = 0; i < n_th; i++) {
-            args[i].np = allclients[i % num_clients];
-            args[i].counter = &counters[i];
-            args[i].n_outstanding = 0;
-            verify(sem_init(&args[i].sem, 0, 1)==0);
-            Pthread_create(&cltth[i], nullptr, clt_run, (void *)&args[i]);
-        }
-
         pthread_t stat_th;
-        Pthread_create(&stat_th,nullptr, print_stat, (void *)counters);
-
-        for (int i = 0; i < n_th; i++) {
-            pthread_join(cltth[i], nullptr);
+        Pthread_create(&stat_th, nullptr, stat_proc, nullptr);
+        Pthread_join(stat_th, nullptr);
+        for (int i = 0; i < client_threads; i++) {
+            Pthread_join(client_th[i], nullptr);
         }
+        delete[] client_th;
     }
+
+    poll->release();
+    thrpool->release();
+    return 0;
 }
