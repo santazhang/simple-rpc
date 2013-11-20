@@ -156,6 +156,7 @@ int main(int argc, char **argv) {
     Log::info("client threads:          %d", client_threads);
     Log::info("worker threads:          %d", worker_threads);
 
+    request_str = string(byte_size, 'x');
     poll_options poll_opt;
     poll_opt.n_threads = epoll_instances;
     poll = new PollMgr(poll_opt);
