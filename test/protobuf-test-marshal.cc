@@ -22,4 +22,15 @@ TEST(marshal, protobuf) {
     EXPECT_EQ(p2.id(), 1987);
     EXPECT_EQ(p2.name(), "Santa Zhang");
     EXPECT_EQ(m.content_size(), 0);
+
+    int n_marshal = 1000000;
+    Timer t;
+    t.start();
+    for (int i = 0; i < n_marshal; i ++) {
+        m << p1;
+        m >> p2;
+    }
+    t.stop();
+    Log::info("marshal and unmarshal %d person records takes %.2lf seconds, qps=%.0lf",
+        n_marshal, t.elapsed(), n_marshal / t.elapsed());
 }
