@@ -150,21 +150,15 @@ class Marshal: public NoCopy {
             return n_discard;
         }
 
-        int write_to_fd(int fd, size_t barrier = std::numeric_limits<size_t>::max()) {
+        int write_to_fd(int fd) {
             assert(write_idx <= data->size);
-            assert(barrier == std::numeric_limits<size_t>::max() || barrier <= write_idx);
-            barrier = std::min(write_idx, barrier);
-
-            int cnt = 0;
-            if (barrier > read_idx) {
-                cnt = ::write(fd, data->ptr + read_idx, barrier - read_idx);
-                if (cnt > 0) {
-                    read_idx += cnt;
+            int cnt = ::write(fd, data->ptr + read_idx, write_idx - read_idx);
+            if (cnt > 0) {
+                read_idx += cnt;
 
 #ifdef PKT_SAMPLING
-                    _pkt_sample_out(cnt);
+                _pkt_sample_out(cnt);
 #endif // PKT_SAMPLING
-                }
             }
 
             assert(write_idx <= data->size);
@@ -210,13 +204,6 @@ class Marshal: public NoCopy {
 
 public:
 
-    struct read_barrier {
-        raw_bytes* rb_data;
-        size_t rb_idx;
-
-        read_barrier(): rb_data(nullptr), rb_idx(0) {}
-    };
-
     struct bookmark: public NoCopy {
         size_t size;
         char** ptr;
@@ -232,7 +219,6 @@ private:
     chunk* tail_;
     i32 write_cnt_;
     double last_write_fd_tm_;
-    read_barrier rb_;
 
 public:
 
@@ -259,13 +245,7 @@ public:
     // this must be newly created empty Marshal, m must have at least n bytes of data
     size_t read_from_marshal(Marshal& m, size_t n);
 
-    // write content to fd with a read_barrier, which avoid modification on tail_ by
-    // output thread, thus does not require locking on tail_
-    read_barrier get_read_barrier() {
-        return rb_;
-    }
-    void update_read_barrier();
-    size_t write_to_fd(int fd, const read_barrier& rb, const io_ratelimit& rate);
+    size_t write_to_fd(int fd, const io_ratelimit& rate);
 
     bookmark* set_bookmark(size_t n);
     void write_bookmark(bookmark* bm, const void* p) {

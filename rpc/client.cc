@@ -125,12 +125,8 @@ void Client::handle_write(const io_ratelimit& rate) {
     }
 
     out_l_.lock();
-    Marshal::read_barrier barrier = out_.get_read_barrier();
-//    out_l_.unlock();
+    out_.write_to_fd(sock_, rate);
 
-    out_.write_to_fd(sock_, barrier, rate);
-
-//    out_l_.lock();
     if (out_.empty()) {
         pollmgr_->update_mode(this, Pollable::READ);
     }
@@ -234,7 +230,6 @@ void Client::end_request() {
     if (bmark_ != nullptr) {
         i32 request_size = out_.get_and_reset_write_cnt();
         out_.write_bookmark(bmark_, &request_size);
-        out_.update_read_barrier();
         delete bmark_;
         bmark_ = nullptr;
     }

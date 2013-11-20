@@ -239,30 +239,7 @@ size_t Marshal::read_from_marshal(Marshal& m, size_t n) {
 }
 
 
-void Marshal::update_read_barrier() {
-    if (tail_ != nullptr) {
-        // advance tail_ if it's fully written
-        // this ensures that reading till read_barrier will not update tail_
-        // NOTE: if tail_ is fully written, it could be drained to fully read, and need to be
-        //       removed, thus tail_ need to be modified, violating read_barrier's intention
-        if (tail_->fully_written()) {
-            tail_->next = new chunk;
-            tail_ = tail_->next;
-        }
-
-        rb_.rb_data = tail_->data;
-        rb_.rb_idx = tail_->write_idx;
-    } else {
-        rb_.rb_data = nullptr;
-        rb_.rb_idx = 0;
-    }
-}
-
-size_t Marshal::write_to_fd(int fd, const Marshal::read_barrier& rb, const io_ratelimit& rate) {
-
-    if (rb.rb_data == nullptr) {
-        return 0;
-    }
+size_t Marshal::write_to_fd(int fd, const io_ratelimit& rate) {
 
     if (rate.min_size > 0 || rate.interval > 0) {
         // rpc batching, check if should wait till next batch
@@ -290,16 +267,8 @@ size_t Marshal::write_to_fd(int fd, const Marshal::read_barrier& rb, const io_ra
 
     size_t n_write = 0;
     while (!empty()) {
-        int cnt;
-        if (head_->data == rb.rb_data) {
-            cnt = head_->write_to_fd(fd, rb.rb_idx);
-        } else {
-            cnt = head_->write_to_fd(fd);
-        }
+        int cnt = head_->write_to_fd(fd);
         if (head_->fully_read()) {
-            // since read_barrier should have prevented any possibility to update (advance) tail_
-            assert(tail_ != head_);
-
             chunk* chnk = head_;
             head_ = head_->next;
             delete chnk;

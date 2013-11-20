@@ -33,7 +33,6 @@ static void* start_mt_benchmark_writers(void* args) {
         int n_write = std::min(g_chunk_size, g_bytes_per_writer - n_bytes_written);
         Pthread_mutex_lock(&g_mt_benchmark_mutex);
         int ret = g_mt_benchmark_marshal.write(dummy_data, n_write);
-        g_mt_benchmark_marshal.update_read_barrier();
         Pthread_mutex_unlock(&g_mt_benchmark_mutex);
         verify(ret > 0);
         n_bytes_written += ret;
@@ -60,8 +59,7 @@ TEST(marshal, mt_benchmark) {
     xfer_timer.start();
     while (n_bytes_read < n_writers * g_bytes_per_writer) {
         Pthread_mutex_lock(&g_mt_benchmark_mutex);
-        Marshal::read_barrier rb = g_mt_benchmark_marshal.get_read_barrier();
-        int ret = g_mt_benchmark_marshal.write_to_fd(null_fd, rb, no_rate);
+        int ret = g_mt_benchmark_marshal.write_to_fd(null_fd, no_rate);
         Pthread_mutex_unlock(&g_mt_benchmark_mutex);
         verify(ret >= 0);
         n_bytes_read += ret;

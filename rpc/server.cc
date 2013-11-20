@@ -33,7 +33,6 @@ void ServerConnection::end_reply() {
     if (bmark_ != nullptr) {
         i32 reply_size = out_.get_and_reset_write_cnt();
         out_.write_bookmark(bmark_, &reply_size);
-        out_.update_read_barrier();
         delete bmark_;
         bmark_ = nullptr;
     }
@@ -116,12 +115,7 @@ void ServerConnection::handle_write(const io_ratelimit& rate) {
     }
 
     out_l_.lock();
-    Marshal::read_barrier barrier = out_.get_read_barrier();
-//    out_l_.unlock();
-
-    out_.write_to_fd(socket_, barrier, rate);
-
-//    out_l_.lock();
+    out_.write_to_fd(socket_, rate);
     if (out_.empty()) {
         server_->pollmgr_->update_mode(this, Pollable::READ);
     }
