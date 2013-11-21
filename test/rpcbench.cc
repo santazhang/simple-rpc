@@ -173,8 +173,8 @@ int main(int argc, char **argv) {
     poll = new PollMgr(poll_opt);
     thrpool = new ThreadPool(worker_threads);
     if (is_server) {
-        Server svr(poll, thrpool);
         BenchmarkService svc;
+        Server svr(poll, thrpool);
         svr.reg(&svc);
         verify(svr.start(svr_addr) == 0);
 
@@ -196,9 +196,6 @@ int main(int argc, char **argv) {
         }
         Pthread_mutex_unlock(&g_stop_mutex);
 
-        // release threadpool so that no worker will be running on BenchmarkService
-        thrpool->release();
-
     } else {
         pthread_t* client_th = new pthread_t[client_threads];
         for (int i = 0; i < client_threads; i++) {
@@ -211,10 +208,9 @@ int main(int argc, char **argv) {
             Pthread_join(client_th[i], nullptr);
         }
         delete[] client_th;
-
-        thrpool->release();
     }
 
     poll->release();
+    thrpool->release();
     return 0;
 }
