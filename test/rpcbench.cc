@@ -32,7 +32,18 @@ Counter req_counter;
 
 bool should_stop = false;
 
-void* stat_proc(void*) {
+pthread_mutex_t g_stop_mutex;
+pthread_cond_t g_stop_cond;
+
+static void signal_handler(int sig) {
+    Log_info("caught signal %d, stopping server now", sig);
+    should_stop = true;
+    Pthread_mutex_lock(&g_stop_mutex);
+    Pthread_cond_signal(&g_stop_cond);
+    Pthread_mutex_unlock(&g_stop_mutex);
+}
+
+static void* stat_proc(void*) {
     i64 last_cnt = 0;
     for (int i = 0; i < seconds; i++) {
         int cnt = req_counter.peek_next();
@@ -47,7 +58,7 @@ void* stat_proc(void*) {
     return nullptr;
 }
 
-void* client_proc(void*) {
+static void* client_proc(void*) {
     Client* cl = new Client(poll);
     verify(cl->connect(svr_addr) == 0);
     i32 rpc_id;
@@ -166,9 +177,25 @@ int main(int argc, char **argv) {
         BenchmarkService svc;
         svr.reg(&svc);
         verify(svr.start(svr_addr) == 0);
-        for (;;) {
-            sleep(1);
+
+        Pthread_mutex_init(&g_stop_mutex, nullptr);
+        Pthread_cond_init(&g_stop_cond, nullptr);
+
+        signal(SIGPIPE, SIG_IGN);
+        signal(SIGHUP, SIG_IGN);
+        signal(SIGCHLD, SIG_IGN);
+
+        signal(SIGALRM, signal_handler);
+        signal(SIGINT, signal_handler);
+        signal(SIGQUIT, signal_handler);
+        signal(SIGTERM, signal_handler);
+
+        Pthread_mutex_lock(&g_stop_mutex);
+        while (should_stop == false) {
+            Pthread_cond_wait(&g_stop_cond, &g_stop_mutex);
         }
+        Pthread_mutex_unlock(&g_stop_mutex);
+
     } else {
         pthread_t* client_th = new pthread_t[client_threads];
         for (int i = 0; i < client_threads; i++) {
