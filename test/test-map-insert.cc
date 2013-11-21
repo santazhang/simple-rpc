@@ -30,7 +30,7 @@ public:
     }
 };
 
-TEST(utils, insert_to_map) {
+TEST(utils, insert_into_map) {
 
     EchoOnCopy a(1987);
     EchoOnCopy b(1988);
@@ -45,8 +45,8 @@ TEST(utils, insert_to_map) {
     Log::info("dict1 <EchoOnCopy, int>");
     Log::info("  insert(make_pair)");
     dict1.insert(make_pair(a, 1987));
-    Log::info("  insert_to_map()");
-    insert_to_map(dict1, b, 1988);
+    Log::info("  insert_into_map()");
+    insert_into_map(dict1, b, 1988);
     Log::info("  assign=");
     dict1[c] = 1989;
 
@@ -54,8 +54,8 @@ TEST(utils, insert_to_map) {
     Log::info("dict2 <const EchoOnCopy, int>");
     Log::info("  insert(make_pair)");
     dict2.insert(make_pair(const_a, 1987));
-    Log::info("  insert_to_map()");
-    insert_to_map(dict2, const_b, 1988);
+    Log::info("  insert_into_map()");
+    insert_into_map(dict2, const_b, 1988);
     Log::info("  assign=");
     dict2[const_c] = 1989;
 
@@ -63,8 +63,8 @@ TEST(utils, insert_to_map) {
     Log::info("dict3 <int, EchoOnCopy>");
     Log::info("  insert(make_pair)");
     dict3.insert(make_pair(1987, a));
-    Log::info("  insert_to_map()");
-    insert_to_map(dict3, 1988, b);
+    Log::info("  insert_into_map()");
+    insert_into_map(dict3, 1988, b);
     Log::info("  assign=");
     dict3[1989] = c;
 
@@ -72,8 +72,8 @@ TEST(utils, insert_to_map) {
     Log::info("dict4 <int, EchoOnCopy>");
     Log::info("  insert(make_pair)");
     dict4.insert(make_pair(1987, const_a));
-    Log::info("  insert_to_map()");
-    insert_to_map(dict4, 1988, const_b);
+    Log::info("  insert_into_map()");
+    insert_into_map(dict4, 1988, const_b);
     Log::info("  assign=");
     dict4[1989] = const_c;
 }

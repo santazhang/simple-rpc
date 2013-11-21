@@ -281,7 +281,7 @@ Client* ClientPool::get_client(const string& addr) {
         }
         if (ok) {
             cl = parallel_clients[rand_() % parallel_connections_];
-            insert_to_map(cache_, addr, parallel_clients);
+            insert_into_map(cache_, addr, parallel_clients);
         } else {
             // close connections
             while (i >= 0) {

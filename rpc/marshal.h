@@ -395,7 +395,7 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, std::map<K, V>& v) {
         K key;
         V value;
         m >> key >> value;
-        insert_to_map(v, key, value);
+        insert_into_map(v, key, value);
     }
     return m;
 }
@@ -422,7 +422,7 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, std::unordered_map<K, V>& v) {
         K key;
         V value;
         m >> key >> value;
-        insert_to_map(v, key, value);
+        insert_into_map(v, key, value);
     }
     return m;
 }
