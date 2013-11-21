@@ -51,7 +51,6 @@ TEST(marshal, mt_benchmark) {
         Pthread_create(&th_writers[i], nullptr, start_mt_benchmark_writers, nullptr);
     }
 
-    io_ratelimit no_rate;
     int null_fd = open("/dev/null", O_WRONLY);
     i64 n_bytes_read = 0;
     double report_time = -1.0;
@@ -59,7 +58,7 @@ TEST(marshal, mt_benchmark) {
     xfer_timer.start();
     while (n_bytes_read < n_writers * g_bytes_per_writer) {
         Pthread_mutex_lock(&g_mt_benchmark_mutex);
-        int ret = g_mt_benchmark_marshal.write_to_fd(null_fd, no_rate);
+        int ret = g_mt_benchmark_marshal.write_to_fd(null_fd);
         Pthread_mutex_unlock(&g_mt_benchmark_mutex);
         verify(ret >= 0);
         n_bytes_read += ret;

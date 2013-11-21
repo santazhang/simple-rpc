@@ -109,13 +109,13 @@ void ServerConnection::handle_read() {
     }
 }
 
-void ServerConnection::handle_write(const io_ratelimit& rate) {
+void ServerConnection::handle_write() {
     if (status_ == CLOSED) {
         return;
     }
 
     out_l_.lock();
-    out_.write_to_fd(socket_, rate);
+    out_.write_to_fd(socket_);
     if (out_.empty()) {
         server_->pollmgr_->update_mode(this, Pollable::READ);
     }

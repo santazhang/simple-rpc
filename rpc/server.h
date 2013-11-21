@@ -100,7 +100,7 @@ public:
     }
 
     int poll_mode();
-    void handle_write(const io_ratelimit& rate);
+    void handle_write();
     void handle_read();
     void handle_error();
 };

@@ -119,13 +119,13 @@ void Client::handle_error() {
     close();
 }
 
-void Client::handle_write(const io_ratelimit& rate) {
+void Client::handle_write() {
     if (status_ != CONNECTED) {
         return;
     }
 
     out_l_.lock();
-    out_.write_to_fd(sock_, rate);
+    out_.write_to_fd(sock_);
 
     if (out_.empty()) {
         pollmgr_->update_mode(this, Pollable::READ);

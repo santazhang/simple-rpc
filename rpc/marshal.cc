@@ -8,54 +8,6 @@ using namespace std;
 
 namespace rpc {
 
-#ifdef PKT_SAMPLING
-
-#define PKT_SAMPLE_SIZE 19
-static size_t _pkt_sample_in_size[PKT_SAMPLE_SIZE];
-static size_t _pkt_sample_out_size[PKT_SAMPLE_SIZE];
-
-static void _pkt_sampling_report() {
-    static size_t ratelimit_counter = 0;
-    static int last_report_tm = 0;
-    if (ratelimit_counter++ % 1024 == 0) {
-        struct timeval now;
-        gettimeofday(&now, nullptr);
-        if (now.tv_sec - last_report_tm >= 1) {
-            {
-                ostringstream ostr;
-                for (int i = 0; i < PKT_SAMPLE_SIZE; i++) {
-                    ostr << " " << _pkt_sample_in_size[i];
-                }
-                Log_info("PKT_SAMPLE_IN: %s", ostr.str().c_str());
-            }
-            {
-                ostringstream ostr;
-                for (int i = 0; i < PKT_SAMPLE_SIZE; i++) {
-                    ostr << " " << _pkt_sample_out_size[i];
-                }
-                Log_info("PKT_SAMPLE_OUT:%s", ostr.str().c_str());
-            }
-            last_report_tm = now.tv_sec;
-        }
-    }
-}
-
-void _pkt_sample_in(size_t size) {
-    // not thread safe, but ok, since we only need approximate results
-    static size_t _pkt_sample_counter = 0;
-    _pkt_sample_in_size[_pkt_sample_counter++ % PKT_SAMPLE_SIZE] = size;
-    _pkt_sampling_report();
-}
-
-void _pkt_sample_out(size_t size) {
-    // not thread safe, but ok, since we only need approximate results
-    static size_t _pkt_sample_counter = 0;
-    _pkt_sample_out_size[_pkt_sample_counter++ % PKT_SAMPLE_SIZE] = size;
-    _pkt_sampling_report();
-}
-
-#endif // PKT_SAMPLING
-
 /**
  * 8kb minimum chunk size.
  * NOTE: this value directly affects how many read/write syscall will be issued.
@@ -239,32 +191,7 @@ size_t Marshal::read_from_marshal(Marshal& m, size_t n) {
 }
 
 
-size_t Marshal::write_to_fd(int fd, const io_ratelimit& rate) {
-
-    if (rate.min_size > 0 || rate.interval > 0) {
-        // rpc batching, check if should wait till next batch
-        bool should_wait = true;
-        if (rate.min_size > 0 && content_size_gt(rate.min_size)) {
-            should_wait = false;
-        }
-
-        if (rate.interval > 0) {
-            struct timeval tm;
-            gettimeofday(&tm, nullptr);
-            double now = tm.tv_sec + tm.tv_usec / 1000.0 / 1000.0;
-            if (should_wait && now - last_write_fd_tm_ > rate.interval) {
-                should_wait = false;
-            }
-            if (should_wait == false) {
-                last_write_fd_tm_ = now;
-            }
-        }
-
-        if (should_wait) {
-            return 0;
-        }
-    }
-
+size_t Marshal::write_to_fd(int fd) {
     size_t n_write = 0;
     while (!empty()) {
         int cnt = head_->write_to_fd(fd);

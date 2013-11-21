@@ -15,24 +15,7 @@
 
 #include "utils.h"
 
-// sample packet size
-//#define PKT_SAMPLING
-
 namespace rpc {
-
-#ifdef PKT_SAMPLING
-
-void _pkt_sample_in(size_t size);
-void _pkt_sample_out(size_t size);
-
-#endif // PKT_SAMPLING
-
-struct io_ratelimit {
-    int min_size;
-    double interval;
-
-    io_ratelimit(): min_size(-1), interval(-1) {}
-};
 
 // not thread safe, for better performance
 class Marshal: public NoCopy {
@@ -155,10 +138,6 @@ class Marshal: public NoCopy {
             int cnt = ::write(fd, data->ptr + read_idx, write_idx - read_idx);
             if (cnt > 0) {
                 read_idx += cnt;
-
-#ifdef PKT_SAMPLING
-                _pkt_sample_out(cnt);
-#endif // PKT_SAMPLING
             }
 
             assert(write_idx <= data->size);
@@ -175,10 +154,6 @@ class Marshal: public NoCopy {
                 cnt = ::read(fd, data->ptr + write_idx, data->size - write_idx);
                 if (cnt > 0) {
                     write_idx += cnt;
-
-#ifdef PKT_SAMPLING
-                    _pkt_sample_in(cnt);
-#endif // PKT_SAMPLING
                 }
             }
 
@@ -218,11 +193,10 @@ private:
     chunk* head_;
     chunk* tail_;
     i32 write_cnt_;
-    double last_write_fd_tm_;
 
 public:
 
-    Marshal(): head_(nullptr), tail_(nullptr), write_cnt_(0), last_write_fd_tm_(-1) { }
+    Marshal(): head_(nullptr), tail_(nullptr), write_cnt_(0) { }
     ~Marshal();
 
     bool empty() const {
@@ -245,7 +219,7 @@ public:
     // this must be newly created empty Marshal, m must have at least n bytes of data
     size_t read_from_marshal(Marshal& m, size_t n);
 
-    size_t write_to_fd(int fd, const io_ratelimit& rate);
+    size_t write_to_fd(int fd);
 
     bookmark* set_bookmark(size_t n);
     void write_bookmark(bookmark* bm, const void* p) {

@@ -103,8 +103,6 @@ int main(int argc, char **argv) {
     signal(SIGCHLD, SIG_IGN);
 
     bool is_client = false, is_server = false;
-    double interval_sec = 0.0;
-    int min_size = 0;
 
     if (argc < 2) {
         printf("usage: perftest OPTIONS\n");
@@ -112,8 +110,6 @@ int main(int argc, char **argv) {
         printf("                -b    byte_size\n");
         printf("                -e    epoll_instances\n");
         printf("                -f    fast_requests\n");
-        printf("                -i    interval_sec\n");
-        printf("                -m    min_size\n");
         printf("                -n    seconds\n");
         printf("                -o    outgoing_requests\n");
         printf("                -t    client_threads\n");
@@ -141,12 +137,6 @@ int main(int argc, char **argv) {
         case 'f':
             fast_requests = true;
             break;
-        case 'i':
-            interval_sec = strtod(optarg, nullptr);
-            break;
-        case 'm':
-            min_size = atoi(optarg);
-            break;
         case 'n':
             seconds = atoi(optarg);
             break;
@@ -172,8 +162,6 @@ int main(int argc, char **argv) {
     Log::info("packet byte size:        %d", byte_size);
     Log::info("epoll instances:         %d", epoll_instances);
     Log::info("fast reqeust:            %s", fast_requests ? "true" : "false");
-    Log::info("interval sec:            %lf", interval_sec);
-    Log::info("min packet size:         %d", min_size);
     Log::info("running seconds:         %d", seconds);
     Log::info("outgoing requests:       %d", outgoing_requests);
     Log::info("client threads:          %d", client_threads);
@@ -182,8 +170,6 @@ int main(int argc, char **argv) {
     request_str = string(byte_size, 'x');
     poll_options poll_opt;
     poll_opt.n_threads = epoll_instances;
-    poll_opt.rate.min_size = min_size;
-    poll_opt.rate.interval = interval_sec;
     poll = new PollMgr(poll_opt);
     thrpool = new ThreadPool(worker_threads);
     if (is_server) {
