@@ -11,6 +11,8 @@
 using namespace rpc;
 
 TEST(marshal, protobuf) {
+    GOOGLE_PROTOBUF_VERIFY_VERSION;
+
     Person p1, p2;
     Marshal m;
     p1.set_id(1987);
@@ -33,4 +35,6 @@ TEST(marshal, protobuf) {
     t.stop();
     Log::info("marshal and unmarshal %d person records takes %.2lf seconds, qps=%.0lf",
         n_marshal, t.elapsed(), n_marshal / t.elapsed());
+
+    google::protobuf::ShutdownProtobufLibrary();
 }
