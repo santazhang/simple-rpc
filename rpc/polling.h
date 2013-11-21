@@ -4,7 +4,6 @@
 #include <set>
 
 #include "utils.h"
-#include "marshal.h"
 
 namespace rpc {
 
