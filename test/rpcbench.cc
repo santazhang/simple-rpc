@@ -196,6 +196,9 @@ int main(int argc, char **argv) {
         }
         Pthread_mutex_unlock(&g_stop_mutex);
 
+        // release threadpool so that no worker will be running on BenchmarkService
+        thrpool->release();
+
     } else {
         pthread_t* client_th = new pthread_t[client_threads];
         for (int i = 0; i < client_threads; i++) {
@@ -208,9 +211,10 @@ int main(int argc, char **argv) {
             Pthread_join(client_th[i], nullptr);
         }
         delete[] client_th;
+
+        thrpool->release();
     }
 
     poll->release();
-    thrpool->release();
     return 0;
 }
