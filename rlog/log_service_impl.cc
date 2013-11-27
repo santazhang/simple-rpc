@@ -10,6 +10,8 @@ using namespace rpc;
 using namespace std;
 using namespace rlog;
 
+namespace rlog {
+
 void RLogServiceImpl::log(const i32& level, const std::string& source, const i64& msg_id, const std::string& message) {
     log_piece piece;
     piece.msg_id = msg_id;
@@ -82,3 +84,5 @@ void RLogServiceImpl::aggregate_qps(const std::string& metric_name, const rpc::i
 
     agg_qps_l_.unlock();
 }
+
+} // namespace rlog

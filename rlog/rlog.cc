@@ -8,6 +8,8 @@ using namespace std;
 using namespace rpc;
 using namespace rlog;
 
+namespace rlog {
+
 char* RLog::my_ident_s = nullptr;
 RLogProxy* RLog::rp_s = nullptr;
 Client* RLog::cl_s = nullptr;
@@ -123,3 +125,5 @@ void RLog::aggregate_qps(const std::string& metric_name, const rpc::i32 incremen
     }
     Pthread_mutex_unlock(&mutex_s);
 }
+
+} // namespace rlog
