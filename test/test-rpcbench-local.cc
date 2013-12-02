@@ -68,8 +68,14 @@ TEST(integration, rpc_bench_local) {
     const int n_dot_prod = 100000;
     timer.start();
     for (int i = 0; i < n_dot_prod; i++) {
-        point3 a = {.x = (double) i, .y = (double) i, .z = (double) i};
-        point3 b = {.x = (double) i - 1987, .y = (double) i - 1987, .z = (double) i - 1987};
+        point3 a;
+        a.x = (double) i;
+        a.y = (double) i;
+        a.z = (double) i;
+        point3 b;
+        b.x = (double) i - 1987;
+        b.y = (double) i - 1987;
+        b.z = (double) i - 1987;
         double v;
         clnt->fast_dot_prod(a, b, &v);
     }
@@ -79,8 +85,14 @@ TEST(integration, rpc_bench_local) {
     fu_group = new FutureGroup;
     timer.start();
     for (int i = 0; i < n_dot_prod; i++) {
-        point3 a = {.x = (double) i, .y = (double) i, .z = (double) i};
-        point3 b = {.x = (double) i - 1987, .y = (double) i - 1987, .z = (double) i - 1987};
+        point3 a;
+        a.x = (double) i;
+        a.y = (double) i;
+        a.z = (double) i;
+        point3 b;
+        b.x = (double) i - 1987;
+        b.y = (double) i - 1987;
+        b.z = (double) i - 1987;
         fu_group->add(clnt->async_fast_dot_prod(a, b));
     }
     delete fu_group;
@@ -90,8 +102,14 @@ TEST(integration, rpc_bench_local) {
 
     timer.start();
     for (int i = 0; i < n_dot_prod; i++) {
-        point3 a = {.x = (double) i, .y = (double) i, .z = (double) i};
-        point3 b = {.x = (double) i - 1987, .y = (double) i - 1987, .z = (double) i - 1987};
+        point3 a;
+        a.x = (double) i;
+        a.y = (double) i;
+        a.z = (double) i;
+        point3 b;
+        b.x = (double) i - 1987;
+        b.y = (double) i - 1987;
+        b.z = (double) i - 1987;
         double v;
         clnt->dot_prod(a, b, &v);
     }
@@ -101,8 +119,14 @@ TEST(integration, rpc_bench_local) {
     fu_group = new FutureGroup;
     timer.start();
     for (int i = 0; i < n_dot_prod; i++) {
-        point3 a = {.x = (double) i, .y = (double) i, .z = (double) i};
-        point3 b = {.x = (double) i - 1987, .y = (double) i - 1987, .z = (double) i - 1987};
+        point3 a;
+        a.x = (double) i;
+        a.y = (double) i;
+        a.z = (double) i;
+        point3 b;
+        b.x = (double) i - 1987;
+        b.y = (double) i - 1987;
+        b.z = (double) i - 1987;
         fu_group->add(clnt->async_dot_prod(a, b));
     }
     delete fu_group;
