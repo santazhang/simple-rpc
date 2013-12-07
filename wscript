@@ -6,6 +6,9 @@ def options(opt):
 
 def configure(conf):
     conf.load("compiler_cxx")
+    conf.load("python")
+    conf.check_python_headers()
+
     _enable_cxx11(conf)
     _enable_debug(conf)
     conf.env.LIB_PTHREAD = 'pthread'
@@ -26,8 +29,14 @@ def build(bld):
     bld.stlib(
         source=bld.path.ant_glob("rlog/*.cc", excl="rlog/log_server.cc"),
         target="rlog",
-        includes=". rlog simple-rpc",
+        includes=". rlog rpc",
         use="BASE PTHREAD")
+    bld.shlib(
+        features="pyext",
+        source=bld.path.ant_glob("pylib/simplerpc/*.cc"),
+        target="_pyrpc",
+        includes=". rpc",
+        use="BASE PTHREAD PYTHON")
 
     def _prog(source, target, includes=".", use="simplerpc BASE PTHREAD"):
         bld.program(source=source, target=target, includes=includes, use=use)
