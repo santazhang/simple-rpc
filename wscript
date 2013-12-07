@@ -6,6 +6,7 @@ def options(opt):
 
 def configure(conf):
     conf.load("compiler_cxx")
+    _enable_pic(conf)
     _enable_cxx11(conf)
     _enable_debug(conf)
     conf.env.LIB_PTHREAD = 'pthread'
@@ -55,6 +56,10 @@ from waflib import Logs
 # use clang++ as default compiler (for c++11 support on mac)
 if sys.platform == 'darwin' and not os.environ.has_key("CXX"):
     os.environ["CXX"] = "clang++"
+
+def _enable_pic(conf):
+    conf.env.append_value("CXXFLAGS", "-fPIC")
+    conf.env.append_value("LINKFLAGS", "-fPIC")
 
 def _enable_cxx11(conf):
     Logs.pprint("PINK", "C++11 features enabled")
