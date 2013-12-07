@@ -1,1 +1,1 @@
-from _pyrpc import a_add_b
+from server import Server

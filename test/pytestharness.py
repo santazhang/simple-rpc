@@ -9,7 +9,8 @@ import simplerpc
 
 class TestUtils(TestCase):
     def test_cpp_python_interop(self):
-        assert simplerpc.a_add_b(1, 2) == 3
+        s = simplerpc.Server()
+
 
 if __name__ == "__main__":
     unittest.main()
