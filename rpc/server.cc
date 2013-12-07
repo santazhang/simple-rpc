@@ -335,15 +335,13 @@ int Server::start(const char* bind_addr) {
     return 0;
 }
 
-int Server::reg(i32 rpc_id, void (*svc_func)(Request*, ServerConnection*)) {
+int Server::reg(i32 rpc_id, const std::function<void(Request*, ServerConnection*)>& func) {
     // disallow duplicate rpc_id
     if (handlers_.find(rpc_id) != handlers_.end()) {
         return EEXIST;
     }
 
-    handlers_[rpc_id] = [svc_func] (Request* req, ServerConnection* sconn) {
-        svc_func(req, sconn);
-    };
+    handlers_[rpc_id] = func;
 
     return 0;
 }

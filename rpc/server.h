@@ -145,16 +145,16 @@ public:
      *     ..
      *
      *     // send reply
-     *     server_connection->begin_packet();
-     *     *server_connection << {packet_content};
-     *     server_connection->end_packet();
+     *     server_connection->begin_reply();
+     *     *server_connection << {reply_content};
+     *     server_connection->end_reply();
      *
      *     // cleanup resource
      *     delete request;
      *     server_connection->release();
      *  }
      */
-    int reg(i32 rpc_id, void (*svc_func)(Request*, ServerConnection*));
+    int reg(i32 rpc_id, const std::function<void(Request*, ServerConnection*)>& func);
 
     template<class S>
     int reg(i32 rpc_id, S* svc, void (S::*svc_func)(Request*, ServerConnection*)) {
