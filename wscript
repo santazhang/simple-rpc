@@ -30,13 +30,13 @@ def build(bld):
         source=bld.path.ant_glob("rlog/*.cc", excl="rlog/log_server.cc"),
         target="rlog",
         includes=". rlog rpc",
-        use="BASE PTHREAD")
+        use="simplerpc BASE PTHREAD")
     bld.shlib(
         features="pyext",
         source=bld.path.ant_glob("pylib/simplerpc/*.cc"),
         target="_pyrpc",
         includes=". rpc",
-        use="BASE PTHREAD PYTHON")
+        use="simplerpc BASE PTHREAD PYTHON")
 
     def _prog(source, target, includes=".", use="simplerpc BASE PTHREAD"):
         bld.program(source=source, target=target, includes=includes, use=use)
@@ -45,7 +45,7 @@ def build(bld):
     _prog("rlog/log_server.cc", "rlogserver", use="rlog simplerpc BASE PTHREAD")
 
     test_src = bld.path.ant_glob("test/test*.cc") + ["test/benchmark_service.cc"]
-    test_use = "rlog simplerpc BASE PTHREAD"
+    test_use = "rlog BASE PTHREAD"
     if bld.env.PROTOC != []:
         _depend("test/person.pb.cc", "test/person.proto", "%s --cpp_out=test -Itest test/person.proto" % bld.env.PROTOC)
         _depend("test/person.pb.h", "test/person.proto", "%s --cpp_out=test -Itest test/person.proto" % bld.env.PROTOC)
