@@ -12,18 +12,15 @@ class TestUtils(TestCase):
         s = simplerpc.Server()
 
         def a_add_b(a, b):
-            print "*** called a + b: %d + %d" % (a, b)
             return a + b
 
         s.reg_func(1987, a_add_b)
-
         s.start("0.0.0.0:8848")
 
         c = simplerpc.Client()
         c.connect("0.0.0.0:8848")
-        for i in range(10000):
+        for i in range(1000):
             assert c.sync_call(1987, 1, 2) == 3
-            print c.sync_call(1987, 1, 2) # 1 + 2 -> 3
 
 if __name__ == "__main__":
     unittest.main()

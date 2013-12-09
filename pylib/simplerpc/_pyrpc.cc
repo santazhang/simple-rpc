@@ -21,14 +21,14 @@ public:
 
 static PyObject* _pyrpc_init_server(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
-    Log::info("init_server called");
+//    Log::info("init_server called");
     Server* svr = new Server;
     return Py_BuildValue("k", svr);
 }
 
 static PyObject* _pyrpc_fini_server(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
-    Log::info("fini_server called");
+    // Log::info("fini_server called");
     unsigned long u;
     if (!PyArg_ParseTuple(args, "k", &u))
         return NULL;
@@ -39,7 +39,7 @@ static PyObject* _pyrpc_fini_server(PyObject* self, PyObject* args) {
 
 static PyObject* _pyrpc_server_start(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
-    Log::info("server_start called");
+    // Log::info("server_start called");
     const char* addr;
     unsigned long u;
     if (!PyArg_ParseTuple(args, "ks", &u, &addr))
@@ -51,7 +51,7 @@ static PyObject* _pyrpc_server_start(PyObject* self, PyObject* args) {
 
 static PyObject* _pyrpc_server_unreg(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
-    Log::info("server_unreg called");
+    // Log::info("server_unreg called");
     unsigned long u;
     int rpc_id;
     if (!PyArg_ParseTuple(args, "ki", &u, &rpc_id))
@@ -63,7 +63,7 @@ static PyObject* _pyrpc_server_unreg(PyObject* self, PyObject* args) {
 
 static PyObject* _pyrpc_server_reg(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
-    Log::info("server_reg called");
+    // Log::info("server_reg called");
     unsigned long u;
     int rpc_id;
     PyObject* func;
@@ -76,14 +76,14 @@ static PyObject* _pyrpc_server_reg(PyObject* self, PyObject* args) {
     Py_XINCREF(func);
 
     int ret = svr->reg(rpc_id, [func](Request* req, ServerConnection* sconn) {
-        Log::info("rpc handler called");
+        // Log::info("rpc handler called");
         std::string enc_req;
         req->m >> enc_req;
 
         std::string enc_reply;
         {
 //            Log::info("before acquiring the lock");
-//            GILHelper gil_helper;
+            GILHelper gil_helper;
 //            Log::info("after acquiring the lock");
             PyObject* params = Py_BuildValue("(s)", &enc_req[0]);
             PyObject* result = PyObject_CallObject(func, params);
@@ -101,7 +101,7 @@ static PyObject* _pyrpc_server_reg(PyObject* self, PyObject* args) {
         // cleanup as required by simple-rpc
         delete req;
         sconn->release();
-        Log::info("rpc handle returned");
+        // Log::info("rpc handle returned");
     });
 
     return Py_BuildValue("i", ret);
@@ -109,14 +109,14 @@ static PyObject* _pyrpc_server_reg(PyObject* self, PyObject* args) {
 
 static PyObject* _pyrpc_init_poll_mgr(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
-    Log::info("init_poll_mgr called");
+    // Log::info("init_poll_mgr called");
     PollMgr* poll = new PollMgr;
     return Py_BuildValue("k", poll);
 }
 
 static PyObject* _pyrpc_init_client(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
-    Log::info("init_client called");
+    // Log::info("init_client called");
     unsigned long u;
     if (!PyArg_ParseTuple(args, "k", &u))
         return NULL;
@@ -127,7 +127,7 @@ static PyObject* _pyrpc_init_client(PyObject* self, PyObject* args) {
 
 static PyObject* _pyrpc_fini_client(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
-    Log::info("fini_client called");
+    // Log::info("fini_client called");
     unsigned long u;
     if (!PyArg_ParseTuple(args, "k", &u))
         return NULL;
@@ -138,7 +138,7 @@ static PyObject* _pyrpc_fini_client(PyObject* self, PyObject* args) {
 
 static PyObject* _pyrpc_client_connect(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
-    Log::info("client_connect called");
+    // Log::info("client_connect called");
     const char* addr;
     unsigned long u;
     if (!PyArg_ParseTuple(args, "ks", &u, &addr))
@@ -149,8 +149,12 @@ static PyObject* _pyrpc_client_connect(PyObject* self, PyObject* args) {
 }
 
 static PyObject* _pyrpc_client_sync_call(PyObject* self, PyObject* args) {
-//    GILHelper gil_helper;
-    Log::info("client_sync_call called");
+    GILHelper gil_helper;
+    // Log::info("client_sync_call called");
+
+    PyThreadState *_save;
+    _save = PyEval_SaveThread();
+
     unsigned long u;
     int rpc_id;
     const char* enc_args;
@@ -177,6 +181,8 @@ static PyObject* _pyrpc_client_sync_call(PyObject* self, PyObject* args) {
         fu->release();
     }
 
+    PyEval_RestoreThread(_save);
+
     return Py_BuildValue("(is)", error_code, enc_result.c_str());
 }
 
@@ -199,7 +205,7 @@ static PyMethodDef _pyrpcMethods[] = {
 
 PyMODINIT_FUNC init_pyrpc(void) {
     PyEval_InitThreads();
-    Log::debug("PyEval_InitThreads called!");
+    // Log::debug("PyEval_InitThreads called!");
     GILHelper gil_helper;
     PyObject* m;
     m = Py_InitModule("_pyrpc", _pyrpcMethods);

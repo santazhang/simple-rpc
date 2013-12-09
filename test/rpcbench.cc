@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
     }
 
     char ch = 0;
-    while ((ch = getopt(argc, argv, "c:s:b:e:fi:m:n:o:t:w:"))!= -1) {
+    while ((ch = getopt(argc, argv, "c:s:b:e:fn:o:t:w:"))!= -1) {
         switch (ch) {
         case 'c':
             is_client = true;
