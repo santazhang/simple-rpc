@@ -100,6 +100,10 @@ parser Rpc:
 
 %%
 
+# global variables
+rpc_table = {} # service.func = rpc_code
+
+
 class SourceFile(object):
     def __init__(self, f):
         self.f = f
@@ -150,15 +154,16 @@ def emit_struct(struct, f):
     f.writeln("}")
     f.writeln()
 
-
 def emit_service_and_proxy(service, f):
     f.writeln("class %sService: public rpc::Service {" % service.name)
     f.writeln("public:")
     with f.indent():
         f.writeln("enum {")
         with f.indent():
+            global rpc_table
             for func in service.functions:
                 rpc_code = random.randint(0x10000000, 0x70000000)
+                rpc_table["%s.%s" % (service.name, func.name)] = rpc_code
                 f.writeln("%s = %s," % (func.name.upper(), hex(rpc_code)))
         f.writeln("};")
         f.writeln("int reg_to(rpc::Server* svr) {")
@@ -317,6 +322,52 @@ def emit_rpc_source(rpc_source, f):
         f.writeln(" ".join(["}"] * len(rpc_source.namespace)) + " // namespace " + "::".join(rpc_source.namespace))
         f.writeln()
 
+
+def emit_struct_python(struct, f):
+    f.writeln("%s = collections.namedtuple('%s', [%s])" % (struct.name, struct.name,
+        ", ".join(["'%s'" % field.name for field in struct.fields])))
+    f.writeln()
+
+
+def emit_service_and_proxy_python(service, f):
+    f.writeln("class %sService(object):" % service.name)
+    with f.indent():
+        global rpc_table
+        for func in service.functions:
+            rpc_id = rpc_table["%s.%s" % (service.name, func.name)]
+            f.writeln("%s = %s" % (func.name.upper(), hex(rpc_id)))
+        f.writeln()
+        f.writeln("def reg_to(self, svc):")
+        with f.indent():
+            f.writeln("pass")
+    f.writeln()
+
+    f.writeln("class %sProxy(object):" % service.name)
+    with f.indent():
+        f.writeln("def __init__(self, clnt):")
+        with f.indent():
+            f.writeln("self.clnt = clnt")
+        for func in service.functions:
+            f.writeln()
+            f.writeln("def async_%s(TODO):" % func.name)
+            with f.indent():
+                f.writeln("pass")
+        for func in service.functions:
+            f.writeln()
+            f.writeln("def sync_%s(TODO):" % func.name)
+            with f.indent():
+                f.writeln("pass")
+    f.writeln()
+
+
+def emit_rpc_source_python(rpc_source, f):
+
+    for struct in rpc_source.structs:
+        emit_struct_python(struct, f)
+
+    for service in rpc_source.services:
+        emit_service_and_proxy_python(service, f)
+
 def rpcgen(rpc_fpath):
     with open(rpc_fpath) as f:
         rpc_src = f.read()
@@ -358,6 +409,15 @@ def rpcgen(rpc_fpath):
         f.writeln()
         f.write(footer)
         f.writeln()
+
+    # generate python code
+    with open(os.path.splitext(rpc_fpath)[0] + ".py", "w") as f:
+        f = SourceFile(f)
+        f.writeln("# generated from '%s'" % os.path.split(rpc_fpath)[1])
+        f.writeln()
+        f.writeln("import collections")
+        f.writeln()
+        emit_rpc_source_python(rpc_source, f)
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

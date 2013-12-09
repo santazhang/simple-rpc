@@ -35,14 +35,14 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, point3& o) {
 class BenchmarkService: public rpc::Service {
 public:
     enum {
-        FAST_PRIME = 0x3289e906,
-        FAST_DOT_PROD = 0x5731d067,
-        FAST_ADD = 0x33340896,
-        FAST_NOP = 0x3fa1d0a3,
-        PRIME = 0x4c0501bf,
-        DOT_PROD = 0x4b7a34c9,
-        ADD = 0x437d4026,
-        NOP = 0x3c0a37cd,
+        FAST_PRIME = 0x509ec60e,
+        FAST_DOT_PROD = 0x6c57cc74,
+        FAST_ADD = 0x1ae8267d,
+        FAST_NOP = 0x26a90eb2,
+        PRIME = 0x338abf4c,
+        DOT_PROD = 0x4b9286d6,
+        ADD = 0x219e9e1a,
+        NOP = 0x35813eae,
     };
     int reg_to(rpc::Server* svr) {
         int ret = 0;
