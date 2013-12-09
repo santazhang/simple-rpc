@@ -1,2 +1,2 @@
-from server import Server
-from client import Client
+from simplerpc.server import Server
+from simplerpc.client import Client

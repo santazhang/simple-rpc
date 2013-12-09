@@ -1,4 +1,4 @@
-import _pyrpc
+from simplerpc import _pyrpc
 try:
     import cPickle as pickle
 except ImportError:
