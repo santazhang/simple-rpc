@@ -20,7 +20,7 @@ class Client(object):
         _pyrpc.client_connect(self.id, addr)
 
     def sync_call(self, rpc_id, *args):
+        # TODO proper marshaling
         enc_args = pickle.dumps(args)
         error_code, enc_results = _pyrpc.client_sync_call(self.id, rpc_id, enc_args)
         return pickle.loads(enc_results)
-

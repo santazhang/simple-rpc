@@ -5,9 +5,10 @@ except ImportError:
     import pickle
 
 def rpc_wrap(f):
-    def wrap_f(*enc_args):
+    # TODO proper marshaling
+    def wrap_f(enc_args):
         args = pickle.loads(enc_args)
-        ret = f(args)
+        ret = f(*args)
         return pickle.dumps(ret)
     return wrap_f
 
