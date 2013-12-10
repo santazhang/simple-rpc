@@ -12,6 +12,17 @@
 // optional %%: marks header section, code above will be copied into begin of generated C++ header
 namespace benchmark {
 
+struct empty_struct {
+};
+
+inline rpc::Marshal& operator <<(rpc::Marshal& m, const empty_struct& o) {
+    return m;
+}
+
+inline rpc::Marshal& operator >>(rpc::Marshal& m, empty_struct& o) {
+    return m;
+}
+
 struct point3 {
     double x;
     double y;
@@ -32,17 +43,39 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, point3& o) {
     return m;
 }
 
+class empty_serviceService: public rpc::Service {
+public:
+    enum {
+    };
+    int reg_to(rpc::Server* svr) {
+        int ret = 0;
+        return 0;
+    err:
+        return ret;
+    }
+    // these RPC handler functions need to be implemented by user
+    // for 'raw' handlers, remember to reply req, delete req, and sconn->release(); use sconn->run_async for heavy job
+private:
+};
+
+class empty_serviceProxy {
+protected:
+    rpc::Client* __cl__;
+public:
+    empty_serviceProxy(rpc::Client* cl): __cl__(cl) { }
+};
+
 class BenchmarkService: public rpc::Service {
 public:
     enum {
-        FAST_PRIME = 0x509ec60e,
-        FAST_DOT_PROD = 0x6c57cc74,
-        FAST_ADD = 0x1ae8267d,
-        FAST_NOP = 0x26a90eb2,
-        PRIME = 0x338abf4c,
-        DOT_PROD = 0x4b9286d6,
-        ADD = 0x219e9e1a,
-        NOP = 0x35813eae,
+        FAST_PRIME = 0x1ba23d4a,
+        FAST_DOT_PROD = 0x452da2c6,
+        FAST_ADD = 0x1a136019,
+        FAST_NOP = 0x32980d9c,
+        PRIME = 0x478ac00b,
+        DOT_PROD = 0x259468de,
+        ADD = 0x1f30685f,
+        NOP = 0x208ebb45,
     };
     int reg_to(rpc::Server* svr) {
         int ret = 0;

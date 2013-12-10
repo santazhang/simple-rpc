@@ -5,6 +5,13 @@
 
 namespace benchmark
 
+// for debugging
+struct empty_struct {
+};
+
+service empty_service {
+};
+
 struct point3 {
     double x;
     double y;

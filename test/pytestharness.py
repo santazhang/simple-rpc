@@ -6,6 +6,7 @@ import sys
 import os
 sys.path += os.path.abspath(os.path.join(os.path.split(__file__)[0], "../pylib")),
 import simplerpc
+from benchmark_service import *
 
 class TestUtils(TestCase):
     def test_cpp_python_interop(self):
@@ -21,15 +22,23 @@ class TestUtils(TestCase):
 
 class TestRpcGen(TestCase):
     def test_struct_gen(self):
-        from benchmark_service import point3
         p = point3(x=3.0, y=4.0, z=5.0)
         print p
 
     def test_service_gen(self):
-        from benchmark_service import BenchmarkService
+        class BS(BenchmarkService):
+            def fast_prime(self, n):
+                print self, n
+                print "called 1 %d" % n
+                return n
+            def fast_dot_prod(self, a, b):
+                print "called 2"
+                return 0
+        s = simplerpc.Server()
+        s.reg_svc(BS())
 
     def test_proxy_gen(self):
-        from benchmark_service import BenchmarkProxy
+        pass
 
 
 if __name__ == "__main__":
