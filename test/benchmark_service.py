@@ -1,10 +1,10 @@
 # generated from 'benchmark_service.rpc'
 
-import collections
+from simplerpc import Marshal
 
-empty_struct = collections.namedtuple('empty_struct', [])
+empty_struct = Marshal.reg_type('empty_struct', [])
 
-point3 = collections.namedtuple('point3', ['x', 'y', 'z'])
+point3 = Marshal.reg_type('point3', [('x', 'double'), ('y', 'double'), ('z', 'double')])
 
 class empty_serviceService(object):
 
@@ -27,14 +27,14 @@ class empty_serviceProxy(object):
         self.clnt = clnt
 
 class BenchmarkService(object):
-    FAST_PRIME = 0x1ba23d4a
-    FAST_DOT_PROD = 0x452da2c6
-    FAST_ADD = 0x1a136019
-    FAST_NOP = 0x32980d9c
-    PRIME = 0x478ac00b
-    DOT_PROD = 0x259468de
-    ADD = 0x1f30685f
-    NOP = 0x208ebb45
+    FAST_PRIME = 0x56a42d35
+    FAST_DOT_PROD = 0x49d4cfc9
+    FAST_ADD = 0x30c2b37f
+    FAST_NOP = 0x640d3012
+    PRIME = 0x329bdbcb
+    DOT_PROD = 0x6758a657
+    ADD = 0x174c63a6
+    NOP = 0x1b4897d8
 
     __input_type_info__ = {
         'fast_prime': ['rpc::i32'], 

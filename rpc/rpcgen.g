@@ -324,10 +324,9 @@ def emit_rpc_source(rpc_source, f):
         f.writeln(" ".join(["}"] * len(rpc_source.namespace)) + " // namespace " + "::".join(rpc_source.namespace))
         f.writeln()
 
-
 def emit_struct_python(struct, f):
-    f.writeln("%s = collections.namedtuple('%s', [%s])" % (struct.name, struct.name,
-        ", ".join(["'%s'" % field.name for field in struct.fields])))
+    f.writeln("%s = Marshal.reg_type('%s', [%s])" % (
+        struct.name, struct.name, ", ".join(["('%s', '%s')" % (field.name, field.type) for field in struct.fields])))
     f.writeln()
 
 
@@ -447,7 +446,7 @@ def rpcgen(rpc_fpath):
         f = SourceFile(f)
         f.writeln("# generated from '%s'" % os.path.split(rpc_fpath)[1])
         f.writeln()
-        f.writeln("import collections")
+        f.writeln("from simplerpc import Marshal")
         f.writeln()
         emit_rpc_source_python(rpc_source, f)
 
