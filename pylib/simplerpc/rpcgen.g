@@ -4,6 +4,7 @@ import sys
 import os
 import random
 import re
+sys.path += os.path.abspath(os.path.join(os.path.split(__file__)[0], "../../pylib")),
 sys.path += os.path.abspath(os.path.join(os.path.split(__file__)[0], "../pylib")),
 
 

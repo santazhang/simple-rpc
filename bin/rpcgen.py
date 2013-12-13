@@ -1,1 +1,1 @@
-../rpc/rpcgen.py
+../pylib/simplerpc/rpcgen.py

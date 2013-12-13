@@ -21,9 +21,9 @@ def configure(conf):
         conf.env.LIB_PROTOBUF = 'protobuf'
 
 def build(bld):
-    _depend("rpc/rpcgen.py", "rpc/rpcgen.g", "pylib/yapps/main.py rpc/rpcgen.g ; chmod a+x rpc/rpcgen.py")
+    _depend("pylib/simplerpc/rpcgen.py", "pylib/simplerpc/rpcgen.g", "pylib/yapps/main.py pylib/simplerpc/rpcgen.g ; chmod a+x pylib/simplerpc/rpcgen.py")
     _depend("rlog/log_service.h", "rlog/log_service.rpc", "bin/rpcgen.py rlog/log_service.rpc")
-    _depend("test/benchmark_service.h", "test/benchmark_service.rpc", "rpc/rpcgen.py test/benchmark_service.rpc")
+    _depend("test/benchmark_service.h", "test/benchmark_service.rpc", "bin/rpcgen.py test/benchmark_service.rpc")
 
     bld.stlib(source=bld.path.ant_glob("rpc/*.cc"), target="simplerpc", includes="rpc", use="BASE PTHREAD")
     bld.stlib(
