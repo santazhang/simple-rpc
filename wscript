@@ -30,7 +30,7 @@ def build(bld):
 
     bld.stlib(source=bld.path.ant_glob("rpc/*.cc"), target="simplerpc", includes="rpc", use="BASE PTHREAD")
     bld.stlib(
-        source=bld.path.ant_glob("rlog/*.cc", excl="rlog/log_server.cc"),
+        source="rlog/rlog.cc",
         target="rlog",
         includes=". rlog rpc",
         use="simplerpc BASE PTHREAD")
@@ -45,9 +45,9 @@ def build(bld):
         bld.program(source=source, target=target, includes=includes, use=use)
 
     _prog("test/rpcbench.cc test/benchmark_service.cc", "rpcbench")
-    _prog("rlog/log_server.cc", "rlogserver", use="rlog simplerpc BASE PTHREAD")
+    _prog(bld.path.ant_glob("rlog/*.cc", excl="rlog/rlog.cc"), "rlogserver", use="simplerpc BASE PTHREAD")
 
-    test_src = bld.path.ant_glob("test/test*.cc") + ["test/benchmark_service.cc"]
+    test_src = bld.path.ant_glob("test/test*.cc") + bld.path.ant_glob("rlog/*.cc", excl="rlog/log_server.cc") + ["test/benchmark_service.cc"]
     test_use = "rlog BASE PTHREAD"
     if bld.env.PROTOC != []:
         _depend("test/person.pb.cc", "test/person.proto", "%s --cpp_out=test -Itest test/person.proto" % bld.env.PROTOC)
