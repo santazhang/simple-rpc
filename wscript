@@ -24,6 +24,9 @@ def build(bld):
     _depend("pylib/simplerpc/rpcgen.py", "pylib/simplerpc/rpcgen.g", "pylib/yapps/main.py pylib/simplerpc/rpcgen.g")
     _depend("rlog/log_service.h", "rlog/log_service.rpc", "bin/rpcgen rlog/log_service.rpc")
     _depend("test/benchmark_service.h", "test/benchmark_service.rpc", "bin/rpcgen test/benchmark_service.rpc")
+    _depend("test/benchmark_service.py", "test/benchmark_service.rpc", "bin/rpcgen test/benchmark_service.rpc")
+    _depend("test/test_service.h", "test/test_service.rpc", "bin/rpcgen test/test_service.rpc")
+    _depend("test/test_service.py", "test/test_service.rpc", "bin/rpcgen test/test_service.rpc")
 
     bld.stlib(source=bld.path.ant_glob("rpc/*.cc"), target="simplerpc", includes="rpc", use="BASE PTHREAD")
     bld.stlib(

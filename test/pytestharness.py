@@ -7,6 +7,7 @@ import os
 sys.path += os.path.abspath(os.path.join(os.path.split(__file__)[0], "../pylib")),
 import simplerpc
 from benchmark_service import *
+from test_service import *
 
 class TestUtils(TestCase):
     def test_cpp_python_interop(self):

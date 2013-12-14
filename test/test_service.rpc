@@ -1,0 +1,8 @@
+namespace test;
+
+// for debugging
+struct empty_struct {
+};
+
+service empty_service {
+};

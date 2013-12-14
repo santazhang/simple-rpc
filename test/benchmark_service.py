@@ -2,39 +2,17 @@
 
 from simplerpc import Marshal
 
-empty_struct = Marshal.reg_type('empty_struct', [])
-
 point3 = Marshal.reg_type('point3', [('x', 'double'), ('y', 'double'), ('z', 'double')])
 
-class empty_serviceService(object):
-
-    __input_type_info__ = {
-    }
-
-    __output_type_info__ = {
-    }
-
-    def __bind_helper__(self, func):
-        def f(*args):
-            return getattr(self, func.__name__)(*args)
-        return f
-
-    def reg_to(self, server):
-        pass
-
-class empty_serviceProxy(object):
-    def __init__(self, clnt):
-        self.clnt = clnt
-
 class BenchmarkService(object):
-    FAST_PRIME = 0x56a42d35
-    FAST_DOT_PROD = 0x49d4cfc9
-    FAST_ADD = 0x30c2b37f
-    FAST_NOP = 0x640d3012
-    PRIME = 0x329bdbcb
-    DOT_PROD = 0x6758a657
-    ADD = 0x174c63a6
-    NOP = 0x1b4897d8
+    FAST_PRIME = 0x1e0262e5
+    FAST_DOT_PROD = 0x6e403bd6
+    FAST_ADD = 0x2419249c
+    FAST_NOP = 0x58cfc8cf
+    PRIME = 0x20bf450d
+    DOT_PROD = 0x45f2dfaf
+    ADD = 0x411e4141
+    NOP = 0x36fb6f7a
 
     __input_type_info__ = {
         'fast_prime': ['rpc::i32'], 
