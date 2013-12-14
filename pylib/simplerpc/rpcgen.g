@@ -1,11 +1,8 @@
-#!/usr/bin/env python
-
 import sys
 import os
 import random
 import re
 sys.path += os.path.abspath(os.path.join(os.path.split(__file__)[0], "../../pylib")),
-sys.path += os.path.abspath(os.path.join(os.path.split(__file__)[0], "../pylib")),
 
 
 def error(msg, ctx):
@@ -450,9 +447,3 @@ def rpcgen(rpc_fpath):
         f.writeln("from simplerpc import Marshal")
         f.writeln()
         emit_rpc_source_python(rpc_source, f)
-
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        sys.stdout.write("usage: %s <rpc-source-file>\n" % sys.argv[0])
-        exit(1)
-    rpcgen(sys.argv[1])
