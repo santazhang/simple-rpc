@@ -496,13 +496,13 @@ def emit_service_and_proxy_python(service, f):
         f.writeln("__input_type_info__ = {")
         with f.indent():
             for func in service.functions:
-                f.writeln("'%s': [%s], " % (func.name, ",".join(["'%s'" % a.type for a in func.input])))
+                f.writeln("'%s': [%s]," % (func.name, ",".join(["'%s'" % a.type for a in func.input])))
         f.writeln("}")
         f.writeln()
         f.writeln("__output_type_info__ = {")
         with f.indent():
             for func in service.functions:
-                f.writeln("'%s': [%s], " % (func.name, ",".join(["'%s'" % a.type for a in func.output])))
+                f.writeln("'%s': [%s]," % (func.name, ",".join(["'%s'" % a.type for a in func.output])))
         f.writeln("}")
         f.writeln()
         f.writeln("def __bind_helper__(self, func):")

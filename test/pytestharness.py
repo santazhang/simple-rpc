@@ -9,6 +9,40 @@ import simplerpc
 from benchmark_service import *
 from test_service import *
 
+class TestMarshal(TestCase):
+    def test_marshal(self):
+        m = simplerpc.Marshal()
+        assert len(m) == 0
+        m.write_i32(45)
+        assert len(m) == 4
+        assert m.read_i32() == 45
+        assert len(m) == 0
+        m.write_i32(-45)
+        assert len(m) == 4
+        assert m.read_i32() == -45
+        assert len(m) == 0
+        m.write_i64(1987)
+        assert len(m) == 8
+        assert m.read_i64() == 1987
+        assert len(m) == 0
+        m.write_i64(-1987)
+        assert len(m) == 8
+        assert m.read_i64() == -1987
+        assert len(m) == 0
+        m.write_double(-1.987)
+        assert len(m) == 8
+        assert m.read_double() == -1.987
+        assert len(m) == 0
+        m.write_str("hello world!")
+        print len(m)
+        print m.read_str()
+        print len(m)
+        p = point3(x=3.0, y=4.0, z=5.0)
+        m.write_obj(p, "point3")
+        print len(m)
+        print m.read_obj("point3")
+        print len(m)
+
 class TestUtils(TestCase):
     def test_cpp_python_interop(self):
         s = simplerpc.Server()

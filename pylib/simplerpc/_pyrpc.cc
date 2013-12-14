@@ -186,6 +186,135 @@ static PyObject* _pyrpc_client_sync_call(PyObject* self, PyObject* args) {
     return Py_BuildValue("(is)", error_code, enc_result.c_str());
 }
 
+
+static PyObject* _pyrpc_init_marshal(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    Marshal* m = new Marshal;
+    return Py_BuildValue("k", m);
+}
+
+static PyObject* _pyrpc_fini_marshal(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    if (!PyArg_ParseTuple(args, "k", &u))
+        return NULL;
+    Marshal* m = (Marshal *) u;
+    delete m;
+    Py_RETURN_NONE;
+}
+
+
+static PyObject* _pyrpc_marshal_size(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    if (!PyArg_ParseTuple(args, "k", &u))
+        return NULL;
+    Marshal* m = (Marshal *) u;
+    return Py_BuildValue("k", m->content_size());
+}
+
+static PyObject* _pyrpc_marshal_write_i32(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    long vl;
+    if (!PyArg_ParseTuple(args, "kl", &u, &vl))
+        return NULL;
+    Marshal* m = (Marshal *) u;
+    rpc::i32 v = (rpc::i32) vl;
+    *m << v;
+    Py_RETURN_NONE;
+}
+
+
+static PyObject* _pyrpc_marshal_read_i32(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    if (!PyArg_ParseTuple(args, "k", &u))
+        return NULL;
+    Marshal* m = (Marshal *) u;
+    rpc::i32 v;
+    *m >> v;
+    long vl = v;
+    return Py_BuildValue("l", vl);
+}
+
+static PyObject* _pyrpc_marshal_write_i64(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    long long vll;
+    if (!PyArg_ParseTuple(args, "kL", &u, &vll))
+        return NULL;
+    Marshal* m = (Marshal *) u;
+    rpc::i64 v = (rpc::i64) vll;
+    *m << v;
+    Py_RETURN_NONE;
+}
+
+
+static PyObject* _pyrpc_marshal_read_i64(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    if (!PyArg_ParseTuple(args, "k", &u))
+        return NULL;
+    Marshal* m = (Marshal *) u;
+    rpc::i64 v;
+    *m >> v;
+    long long vll = v;
+    return Py_BuildValue("L", vll);
+}
+
+
+static PyObject* _pyrpc_marshal_write_double(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    double dbl;
+    if (!PyArg_ParseTuple(args, "kd", &u, &dbl))
+        return NULL;
+    Marshal* m = (Marshal *) u;
+    *m << dbl;
+    Py_RETURN_NONE;
+}
+
+
+static PyObject* _pyrpc_marshal_read_double(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    if (!PyArg_ParseTuple(args, "k", &u))
+        return NULL;
+    Marshal* m = (Marshal *) u;
+    double dbl;
+    *m >> dbl;
+    return Py_BuildValue("d", dbl);
+}
+
+
+
+static PyObject* _pyrpc_marshal_write_str(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    PyObject* str_obj;
+    if (!PyArg_ParseTuple(args, "kO", &u, &str_obj))
+        return NULL;
+    Marshal* m = (Marshal *) u;
+    std::string str(PyString_AsString(str_obj), PyString_Size(str_obj));
+    *m << str;
+    Py_RETURN_NONE;
+}
+
+
+static PyObject* _pyrpc_marshal_read_str(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    if (!PyArg_ParseTuple(args, "k", &u))
+        return NULL;
+    Marshal* m = (Marshal *) u;
+    std::string str;
+    *m >> str;
+    PyObject* str_obj = PyString_FromStringAndSize(&str[0], str.size());
+    return Py_BuildValue("O", str_obj);
+}
+
+
 static PyMethodDef _pyrpcMethods[] = {
     {"init_server", _pyrpc_init_server, METH_VARARGS, NULL},
     {"fini_server", _pyrpc_fini_server, METH_VARARGS, NULL},
@@ -199,6 +328,18 @@ static PyMethodDef _pyrpcMethods[] = {
     {"fini_client", _pyrpc_fini_client, METH_VARARGS, NULL},
     {"client_connect", _pyrpc_client_connect, METH_VARARGS, NULL},
     {"client_sync_call", _pyrpc_client_sync_call, METH_VARARGS, NULL},
+
+    {"init_marshal", _pyrpc_init_marshal, METH_VARARGS, NULL},
+    {"fini_marshal", _pyrpc_fini_marshal, METH_VARARGS, NULL},
+    {"marshal_size", _pyrpc_marshal_size, METH_VARARGS, NULL},
+    {"marshal_write_i32", _pyrpc_marshal_write_i32, METH_VARARGS, NULL},
+    {"marshal_read_i32", _pyrpc_marshal_read_i32, METH_VARARGS, NULL},
+    {"marshal_write_i64", _pyrpc_marshal_write_i64, METH_VARARGS, NULL},
+    {"marshal_read_i64", _pyrpc_marshal_read_i64, METH_VARARGS, NULL},
+    {"marshal_write_double", _pyrpc_marshal_write_double, METH_VARARGS, NULL},
+    {"marshal_read_double", _pyrpc_marshal_read_double, METH_VARARGS, NULL},
+    {"marshal_write_str", _pyrpc_marshal_write_str, METH_VARARGS, NULL},
+    {"marshal_read_str", _pyrpc_marshal_read_str, METH_VARARGS, NULL},
 
     {NULL, NULL, 0, NULL}
 };

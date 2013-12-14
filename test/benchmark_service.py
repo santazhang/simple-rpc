@@ -5,35 +5,35 @@ from simplerpc import Marshal
 point3 = Marshal.reg_type('point3', [('x', 'double'), ('y', 'double'), ('z', 'double')])
 
 class BenchmarkService(object):
-    FAST_PRIME = 0x1e0262e5
-    FAST_DOT_PROD = 0x6e403bd6
-    FAST_ADD = 0x2419249c
-    FAST_NOP = 0x58cfc8cf
-    PRIME = 0x20bf450d
-    DOT_PROD = 0x45f2dfaf
-    ADD = 0x411e4141
-    NOP = 0x36fb6f7a
+    FAST_PRIME = 0x3b38d6bc
+    FAST_DOT_PROD = 0x11283bea
+    FAST_ADD = 0x3519a793
+    FAST_NOP = 0x33cb485e
+    PRIME = 0x1479d339
+    DOT_PROD = 0x64c48e2b
+    ADD = 0x17271eea
+    NOP = 0x6f49fe67
 
     __input_type_info__ = {
-        'fast_prime': ['rpc::i32'], 
-        'fast_dot_prod': ['point3','point3'], 
-        'fast_add': ['rpc::i32','rpc::i32'], 
-        'fast_nop': ['std::string'], 
-        'prime': ['rpc::i32'], 
-        'dot_prod': ['point3','point3'], 
-        'add': ['rpc::i32','rpc::i32'], 
-        'nop': ['std::string'], 
+        'fast_prime': ['rpc::i32'],
+        'fast_dot_prod': ['point3','point3'],
+        'fast_add': ['rpc::i32','rpc::i32'],
+        'fast_nop': ['std::string'],
+        'prime': ['rpc::i32'],
+        'dot_prod': ['point3','point3'],
+        'add': ['rpc::i32','rpc::i32'],
+        'nop': ['std::string'],
     }
 
     __output_type_info__ = {
-        'fast_prime': ['rpc::i32'], 
-        'fast_dot_prod': ['double'], 
-        'fast_add': ['rpc::i32'], 
-        'fast_nop': [], 
-        'prime': ['rpc::i32'], 
-        'dot_prod': ['double'], 
-        'add': ['rpc::i32'], 
-        'nop': [], 
+        'fast_prime': ['rpc::i32'],
+        'fast_dot_prod': ['double'],
+        'fast_add': ['rpc::i32'],
+        'fast_nop': [],
+        'prime': ['rpc::i32'],
+        'dot_prod': ['double'],
+        'add': ['rpc::i32'],
+        'nop': [],
     }
 
     def __bind_helper__(self, func):
