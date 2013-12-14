@@ -1,0 +1,3 @@
+service PythonOnly {
+    pyonly_rpc(string enc_in | string enc_out);
+};

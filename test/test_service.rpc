@@ -6,3 +6,13 @@ struct empty_struct {
 
 service empty_service {
 };
+
+// check if python can handle this properly
+struct complex_struct {
+    map<string, vector<vector<string>>> d;
+    set<string> s;
+};
+
+service math_service {
+    gcd(i64 a, i64 b | i64 g);
+};

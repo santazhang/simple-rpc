@@ -31,7 +31,7 @@ struct Request {
 class Service {
 public:
     virtual ~Service() {}
-    virtual int reg_to(Server*) = 0;
+    virtual int __reg_to__(Server*) = 0;
 };
 
 class ServerConnection: public Pollable {
@@ -95,6 +95,11 @@ public:
         return *this;
     }
 
+    ServerConnection& operator <<(Marshal& m) {
+        this->out_.read_from_marshal(m, m.content_size());
+        return *this;
+    }
+
     int fd() {
         return socket_;
     }
@@ -134,7 +139,7 @@ public:
     int start(const char* bind_addr);
 
     int reg(Service* svc) {
-        return svc->reg_to(this);
+        return svc->__reg_to__(this);
     }
 
     /**

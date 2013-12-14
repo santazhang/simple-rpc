@@ -12,11 +12,16 @@ class Marshal(object):
         Marshal.structs[type] = ctor, fields
         return ctor
 
-    def __init__(self):
-        self.id = _pyrpc.init_marshal()
+    def __init__(self, id=None, should_release=True):
+        if not id:
+            self.id = _pyrpc.init_marshal()
+        else:
+            self.id = id
+        self.should_release = should_release
 
     def __del__(self):
-        _pyrpc.fini_marshal(self.id)
+        if self.should_release:
+            _pyrpc.fini_marshal(self.id)
 
     def __len__(self):
         return _pyrpc.marshal_size(self.id)
@@ -45,6 +50,7 @@ class Marshal(object):
     def read_str(self):
         return _pyrpc.marshal_read_str(self.id)
 
+    # TODO write list/tuple/dict/set
     def write_obj(self, o, obj_t):
         if obj_t in ["rpc::i32", "i32"]:
             return self.write_i32(o)
@@ -59,6 +65,7 @@ class Marshal(object):
             for field in ty:
                 self.write_obj(getattr(o, field[0]), field[1])
 
+    # TODO read list/dict/set, tuple will be read as list
     def read_obj(self, obj_t):
         if obj_t in ["rpc::i32", "i32"]:
             return self.read_i32()

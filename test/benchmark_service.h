@@ -35,16 +35,16 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, point3& o) {
 class BenchmarkService: public rpc::Service {
 public:
     enum {
-        FAST_PRIME = 0x3b38d6bc,
-        FAST_DOT_PROD = 0x11283bea,
-        FAST_ADD = 0x3519a793,
-        FAST_NOP = 0x33cb485e,
-        PRIME = 0x1479d339,
-        DOT_PROD = 0x64c48e2b,
-        ADD = 0x17271eea,
-        NOP = 0x6f49fe67,
+        FAST_PRIME = 0x35e19c6a,
+        FAST_DOT_PROD = 0x232cccc7,
+        FAST_ADD = 0x3c848192,
+        FAST_NOP = 0x6109833a,
+        PRIME = 0x20276e17,
+        DOT_PROD = 0x61da5cb1,
+        ADD = 0x273b15c7,
+        NOP = 0x3ba571e9,
     };
-    int reg_to(rpc::Server* svr) {
+    int __reg_to__(rpc::Server* svr) {
         int ret = 0;
         if ((ret = svr->reg(FAST_PRIME, this, &BenchmarkService::__fast_prime__wrapper__)) != 0) {
             goto err;

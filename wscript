@@ -27,6 +27,8 @@ def build(bld):
     _depend("test/benchmark_service.py", "test/benchmark_service.rpc", "bin/rpcgen test/benchmark_service.rpc")
     _depend("test/test_service.h", "test/test_service.rpc", "bin/rpcgen test/test_service.rpc")
     _depend("test/test_service.py", "test/test_service.rpc", "bin/rpcgen test/test_service.rpc")
+    _depend("pylib/simplerpc/pyonly.h", "pylib/simplerpc/pyonly.rpc", "bin/rpcgen pylib/simplerpc/pyonly.rpc")
+    _depend("pylib/simplerpc/pyonly.py", "pylib/simplerpc/pyonly.rpc", "bin/rpcgen pylib/simplerpc/pyonly.rpc")
 
     bld.stlib(source=bld.path.ant_glob("rpc/*.cc"), target="simplerpc", includes="rpc", use="BASE PTHREAD")
     bld.stlib(

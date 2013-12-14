@@ -154,38 +154,46 @@ size_t Marshal::read_from_fd(int fd) {
 }
 
 size_t Marshal::read_from_marshal(Marshal& m, size_t n) {
-    assert(head_ == nullptr && tail_ == nullptr);
-    assert(n == 0 || m.content_size_gt(n - 1));   // require m.content_size() >= n > 0
-
+    assert(m.content_size_ge(n));   // require m.content_size() >= n > 0
     size_t n_fetch = 0;
-    while (n_fetch < n) {
-        chunk* chnk = m.head_->rdonly_copy();
-        if (n_fetch + chnk->content_size() > n) {
-            // only fetch enough bytes we need
-            chnk->write_idx -= (n_fetch + chnk->content_size()) - n;
-        }
-        size_t cnt = chnk->content_size();
-        assert(cnt > 0);
-        n_fetch += cnt;
-        verify(m.head_->discard(cnt) == cnt);
-        if (head_ == nullptr) {
-            head_ = tail_ = chnk;
-        } else {
-            tail_->next = chnk;
-            tail_ = chnk;
-        }
-        if (m.head_->fully_read()) {
-            if (m.tail_ == m.head_) {
-                // deleted the only chunk
-                m.tail_ = nullptr;
-            }
-            chunk* next = m.head_->next;
-            delete m.head_;
-            m.head_ = next;
-        }
-    }
-    write_cnt_ += n_fetch;
 
+    if (head_ == nullptr && tail_ == nullptr) {
+        while (n_fetch < n) {
+            chunk* chnk = m.head_->rdonly_copy();
+            if (n_fetch + chnk->content_size() > n) {
+                // only fetch enough bytes we need
+                chnk->write_idx -= (n_fetch + chnk->content_size()) - n;
+            }
+            size_t cnt = chnk->content_size();
+            assert(cnt > 0);
+            n_fetch += cnt;
+            verify(m.head_->discard(cnt) == cnt);
+            if (head_ == nullptr) {
+                head_ = tail_ = chnk;
+            } else {
+                tail_->next = chnk;
+                tail_ = chnk;
+            }
+            if (m.head_->fully_read()) {
+                if (m.tail_ == m.head_) {
+                    // deleted the only chunk
+                    m.tail_ = nullptr;
+                }
+                chunk* next = m.head_->next;
+                delete m.head_;
+                m.head_ = next;
+            }
+        }
+        write_cnt_ += n_fetch;
+
+    } else {
+        // TODO dummy implementation for python rpc, improve!
+        char* buf = new char[n];
+        n_fetch = m.read(buf, n);
+        verify(n_fetch == n);
+        verify(this->write(buf, n_fetch) == n_fetch);
+        delete[] buf;
+    }
     assert(n_fetch == n);
     return n_fetch;
 }
