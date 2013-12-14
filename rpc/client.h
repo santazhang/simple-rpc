@@ -158,6 +158,13 @@ public:
         return *this;
     }
 
+    Client& operator <<(Marshal& m) {
+        if (status_ == CONNECTED) {
+            this->out_.read_from_marshal(m, m.content_size());
+        }
+        return *this;
+    }
+
     int connect(const char* addr);
 
     void close_and_release() {

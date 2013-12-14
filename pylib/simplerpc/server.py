@@ -1,3 +1,5 @@
+import traceback
+
 from simplerpc import _pyrpc
 from simplerpc import Marshal
 from pyonly import PythonOnlyService
@@ -11,7 +13,12 @@ def marshal_wrap(f, input_types, output_types):
         input_values = []
         for input_ty in input_types:
             input_values += input_m.read_obj(input_ty),
-        output = f(*input_values)
+        try:
+            # TODO move this try-except block into C++
+            output = f(*input_values)
+        except:
+            traceback.print_exc()
+            return 0
 
         if len(output_types) == 0:
             # void rpc

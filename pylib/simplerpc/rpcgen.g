@@ -364,7 +364,14 @@ def emit_service_and_proxy_python(service, f):
                 f.writeln("pass")
         for func in service.functions:
             f.writeln()
-            f.writeln("def %s(self, marshal):" % func.name)
+            in_params_decl = ""
+            for i in range(len(func.input)):
+                in_arg = func.input[i]
+                if in_arg.name != None:
+                    in_params_decl += ", " + in_arg.name
+                else:
+                    in_params_decl += ", in%d" % i
+            f.writeln("def %s(__self__%s):" % (func.name, in_params_decl))
             with f.indent():
                 f.writeln("raise NotImplementedError('subclass %sService and implement your own %s function')" % (service.name, func.name))
     f.writeln()
@@ -373,7 +380,7 @@ def emit_service_and_proxy_python(service, f):
     with f.indent():
         f.writeln("def __init__(self, clnt):")
         with f.indent():
-            f.writeln("self.clnt = clnt")
+            f.writeln("self.__clnt__ = clnt")
         for func in service.functions:
             f.writeln()
             f.writeln("def async_%s(TODO):" % func.name)
@@ -381,9 +388,28 @@ def emit_service_and_proxy_python(service, f):
                 f.writeln("pass")
         for func in service.functions:
             f.writeln()
-            f.writeln("def sync_%s(TODO):" % func.name)
+            in_params_decl = ""
+            for i in range(len(func.input)):
+                in_arg = func.input[i]
+                if in_arg.name != None:
+                    in_params_decl += ", " + in_arg.name
+                else:
+                    in_params_decl += ", in%d" % i
+            f.writeln("def sync_%s(__self__%s):" % (func.name, in_params_decl))
             with f.indent():
-                f.writeln("pass")
+                if in_params_decl != "":
+                    in_params_decl = in_params_decl[2:] # strip the leading ", "
+                f.writeln("__result__ = __self__.__clnt__.sync_call(%sService.%s, [%s], %sService.__input_type_info__['%s'], %sService.__output_type_info__['%s'])" % (
+                    service.name, func.name.upper(), in_params_decl, service.name, func.name, service.name, func.name))
+                f.writeln("if __result__[0] != 0:")
+                with f.indent():
+                    f.writeln("raise Exception(\"RPC returned non-zero error code %d\" % __result__[0])")
+                f.writeln("if len(__result__[1]) == 1:")
+                with f.indent():
+                    f.writeln("return __result__[1][0]")
+                f.writeln("elif len(__result__[1]) > 1:")
+                with f.indent():
+                    f.writeln("return __result__[1]")
     f.writeln()
 
 

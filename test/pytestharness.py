@@ -2,6 +2,7 @@
 
 import unittest
 from unittest import TestCase
+import time
 import sys
 import os
 sys.path += os.path.abspath(os.path.join(os.path.split(__file__)[0], "../pylib")),
@@ -129,6 +130,33 @@ class TestRpcGen(TestCase):
                 return 0
         s = simplerpc.Server()
         s.reg_svc(BS())
+        class MyMath(MathService):
+            def gcd(self, a, b):
+                while True:
+                    r = a % b
+                    if r == 0:
+                        return b
+                    else:
+                        a = b
+                        b = r
+        s.reg_svc(MyMath())
+        s.start("0.0.0.0:8848")
+
+        c = simplerpc.Client()
+        c.connect("127.0.0.1:8848")
+
+        # raw marshal handling
+        print c.sync_call(MathService.GCD, [124, 84], ["rpc::i64", "rpc::i64"], ["rpc::i64"])
+
+        mp = MathProxy(c)
+        print mp.sync_gcd(124, 84)
+        print "begin 10000 sync_gcd operation"
+        start = time.time()
+        for i in range(10000):
+            mp.sync_gcd(124, 84)
+        print "done 10000 sync_gcd operation"
+        end = time.time()
+        print "qps = %.2lf" % (10000.0 / (end - start))
 
     def test_proxy_gen(self):
         pass

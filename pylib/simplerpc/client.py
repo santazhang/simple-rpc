@@ -1,8 +1,5 @@
+from simplerpc import Marshal
 from simplerpc import _pyrpc
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
 
 class Client(object):
 
@@ -19,8 +16,14 @@ class Client(object):
     def connect(self, addr):
         _pyrpc.client_connect(self.id, addr)
 
-    def sync_call(self, rpc_id, *args):
-        # TODO proper marshaling
-        enc_args = pickle.dumps(args)
-        error_code, enc_results = _pyrpc.client_sync_call(self.id, rpc_id, enc_args)
-        return pickle.loads(enc_results)
+    def sync_call(self, rpc_id, req_values, req_types, rep_types):
+        req_m = Marshal()
+        for i in range(len(req_values)):
+            req_m.write_obj(req_values[i], req_types[i])
+        error_code, rep_marshal_id = _pyrpc.client_sync_call(self.id, rpc_id, req_m.id)
+        results = []
+        if rep_marshal_id != 0:
+            rep_m = Marshal(id=rep_marshal_id)
+            for ty in rep_types:
+                results += rep_m.read_obj(ty),
+        return error_code, results

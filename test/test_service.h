@@ -38,7 +38,7 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, complex_struct& o) {
     return m;
 }
 
-class empty_serviceService: public rpc::Service {
+class EmptyService: public rpc::Service {
 public:
     enum {
     };
@@ -53,21 +53,21 @@ public:
 private:
 };
 
-class empty_serviceProxy {
+class EmptyProxy {
 protected:
     rpc::Client* __cl__;
 public:
-    empty_serviceProxy(rpc::Client* cl): __cl__(cl) { }
+    EmptyProxy(rpc::Client* cl): __cl__(cl) { }
 };
 
-class math_serviceService: public rpc::Service {
+class MathService: public rpc::Service {
 public:
     enum {
-        GCD = 0x6a2d6174,
+        GCD = 0x144912fb,
     };
     int __reg_to__(rpc::Server* svr) {
         int ret = 0;
-        if ((ret = svr->reg(GCD, this, &math_serviceService::__gcd__wrapper__)) != 0) {
+        if ((ret = svr->reg(GCD, this, &MathService::__gcd__wrapper__)) != 0) {
             goto err;
         }
         return 0;
@@ -77,7 +77,7 @@ public:
     }
     // these RPC handler functions need to be implemented by user
     // for 'raw' handlers, remember to reply req, delete req, and sconn->release(); use sconn->run_async for heavy job
-    virtual void gcd(const rpc::i64& a, const rpc::i64& b, rpc::i64* g);
+    virtual void gcd(const rpc::i64& a, const rpc::i64&, rpc::i64* g);
 private:
     void __gcd__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
         auto f = [=] {
@@ -97,22 +97,22 @@ private:
     }
 };
 
-class math_serviceProxy {
+class MathProxy {
 protected:
     rpc::Client* __cl__;
 public:
-    math_serviceProxy(rpc::Client* cl): __cl__(cl) { }
-    rpc::Future* async_gcd(const rpc::i64& a, const rpc::i64& b, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
-        rpc::Future* __fu__ = __cl__->begin_request(math_serviceService::GCD, __fu_attr__);
+    MathProxy(rpc::Client* cl): __cl__(cl) { }
+    rpc::Future* async_gcd(const rpc::i64& a, const rpc::i64& in_1, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
+        rpc::Future* __fu__ = __cl__->begin_request(MathService::GCD, __fu_attr__);
         if (__fu__ != nullptr) {
             *__cl__ << a;
-            *__cl__ << b;
+            *__cl__ << in_1;
         }
         __cl__->end_request();
         return __fu__;
     }
-    rpc::i32 gcd(const rpc::i64& a, const rpc::i64& b, rpc::i64* g) {
-        rpc::Future* __fu__ = this->async_gcd(a, b);
+    rpc::i32 gcd(const rpc::i64& a, const rpc::i64& in_1, rpc::i64* g) {
+        rpc::Future* __fu__ = this->async_gcd(a, in_1);
         if (__fu__ == nullptr) {
             return ENOTCONN;
         }

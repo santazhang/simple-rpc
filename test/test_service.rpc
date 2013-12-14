@@ -4,7 +4,7 @@ namespace test;
 struct empty_struct {
 };
 
-service empty_service {
+service Empty {
 };
 
 // check if python can handle this properly
@@ -13,6 +13,6 @@ struct complex_struct {
     set<string> s;
 };
 
-service math_service {
-    gcd(i64 a, i64 b | i64 g);
+service Math {
+    gcd(i64 a, i64 | i64 g);
 };

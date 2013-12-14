@@ -81,6 +81,7 @@ static PyObject* _pyrpc_server_reg(PyObject* self, PyObject* args) {
             GILHelper gil_helper;
             PyObject* params = Py_BuildValue("(k)", u);
             PyObject* result = PyObject_CallObject(func, params);
+            verify(result != nullptr);
             output_m = (Marshal *) PyInt_AsLong(result);
             Py_XDECREF(params);
             Py_XDECREF(result);
@@ -154,33 +155,35 @@ static PyObject* _pyrpc_client_sync_call(PyObject* self, PyObject* args) {
 
     unsigned long u;
     int rpc_id;
-    const char* enc_args;
-    if (!PyArg_ParseTuple(args, "kis", &u, &rpc_id, &enc_args))
+    unsigned long m_id;
+    if (!PyArg_ParseTuple(args, "kik", &u, &rpc_id, &m_id))
         return nullptr;
 
     Client* clnt = (Client *) u;
+    Marshal* m = (Marshal *) m_id;
 
     Future* fu = clnt->begin_request(rpc_id);
     if (fu != nullptr) {
-        *clnt << std::string(enc_args);
+        *clnt << *m;
     }
     clnt->end_request();
 
-    std::string enc_result;
+    Marshal* m_rep = new Marshal;
     int error_code;
     if (fu == nullptr) {
         error_code = ENOTCONN;
     } else {
         error_code = fu->get_error_code();
         if (error_code == 0) {
-            fu->get_reply() >> enc_result;
+            m_rep->read_from_marshal(fu->get_reply(), fu->get_reply().content_size());
         }
         fu->release();
     }
 
     PyEval_RestoreThread(_save);
 
-    return Py_BuildValue("(is)", error_code, enc_result.c_str());
+    unsigned long m_rep_id = (unsigned long) m_rep;
+    return Py_BuildValue("(ik)", error_code, m_rep_id);
 }
 
 
