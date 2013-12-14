@@ -3,12 +3,11 @@ from simplerpc import _pyrpc
 
 class Marshal(object):
 
+    # class variable
     structs = {} # typename -> (ctor, [(field_name, field_type)])
 
     @staticmethod
     def reg_type(type, fields):
-        print "TODO"
-        # fields -> (name, type)
         ctor = collections.namedtuple(type, [field[0] for field in fields])
         Marshal.structs[type] = ctor, fields
         return ctor
