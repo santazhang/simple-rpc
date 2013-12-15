@@ -7,14 +7,14 @@ from simplerpc import Future
 point3 = Marshal.reg_type('point3', [('x', 'double'), ('y', 'double'), ('z', 'double')])
 
 class BenchmarkService(object):
-    FAST_PRIME = 0x1bfacc9e
-    FAST_DOT_PROD = 0x3612d408
-    FAST_ADD = 0x63532792
-    FAST_NOP = 0x639b1aa6
-    PRIME = 0x695ee313
-    DOT_PROD = 0x5d1c7150
-    ADD = 0x63e5c41f
-    NOP = 0x6f7ba8a8
+    FAST_PRIME = 0x6af97d0b
+    FAST_DOT_PROD = 0x63893c77
+    FAST_ADD = 0x553d16ab
+    FAST_NOP = 0x486ca867
+    PRIME = 0x12d7e9ee
+    DOT_PROD = 0x37224de3
+    ADD = 0x3d06af47
+    NOP = 0x4e82eb4d
 
     __input_type_info__ = {
         'fast_prime': ['rpc::i32'],
@@ -81,45 +81,45 @@ class BenchmarkProxy(object):
     def __init__(self, clnt):
         self.__clnt__ = clnt
 
-    def async_fast_prime(__self__, n, __done_callback__=None):
-        __fu_id__ = __self__.__clnt__.async_call(BenchmarkService.FAST_PRIME, [n], BenchmarkService.__input_type_info__['fast_prime'], BenchmarkService.__output_type_info__['fast_prime'], __done_callback__)
-        if __fu_id__ != 0:
-            return Future(id=__fu_id__)
+    #def async_fast_prime(__self__, n, __done_callback__=None):
+        #__fu_id__ = __self__.__clnt__.async_call(BenchmarkService.FAST_PRIME, [n], BenchmarkService.__input_type_info__['fast_prime'], BenchmarkService.__output_type_info__['fast_prime'], __done_callback__)
+        #if __fu_id__ != 0:
+            #return Future(id=__fu_id__)
 
-    def async_fast_dot_prod(__self__, p1, p2, __done_callback__=None):
-        __fu_id__ = __self__.__clnt__.async_call(BenchmarkService.FAST_DOT_PROD, [p1, p2], BenchmarkService.__input_type_info__['fast_dot_prod'], BenchmarkService.__output_type_info__['fast_dot_prod'], __done_callback__)
-        if __fu_id__ != 0:
-            return Future(id=__fu_id__)
+    #def async_fast_dot_prod(__self__, p1, p2, __done_callback__=None):
+        #__fu_id__ = __self__.__clnt__.async_call(BenchmarkService.FAST_DOT_PROD, [p1, p2], BenchmarkService.__input_type_info__['fast_dot_prod'], BenchmarkService.__output_type_info__['fast_dot_prod'], __done_callback__)
+        #if __fu_id__ != 0:
+            #return Future(id=__fu_id__)
 
-    def async_fast_add(__self__, a, b, __done_callback__=None):
-        __fu_id__ = __self__.__clnt__.async_call(BenchmarkService.FAST_ADD, [a, b], BenchmarkService.__input_type_info__['fast_add'], BenchmarkService.__output_type_info__['fast_add'], __done_callback__)
-        if __fu_id__ != 0:
-            return Future(id=__fu_id__)
+    #def async_fast_add(__self__, a, b, __done_callback__=None):
+        #__fu_id__ = __self__.__clnt__.async_call(BenchmarkService.FAST_ADD, [a, b], BenchmarkService.__input_type_info__['fast_add'], BenchmarkService.__output_type_info__['fast_add'], __done_callback__)
+        #if __fu_id__ != 0:
+            #return Future(id=__fu_id__)
 
-    def async_fast_nop(__self__, in0, __done_callback__=None):
-        __fu_id__ = __self__.__clnt__.async_call(BenchmarkService.FAST_NOP, [in0], BenchmarkService.__input_type_info__['fast_nop'], BenchmarkService.__output_type_info__['fast_nop'], __done_callback__)
-        if __fu_id__ != 0:
-            return Future(id=__fu_id__)
+    #def async_fast_nop(__self__, in0, __done_callback__=None):
+        #__fu_id__ = __self__.__clnt__.async_call(BenchmarkService.FAST_NOP, [in0], BenchmarkService.__input_type_info__['fast_nop'], BenchmarkService.__output_type_info__['fast_nop'], __done_callback__)
+        #if __fu_id__ != 0:
+            #return Future(id=__fu_id__)
 
-    def async_prime(__self__, n, __done_callback__=None):
-        __fu_id__ = __self__.__clnt__.async_call(BenchmarkService.PRIME, [n], BenchmarkService.__input_type_info__['prime'], BenchmarkService.__output_type_info__['prime'], __done_callback__)
-        if __fu_id__ != 0:
-            return Future(id=__fu_id__)
+    #def async_prime(__self__, n, __done_callback__=None):
+        #__fu_id__ = __self__.__clnt__.async_call(BenchmarkService.PRIME, [n], BenchmarkService.__input_type_info__['prime'], BenchmarkService.__output_type_info__['prime'], __done_callback__)
+        #if __fu_id__ != 0:
+            #return Future(id=__fu_id__)
 
-    def async_dot_prod(__self__, p1, p2, __done_callback__=None):
-        __fu_id__ = __self__.__clnt__.async_call(BenchmarkService.DOT_PROD, [p1, p2], BenchmarkService.__input_type_info__['dot_prod'], BenchmarkService.__output_type_info__['dot_prod'], __done_callback__)
-        if __fu_id__ != 0:
-            return Future(id=__fu_id__)
+    #def async_dot_prod(__self__, p1, p2, __done_callback__=None):
+        #__fu_id__ = __self__.__clnt__.async_call(BenchmarkService.DOT_PROD, [p1, p2], BenchmarkService.__input_type_info__['dot_prod'], BenchmarkService.__output_type_info__['dot_prod'], __done_callback__)
+        #if __fu_id__ != 0:
+            #return Future(id=__fu_id__)
 
-    def async_add(__self__, a, b, __done_callback__=None):
-        __fu_id__ = __self__.__clnt__.async_call(BenchmarkService.ADD, [a, b], BenchmarkService.__input_type_info__['add'], BenchmarkService.__output_type_info__['add'], __done_callback__)
-        if __fu_id__ != 0:
-            return Future(id=__fu_id__)
+    #def async_add(__self__, a, b, __done_callback__=None):
+        #__fu_id__ = __self__.__clnt__.async_call(BenchmarkService.ADD, [a, b], BenchmarkService.__input_type_info__['add'], BenchmarkService.__output_type_info__['add'], __done_callback__)
+        #if __fu_id__ != 0:
+            #return Future(id=__fu_id__)
 
-    def async_nop(__self__, in0, __done_callback__=None):
-        __fu_id__ = __self__.__clnt__.async_call(BenchmarkService.NOP, [in0], BenchmarkService.__input_type_info__['nop'], BenchmarkService.__output_type_info__['nop'], __done_callback__)
-        if __fu_id__ != 0:
-            return Future(id=__fu_id__)
+    #def async_nop(__self__, in0, __done_callback__=None):
+        #__fu_id__ = __self__.__clnt__.async_call(BenchmarkService.NOP, [in0], BenchmarkService.__input_type_info__['nop'], BenchmarkService.__output_type_info__['nop'], __done_callback__)
+        #if __fu_id__ != 0:
+            #return Future(id=__fu_id__)
 
     def sync_fast_prime(__self__, n):
         __result__ = __self__.__clnt__.sync_call(BenchmarkService.FAST_PRIME, [n], BenchmarkService.__input_type_info__['fast_prime'], BenchmarkService.__output_type_info__['fast_prime'])

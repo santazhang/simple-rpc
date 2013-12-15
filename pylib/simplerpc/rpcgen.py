@@ -548,15 +548,15 @@ def emit_service_and_proxy_python(service, f):
                     in_params_decl += ", " + in_arg.name
                 else:
                     in_params_decl += ", in%d" % i
-            f.writeln("def async_%s(__self__%s, __done_callback__=None):" % (func.name, in_params_decl))
+            f.writeln("#def async_%s(__self__%s, __done_callback__=None):" % (func.name, in_params_decl))
             with f.indent():
                 if in_params_decl != "":
                     in_params_decl = in_params_decl[2:] # strip the leading ", "
-                f.writeln("__fu_id__ = __self__.__clnt__.async_call(%sService.%s, [%s], %sService.__input_type_info__['%s'], %sService.__output_type_info__['%s'], __done_callback__)" % (
+                f.writeln("#__fu_id__ = __self__.__clnt__.async_call(%sService.%s, [%s], %sService.__input_type_info__['%s'], %sService.__output_type_info__['%s'], __done_callback__)" % (
                     service.name, func.name.upper(), in_params_decl, service.name, func.name, service.name, func.name))
-                f.writeln("if __fu_id__ != 0:")
+                f.writeln("#if __fu_id__ != 0:")
                 with f.indent():
-                    f.writeln("return Future(id=__fu_id__)")
+                    f.writeln("#return Future(id=__fu_id__)")
 
         for func in service.functions:
             f.writeln()

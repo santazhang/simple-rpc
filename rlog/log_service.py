@@ -5,8 +5,8 @@ from simplerpc import Marshal
 from simplerpc import Future
 
 class RLogService(object):
-    LOG = 0x50ab4a35
-    AGGREGATE_QPS = 0x6fae60f6
+    LOG = 0x15f918f4
+    AGGREGATE_QPS = 0x2aa0d2ef
 
     __input_type_info__ = {
         'log': ['rpc::i32','std::string','rpc::i64','std::string'],
@@ -37,15 +37,15 @@ class RLogProxy(object):
     def __init__(self, clnt):
         self.__clnt__ = clnt
 
-    def async_log(__self__, level, source, msg_id, message, __done_callback__=None):
-        __fu_id__ = __self__.__clnt__.async_call(RLogService.LOG, [level, source, msg_id, message], RLogService.__input_type_info__['log'], RLogService.__output_type_info__['log'], __done_callback__)
-        if __fu_id__ != 0:
-            return Future(id=__fu_id__)
+    #def async_log(__self__, level, source, msg_id, message, __done_callback__=None):
+        #__fu_id__ = __self__.__clnt__.async_call(RLogService.LOG, [level, source, msg_id, message], RLogService.__input_type_info__['log'], RLogService.__output_type_info__['log'], __done_callback__)
+        #if __fu_id__ != 0:
+            #return Future(id=__fu_id__)
 
-    def async_aggregate_qps(__self__, metric_name, increment, __done_callback__=None):
-        __fu_id__ = __self__.__clnt__.async_call(RLogService.AGGREGATE_QPS, [metric_name, increment], RLogService.__input_type_info__['aggregate_qps'], RLogService.__output_type_info__['aggregate_qps'], __done_callback__)
-        if __fu_id__ != 0:
-            return Future(id=__fu_id__)
+    #def async_aggregate_qps(__self__, metric_name, increment, __done_callback__=None):
+        #__fu_id__ = __self__.__clnt__.async_call(RLogService.AGGREGATE_QPS, [metric_name, increment], RLogService.__input_type_info__['aggregate_qps'], RLogService.__output_type_info__['aggregate_qps'], __done_callback__)
+        #if __fu_id__ != 0:
+            #return Future(id=__fu_id__)
 
     def sync_log(__self__, level, source, msg_id, message):
         __result__ = __self__.__clnt__.sync_call(RLogService.LOG, [level, source, msg_id, message], RLogService.__input_type_info__['log'], RLogService.__output_type_info__['log'])

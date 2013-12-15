@@ -63,7 +63,7 @@ public:
 class MathService: public rpc::Service {
 public:
     enum {
-        GCD = 0x23e93d9b,
+        GCD = 0x3696af7a,
     };
     int __reg_to__(rpc::Server* svr) {
         int ret = 0;
