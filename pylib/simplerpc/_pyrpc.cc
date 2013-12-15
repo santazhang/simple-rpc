@@ -79,13 +79,12 @@ static PyObject* _pyrpc_server_reg(PyObject* self, PyObject* args) {
             PyObject* params = Py_BuildValue("(k)", u);
             PyObject* result = PyObject_CallObject(func, params);
             if (result == nullptr) {
-                error_code = -1; // generic error code
                 // exception handling
+                error_code = -1; // generic error code
                 if (PyErr_ExceptionMatches(PyExc_NotImplementedError)) {
                     error_code = ENOSYS;
                 }
                 PyErr_Clear();
-
             } else {
                 output_m = (Marshal *) PyInt_AsLong(result);
                 Py_XDECREF(params);
@@ -185,6 +184,43 @@ static PyObject* _pyrpc_client_sync_call(PyObject* self, PyObject* args) {
 
     unsigned long m_rep_id = (unsigned long) m_rep;
     return Py_BuildValue("(ik)", error_code, m_rep_id);
+}
+
+static PyObject* _pyrpc_client_async_call(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    
+    unsigned long u;
+    int rpc_id;
+    unsigned long m_id;
+    PyObject* cb;
+    if (!PyArg_ParseTuple(args, "kikO", &u, &rpc_id, &m_id, &cb))
+        return nullptr;
+
+    Client* clnt = (Client *) u;
+    Marshal* m = (Marshal *) m_id;
+
+    FutureAttr fu_attr;
+    if (cb != Py_None) {
+        Py_XINCREF(cb);
+        fu_attr.callback = [cb] (Future* fu) {
+            GILHelper gil_helper;
+            PyObject* params = Py_BuildValue("(k)", fu);
+            PyObject* result = PyObject_CallObject(cb, params);
+
+            Py_XDECREF(cb);
+            Py_XDECREF(params);
+            Py_XDECREF(result);
+        };
+    }
+
+    Future* fu = clnt->begin_request(rpc_id, fu_attr);
+    if (fu != nullptr) {
+        *clnt << *m;
+    }
+    clnt->end_request();
+
+    unsigned long fu_id = (unsigned long) fu;
+    return Py_BuildValue("k", fu_id);
 }
 
 
@@ -316,6 +352,63 @@ static PyObject* _pyrpc_marshal_read_str(PyObject* self, PyObject* args) {
 }
 
 
+static PyObject* _pyrpc_fini_future(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    if (!PyArg_ParseTuple(args, "k", &u))
+        return nullptr;
+    Future* fu = (Future *) u;
+    fu->release();
+    Py_RETURN_NONE;
+}
+
+static PyObject* _pyrpc_future_wait(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    if (!PyArg_ParseTuple(args, "k", &u))
+        return nullptr;
+    Future* fu = (Future *) u;
+
+    if (!fu->ready()) {
+        PyThreadState *_save;
+        _save = PyEval_SaveThread();
+        fu->wait();
+        PyEval_RestoreThread(_save);
+    }
+
+    Py_RETURN_NONE;
+}
+
+static PyObject* _pyrpc_future_ready(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    if (!PyArg_ParseTuple(args, "k", &u))
+        return nullptr;
+    Future* fu = (Future *) u;
+
+    if (fu->ready()) {
+        return Py_BuildValue("i", 1);
+    } else {
+        return Py_BuildValue("i", 0);
+    }
+}
+
+static PyObject* _pyrpc_future_get_error_code(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    if (!PyArg_ParseTuple(args, "k", &u))
+        return nullptr;
+    Future* fu = (Future *) u;
+
+    if (!fu->ready()) {
+        PyThreadState *_save;
+        _save = PyEval_SaveThread();
+        fu->wait();
+        PyEval_RestoreThread(_save);
+    }
+    return Py_BuildValue("i", fu->get_error_code());
+}
+
 static PyMethodDef _pyrpcMethods[] = {
     {"init_server", _pyrpc_init_server, METH_VARARGS, nullptr},
     {"fini_server", _pyrpc_fini_server, METH_VARARGS, nullptr},
@@ -329,6 +422,7 @@ static PyMethodDef _pyrpcMethods[] = {
     {"fini_client", _pyrpc_fini_client, METH_VARARGS, nullptr},
     {"client_connect", _pyrpc_client_connect, METH_VARARGS, nullptr},
     {"client_sync_call", _pyrpc_client_sync_call, METH_VARARGS, nullptr},
+    {"client_async_call", _pyrpc_client_async_call, METH_VARARGS, nullptr},
 
     {"init_marshal", _pyrpc_init_marshal, METH_VARARGS, nullptr},
     {"fini_marshal", _pyrpc_fini_marshal, METH_VARARGS, nullptr},
@@ -341,6 +435,11 @@ static PyMethodDef _pyrpcMethods[] = {
     {"marshal_read_double", _pyrpc_marshal_read_double, METH_VARARGS, nullptr},
     {"marshal_write_str", _pyrpc_marshal_write_str, METH_VARARGS, nullptr},
     {"marshal_read_str", _pyrpc_marshal_read_str, METH_VARARGS, nullptr},
+    
+    {"fini_future", _pyrpc_fini_future, METH_VARARGS, nullptr},
+    {"future_wait", _pyrpc_future_wait, METH_VARARGS, nullptr},
+    {"future_ready", _pyrpc_future_ready, METH_VARARGS, nullptr},
+    {"future_get_error_code", _pyrpc_future_get_error_code, METH_VARARGS, nullptr},
 
     {nullptr, nullptr, 0, nullptr}
 };

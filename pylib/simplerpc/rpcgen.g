@@ -381,11 +381,26 @@ def emit_service_and_proxy_python(service, f):
         f.writeln("def __init__(self, clnt):")
         with f.indent():
             f.writeln("self.__clnt__ = clnt")
+
         for func in service.functions:
             f.writeln()
-            f.writeln("def async_%s(TODO):" % func.name)
+            in_params_decl = ""
+            for i in range(len(func.input)):
+                in_arg = func.input[i]
+                if in_arg.name != None:
+                    in_params_decl += ", " + in_arg.name
+                else:
+                    in_params_decl += ", in%d" % i
+            f.writeln("def async_%s(__self__%s, __done_callback__=None):" % (func.name, in_params_decl))
             with f.indent():
-                f.writeln("pass")
+                if in_params_decl != "":
+                    in_params_decl = in_params_decl[2:] # strip the leading ", "
+                f.writeln("__fu_id__ = __self__.__clnt__.async_call(%sService.%s, [%s], %sService.__input_type_info__['%s'], %sService.__output_type_info__['%s'], __done_callback__)" % (
+                    service.name, func.name.upper(), in_params_decl, service.name, func.name, service.name, func.name))
+                f.writeln("if __fu_id__ != 0:")
+                with f.indent():
+                    f.writeln("return Future(id=__fu_id__)")
+
         for func in service.functions:
             f.writeln()
             in_params_decl = ""
@@ -470,5 +485,6 @@ def rpcgen(rpc_fpath):
         f.writeln()
         f.writeln("import os")
         f.writeln("from simplerpc import Marshal")
+        f.writeln("from simplerpc import Future")
         f.writeln()
         emit_rpc_source_python(rpc_source, f)

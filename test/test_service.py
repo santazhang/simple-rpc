@@ -2,6 +2,7 @@
 
 import os
 from simplerpc import Marshal
+from simplerpc import Future
 
 empty_struct = Marshal.reg_type('empty_struct', [])
 
@@ -28,7 +29,7 @@ class EmptyProxy(object):
         self.__clnt__ = clnt
 
 class MathService(object):
-    GCD = 0x3edd5881
+    GCD = 0x23e93d9b
 
     __input_type_info__ = {
         'gcd': ['rpc::i64','rpc::i64'],
@@ -53,8 +54,10 @@ class MathProxy(object):
     def __init__(self, clnt):
         self.__clnt__ = clnt
 
-    def async_gcd(TODO):
-        pass
+    def async_gcd(__self__, a, in1, __done_callback__=None):
+        __fu_id__ = __self__.__clnt__.async_call(MathService.GCD, [a, in1], MathService.__input_type_info__['gcd'], MathService.__output_type_info__['gcd'], __done_callback__)
+        if __fu_id__ != 0:
+            return Future(id=__fu_id__)
 
     def sync_gcd(__self__, a, in1):
         __result__ = __self__.__clnt__.sync_call(MathService.GCD, [a, in1], MathService.__input_type_info__['gcd'], MathService.__output_type_info__['gcd'])

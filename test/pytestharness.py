@@ -158,6 +158,18 @@ class TestRpcGen(TestCase):
         end = time.time()
         print "qps = %.2lf" % (10000.0 / (end - start))
 
+        fu = mp.async_gcd(124, 84)
+        fu.wait()
+        fu.wait()
+        print "fu done", fu.get_error_code(), fu.ready()
+
+        def done_cb(error_code, results):
+            # results is a list
+            print "ball back, error_code=%d," % error_code
+            print results
+
+        mp.async_gcd(124, 84, done_cb)
+
     def test_proxy_gen(self):
         pass
 

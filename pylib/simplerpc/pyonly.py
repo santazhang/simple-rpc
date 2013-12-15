@@ -2,9 +2,10 @@
 
 import os
 from simplerpc import Marshal
+from simplerpc import Future
 
 class PythonOnlyService(object):
-    PYONLY_RPC = 0x5a013973
+    PYONLY_RPC = 0x2d5bdf12
 
     __input_type_info__ = {
         'pyonly_rpc': ['std::string'],
@@ -29,8 +30,10 @@ class PythonOnlyProxy(object):
     def __init__(self, clnt):
         self.__clnt__ = clnt
 
-    def async_pyonly_rpc(TODO):
-        pass
+    def async_pyonly_rpc(__self__, enc_in, __done_callback__=None):
+        __fu_id__ = __self__.__clnt__.async_call(PythonOnlyService.PYONLY_RPC, [enc_in], PythonOnlyService.__input_type_info__['pyonly_rpc'], PythonOnlyService.__output_type_info__['pyonly_rpc'], __done_callback__)
+        if __fu_id__ != 0:
+            return Future(id=__fu_id__)
 
     def sync_pyonly_rpc(__self__, enc_in):
         __result__ = __self__.__clnt__.sync_call(PythonOnlyService.PYONLY_RPC, [enc_in], PythonOnlyService.__input_type_info__['pyonly_rpc'], PythonOnlyService.__output_type_info__['pyonly_rpc'])
