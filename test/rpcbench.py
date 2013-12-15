@@ -6,6 +6,7 @@ import argparse
 import time
 sys.path += os.path.abspath(os.path.join(os.path.split(__file__)[0], "../pylib")),
 import simplerpc
+from benchmark_service import *
 
 def main():
     argparser = argparse.ArgumentParser(prog=sys.argv[0])
@@ -15,17 +16,26 @@ def main():
     if opt.c:
         c = simplerpc.Client()
         c.connect(opt.c)
-        for i in range(1, 100001):
-            c.sync_call(1987, 1, 2)
-            if i % 1000 == 0:
-                print "%d requests done" % i
+        bp = BenchmarkProxy(c)
+        counter = 0
+        last_time = time.time()
+        while True:
+            now = time.time()
+            if now - last_time > 1.0:
+                print "qps=%d" % (counter / (now - last_time))
+                last_time = now
+                counter = 0
+            bp.sync_nop("")
+            counter += 1
+
     elif opt.s:
         s = simplerpc.Server()
 
-        def a_add_b(a, b):
-            return a + b
+        class MyBenchmarkService(BenchmarkService):
+            def nop(self, in0):
+                pass
 
-        s.reg_func(1987, a_add_b)
+        s.reg_svc(MyBenchmarkService())
 
         s.start(opt.s)
         while True:
