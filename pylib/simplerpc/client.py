@@ -22,7 +22,7 @@ class Client(object):
             req_m.write_obj(req_values[i], req_types[i])
         error_code, rep_marshal_id = _pyrpc.client_sync_call(self.id, rpc_id, req_m.id)
         results = []
-        if rep_marshal_id != 0:
+        if rep_marshal_id != 0 and error_code == 0:
             rep_m = Marshal(id=rep_marshal_id)
             for ty in rep_types:
                 results += rep_m.read_obj(ty),

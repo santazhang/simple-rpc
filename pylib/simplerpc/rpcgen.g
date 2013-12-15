@@ -403,7 +403,7 @@ def emit_service_and_proxy_python(service, f):
                     service.name, func.name.upper(), in_params_decl, service.name, func.name, service.name, func.name))
                 f.writeln("if __result__[0] != 0:")
                 with f.indent():
-                    f.writeln("raise Exception(\"RPC returned non-zero error code %d\" % __result__[0])")
+                    f.writeln("raise Exception(\"RPC returned non-zero error code %d: %s\" % (__result__[0], os.strerror(__result__[0])))")
                 f.writeln("if len(__result__[1]) == 1:")
                 with f.indent():
                     f.writeln("return __result__[1][0]")
@@ -468,6 +468,7 @@ def rpcgen(rpc_fpath):
         f = SourceFile(f)
         f.writeln("# generated from '%s'" % os.path.split(rpc_fpath)[1])
         f.writeln()
+        f.writeln("import os")
         f.writeln("from simplerpc import Marshal")
         f.writeln()
         emit_rpc_source_python(rpc_source, f)

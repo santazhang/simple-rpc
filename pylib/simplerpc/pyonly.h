@@ -11,7 +11,7 @@
 class PythonOnlyService: public rpc::Service {
 public:
     enum {
-        PYONLY_RPC = 0x3efe015a,
+        PYONLY_RPC = 0x5a013973,
     };
     int __reg_to__(rpc::Server* svr) {
         int ret = 0;

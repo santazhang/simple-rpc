@@ -1,5 +1,6 @@
 # generated from 'test_service.rpc'
 
+import os
 from simplerpc import Marshal
 
 empty_struct = Marshal.reg_type('empty_struct', [])
@@ -27,7 +28,7 @@ class EmptyProxy(object):
         self.__clnt__ = clnt
 
 class MathService(object):
-    GCD = 0x144912fb
+    GCD = 0x3edd5881
 
     __input_type_info__ = {
         'gcd': ['rpc::i64','rpc::i64'],
@@ -58,7 +59,7 @@ class MathProxy(object):
     def sync_gcd(__self__, a, in1):
         __result__ = __self__.__clnt__.sync_call(MathService.GCD, [a, in1], MathService.__input_type_info__['gcd'], MathService.__output_type_info__['gcd'])
         if __result__[0] != 0:
-            raise Exception("RPC returned non-zero error code %d" % __result__[0])
+            raise Exception("RPC returned non-zero error code %d: %s" % (__result__[0], os.strerror(__result__[0])))
         if len(__result__[1]) == 1:
             return __result__[1][0]
         elif len(__result__[1]) > 1:

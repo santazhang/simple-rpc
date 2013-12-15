@@ -21,14 +21,12 @@ public:
 
 static PyObject* _pyrpc_init_server(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
-//    Log::info("init_server called");
     Server* svr = new Server;
     return Py_BuildValue("k", svr);
 }
 
 static PyObject* _pyrpc_fini_server(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
-    // Log::info("fini_server called");
     unsigned long u;
     if (!PyArg_ParseTuple(args, "k", &u))
         return nullptr;
@@ -39,7 +37,6 @@ static PyObject* _pyrpc_fini_server(PyObject* self, PyObject* args) {
 
 static PyObject* _pyrpc_server_start(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
-    // Log::info("server_start called");
     const char* addr;
     unsigned long u;
     if (!PyArg_ParseTuple(args, "ks", &u, &addr))
@@ -51,7 +48,6 @@ static PyObject* _pyrpc_server_start(PyObject* self, PyObject* args) {
 
 static PyObject* _pyrpc_server_unreg(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
-    // Log::info("server_unreg called");
     unsigned long u;
     int rpc_id;
     if (!PyArg_ParseTuple(args, "ki", &u, &rpc_id))
@@ -76,18 +72,28 @@ static PyObject* _pyrpc_server_reg(PyObject* self, PyObject* args) {
 
     int ret = svr->reg(rpc_id, [func](Request* req, ServerConnection* sconn) {
         Marshal* output_m = nullptr;
+        int error_code = 0;
         {
             unsigned long u = (unsigned long) &req->m;
             GILHelper gil_helper;
             PyObject* params = Py_BuildValue("(k)", u);
             PyObject* result = PyObject_CallObject(func, params);
-            verify(result != nullptr);
-            output_m = (Marshal *) PyInt_AsLong(result);
-            Py_XDECREF(params);
-            Py_XDECREF(result);
+            if (result == nullptr) {
+                error_code = -1; // generic error code
+                // exception handling
+                if (PyErr_ExceptionMatches(PyExc_NotImplementedError)) {
+                    error_code = ENOSYS;
+                }
+                PyErr_Clear();
+
+            } else {
+                output_m = (Marshal *) PyInt_AsLong(result);
+                Py_XDECREF(params);
+                Py_XDECREF(result);
+            }
         }
 
-        sconn->begin_reply(req);
+        sconn->begin_reply(req, error_code);
         if (output_m != nullptr) {
             *sconn << *output_m;
         }
@@ -107,14 +113,12 @@ static PyObject* _pyrpc_server_reg(PyObject* self, PyObject* args) {
 
 static PyObject* _pyrpc_init_poll_mgr(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
-    // Log::info("init_poll_mgr called");
     PollMgr* poll = new PollMgr;
     return Py_BuildValue("k", poll);
 }
 
 static PyObject* _pyrpc_init_client(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
-    // Log::info("init_client called");
     unsigned long u;
     if (!PyArg_ParseTuple(args, "k", &u))
         return nullptr;
@@ -125,7 +129,6 @@ static PyObject* _pyrpc_init_client(PyObject* self, PyObject* args) {
 
 static PyObject* _pyrpc_fini_client(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
-    // Log::info("fini_client called");
     unsigned long u;
     if (!PyArg_ParseTuple(args, "k", &u))
         return nullptr;
@@ -136,7 +139,6 @@ static PyObject* _pyrpc_fini_client(PyObject* self, PyObject* args) {
 
 static PyObject* _pyrpc_client_connect(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
-    // Log::info("client_connect called");
     const char* addr;
     unsigned long u;
     if (!PyArg_ParseTuple(args, "ks", &u, &addr))
@@ -148,7 +150,6 @@ static PyObject* _pyrpc_client_connect(PyObject* self, PyObject* args) {
 
 static PyObject* _pyrpc_client_sync_call(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
-    // Log::info("client_sync_call called");
 
     PyThreadState *_save;
     _save = PyEval_SaveThread();
@@ -346,7 +347,6 @@ static PyMethodDef _pyrpcMethods[] = {
 
 PyMODINIT_FUNC init_pyrpc(void) {
     PyEval_InitThreads();
-    // Log::debug("PyEval_InitThreads called!");
     GILHelper gil_helper;
     PyObject* m;
     m = Py_InitModule("_pyrpc", _pyrpcMethods);

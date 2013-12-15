@@ -14,11 +14,10 @@ def marshal_wrap(f, input_types, output_types):
         for input_ty in input_types:
             input_values += input_m.read_obj(input_ty),
         try:
-            # TODO move this try-except block into C++
             output = f(*input_values)
         except:
             traceback.print_exc()
-            return 0
+            raise
 
         if len(output_types) == 0:
             # void rpc

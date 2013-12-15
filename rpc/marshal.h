@@ -216,7 +216,6 @@ public:
 
     size_t read_from_fd(int fd);
 
-    // this must be newly created empty Marshal, m must have at least n bytes of data
     size_t read_from_marshal(Marshal& m, size_t n);
 
     size_t write_to_fd(int fd);

@@ -1,18 +1,19 @@
 # generated from 'benchmark_service.rpc'
 
+import os
 from simplerpc import Marshal
 
 point3 = Marshal.reg_type('point3', [('x', 'double'), ('y', 'double'), ('z', 'double')])
 
 class BenchmarkService(object):
-    FAST_PRIME = 0x35e19c6a
-    FAST_DOT_PROD = 0x232cccc7
-    FAST_ADD = 0x3c848192
-    FAST_NOP = 0x6109833a
-    PRIME = 0x20276e17
-    DOT_PROD = 0x61da5cb1
-    ADD = 0x273b15c7
-    NOP = 0x3ba571e9
+    FAST_PRIME = 0x3867123e
+    FAST_DOT_PROD = 0x37339241
+    FAST_ADD = 0x14dcce98
+    FAST_NOP = 0x621b0787
+    PRIME = 0x1a685fac
+    DOT_PROD = 0x20a6320c
+    ADD = 0x144d5a48
+    NOP = 0x21604c46
 
     __input_type_info__ = {
         'fast_prime': ['rpc::i32'],
@@ -51,33 +52,33 @@ class BenchmarkService(object):
         server.__reg_func__(BenchmarkService.ADD, self.__bind_helper__(self.add), ['rpc::i32','rpc::i32'], ['rpc::i32'])
         server.__reg_func__(BenchmarkService.NOP, self.__bind_helper__(self.nop), ['std::string'], [])
 
-    def fast_prime(self, marshal):
+    def fast_prime(__self__, n):
         raise NotImplementedError('subclass BenchmarkService and implement your own fast_prime function')
 
-    def fast_dot_prod(self, marshal):
+    def fast_dot_prod(__self__, p1, p2):
         raise NotImplementedError('subclass BenchmarkService and implement your own fast_dot_prod function')
 
-    def fast_add(self, marshal):
+    def fast_add(__self__, a, b):
         raise NotImplementedError('subclass BenchmarkService and implement your own fast_add function')
 
-    def fast_nop(self, marshal):
+    def fast_nop(__self__, in0):
         raise NotImplementedError('subclass BenchmarkService and implement your own fast_nop function')
 
-    def prime(self, marshal):
+    def prime(__self__, n):
         raise NotImplementedError('subclass BenchmarkService and implement your own prime function')
 
-    def dot_prod(self, marshal):
+    def dot_prod(__self__, p1, p2):
         raise NotImplementedError('subclass BenchmarkService and implement your own dot_prod function')
 
-    def add(self, marshal):
+    def add(__self__, a, b):
         raise NotImplementedError('subclass BenchmarkService and implement your own add function')
 
-    def nop(self, marshal):
+    def nop(__self__, in0):
         raise NotImplementedError('subclass BenchmarkService and implement your own nop function')
 
 class BenchmarkProxy(object):
     def __init__(self, clnt):
-        self.clnt = clnt
+        self.__clnt__ = clnt
 
     def async_fast_prime(TODO):
         pass
@@ -103,27 +104,75 @@ class BenchmarkProxy(object):
     def async_nop(TODO):
         pass
 
-    def sync_fast_prime(TODO):
-        pass
+    def sync_fast_prime(__self__, n):
+        __result__ = __self__.__clnt__.sync_call(BenchmarkService.FAST_PRIME, [n], BenchmarkService.__input_type_info__['fast_prime'], BenchmarkService.__output_type_info__['fast_prime'])
+        if __result__[0] != 0:
+            raise Exception("RPC returned non-zero error code %d: %s" % (__result__[0], os.strerror(__result__[0])))
+        if len(__result__[1]) == 1:
+            return __result__[1][0]
+        elif len(__result__[1]) > 1:
+            return __result__[1]
 
-    def sync_fast_dot_prod(TODO):
-        pass
+    def sync_fast_dot_prod(__self__, p1, p2):
+        __result__ = __self__.__clnt__.sync_call(BenchmarkService.FAST_DOT_PROD, [p1, p2], BenchmarkService.__input_type_info__['fast_dot_prod'], BenchmarkService.__output_type_info__['fast_dot_prod'])
+        if __result__[0] != 0:
+            raise Exception("RPC returned non-zero error code %d: %s" % (__result__[0], os.strerror(__result__[0])))
+        if len(__result__[1]) == 1:
+            return __result__[1][0]
+        elif len(__result__[1]) > 1:
+            return __result__[1]
 
-    def sync_fast_add(TODO):
-        pass
+    def sync_fast_add(__self__, a, b):
+        __result__ = __self__.__clnt__.sync_call(BenchmarkService.FAST_ADD, [a, b], BenchmarkService.__input_type_info__['fast_add'], BenchmarkService.__output_type_info__['fast_add'])
+        if __result__[0] != 0:
+            raise Exception("RPC returned non-zero error code %d: %s" % (__result__[0], os.strerror(__result__[0])))
+        if len(__result__[1]) == 1:
+            return __result__[1][0]
+        elif len(__result__[1]) > 1:
+            return __result__[1]
 
-    def sync_fast_nop(TODO):
-        pass
+    def sync_fast_nop(__self__, in0):
+        __result__ = __self__.__clnt__.sync_call(BenchmarkService.FAST_NOP, [in0], BenchmarkService.__input_type_info__['fast_nop'], BenchmarkService.__output_type_info__['fast_nop'])
+        if __result__[0] != 0:
+            raise Exception("RPC returned non-zero error code %d: %s" % (__result__[0], os.strerror(__result__[0])))
+        if len(__result__[1]) == 1:
+            return __result__[1][0]
+        elif len(__result__[1]) > 1:
+            return __result__[1]
 
-    def sync_prime(TODO):
-        pass
+    def sync_prime(__self__, n):
+        __result__ = __self__.__clnt__.sync_call(BenchmarkService.PRIME, [n], BenchmarkService.__input_type_info__['prime'], BenchmarkService.__output_type_info__['prime'])
+        if __result__[0] != 0:
+            raise Exception("RPC returned non-zero error code %d: %s" % (__result__[0], os.strerror(__result__[0])))
+        if len(__result__[1]) == 1:
+            return __result__[1][0]
+        elif len(__result__[1]) > 1:
+            return __result__[1]
 
-    def sync_dot_prod(TODO):
-        pass
+    def sync_dot_prod(__self__, p1, p2):
+        __result__ = __self__.__clnt__.sync_call(BenchmarkService.DOT_PROD, [p1, p2], BenchmarkService.__input_type_info__['dot_prod'], BenchmarkService.__output_type_info__['dot_prod'])
+        if __result__[0] != 0:
+            raise Exception("RPC returned non-zero error code %d: %s" % (__result__[0], os.strerror(__result__[0])))
+        if len(__result__[1]) == 1:
+            return __result__[1][0]
+        elif len(__result__[1]) > 1:
+            return __result__[1]
 
-    def sync_add(TODO):
-        pass
+    def sync_add(__self__, a, b):
+        __result__ = __self__.__clnt__.sync_call(BenchmarkService.ADD, [a, b], BenchmarkService.__input_type_info__['add'], BenchmarkService.__output_type_info__['add'])
+        if __result__[0] != 0:
+            raise Exception("RPC returned non-zero error code %d: %s" % (__result__[0], os.strerror(__result__[0])))
+        if len(__result__[1]) == 1:
+            return __result__[1][0]
+        elif len(__result__[1]) > 1:
+            return __result__[1]
 
-    def sync_nop(TODO):
-        pass
+    def sync_nop(__self__, in0):
+        __result__ = __self__.__clnt__.sync_call(BenchmarkService.NOP, [in0], BenchmarkService.__input_type_info__['nop'], BenchmarkService.__output_type_info__['nop'])
+        if __result__[0] != 0:
+            raise Exception("RPC returned non-zero error code %d: %s" % (__result__[0], os.strerror(__result__[0])))
+        if len(__result__[1]) == 1:
+            return __result__[1][0]
+        elif len(__result__[1]) > 1:
+            return __result__[1]
 
