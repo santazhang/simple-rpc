@@ -593,7 +593,7 @@ def emit_rpc_source_python(rpc_source, f):
     for service in rpc_source.services:
         emit_service_and_proxy_python(service, f)
 
-def rpcgen(rpc_fpath):
+def rpcgen(rpc_fpath, languages):
     with open(rpc_fpath) as f:
         rpc_src = f.read()
 
@@ -645,3 +645,8 @@ def rpcgen(rpc_fpath):
         f.writeln("from simplerpc import Future")
         f.writeln()
         emit_rpc_source_python(rpc_source, f)
+
+    if "python" not in languages:
+        os.remove(os.path.splitext(rpc_fpath)[0] + ".py")
+    if "cpp" not in languages:
+        os.remove(os.path.splitext(rpc_fpath)[0] + ".h")

@@ -23,12 +23,9 @@ def configure(conf):
 def build(bld):
     _depend("pylib/simplerpc/rpcgen.py", "pylib/simplerpc/rpcgen.g", "pylib/yapps/main.py pylib/simplerpc/rpcgen.g")
     _depend("rlog/log_service.h", "rlog/log_service.rpc", "bin/rpcgen rlog/log_service.rpc")
-    _depend("test/benchmark_service.h", "test/benchmark_service.rpc", "bin/rpcgen test/benchmark_service.rpc")
-    _depend("test/benchmark_service.py", "test/benchmark_service.rpc", "bin/rpcgen test/benchmark_service.rpc")
-    _depend("test/test_service.h", "test/test_service.rpc", "bin/rpcgen test/test_service.rpc")
-    _depend("test/test_service.py", "test/test_service.rpc", "bin/rpcgen test/test_service.rpc")
-    _depend("pylib/simplerpc/pyonly.h", "pylib/simplerpc/pyonly.rpc", "bin/rpcgen pylib/simplerpc/pyonly.rpc")
-    _depend("pylib/simplerpc/pyonly.py", "pylib/simplerpc/pyonly.rpc", "bin/rpcgen pylib/simplerpc/pyonly.rpc")
+    _depend("test/benchmark_service.h test/benchmark_service.py", "test/benchmark_service.rpc", "bin/rpcgen --cpp --python test/benchmark_service.rpc")
+    _depend("test/test_service.py", "test/test_service.rpc", "bin/rpcgen --python test/test_service.rpc")
+    _depend("pylib/simplerpc/pyonly.py", "pylib/simplerpc/pyonly.rpc", "bin/rpcgen --python pylib/simplerpc/pyonly.rpc")
 
     bld.stlib(source=bld.path.ant_glob("rpc/*.cc"), target="simplerpc", includes="rpc", use="BASE PTHREAD")
     bld.stlib(
@@ -52,8 +49,7 @@ def build(bld):
     test_src = bld.path.ant_glob("test/test*.cc") + bld.path.ant_glob("rlog/*.cc", excl="rlog/log_server.cc") + ["test/benchmark_service.cc"]
     test_use = "rlog BASE PTHREAD"
     if bld.env.PROTOC != []:
-        _depend("test/person.pb.cc", "test/person.proto", "%s --cpp_out=test -Itest test/person.proto" % bld.env.PROTOC)
-        _depend("test/person.pb.h", "test/person.proto", "%s --cpp_out=test -Itest test/person.proto" % bld.env.PROTOC)
+        _depend("test/person.pb.cc test/person.pb.h", "test/person.proto", "%s --cpp_out=test -Itest test/person.proto" % bld.env.PROTOC)
         test_src += bld.path.ant_glob("test/*.pb.cc") + bld.path.ant_glob("test/protobuf-test*.cc")
         test_use += " PROTOBUF"
     _prog(test_src, "testharness", use=test_use)
@@ -92,9 +88,18 @@ def _run_cmd(cmd):
     Logs.pprint('PINK', cmd)
     os.system(cmd)
 
+def _properly_split(args):
+    if args == None:
+        return []
+    else:
+        return args.split()
+
 def _depend(target, source, action):
-    if source != None and os.path.exists(source) == False:
-        Logs.pprint('RED', "'%s' not found!" % source)
-        exit(1)
-    if os.path.exists(target) == False or os.stat(target).st_mtime < os.stat(source).st_mtime:
+    target = _properly_split(target)
+    source = _properly_split(source)
+    for s in source:
+        if not os.path.exists(s):
+            Logs.pprint('RED', "'%s' not found!" % s)
+            exit(1)
+    if not target or min([os.stat(t).st_mtime for t in target]) < max([os.stat(s).st_mtime for s in source]):
         _run_cmd(action)

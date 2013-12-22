@@ -5,7 +5,7 @@ from simplerpc import Marshal
 from simplerpc import Future
 
 class PythonOnlyService(object):
-    PYONLY_RPC = 0x23bb5cd6
+    PYONLY_RPC = 0x63eb0242
 
     __input_type_info__ = {
         'pyonly_rpc': ['std::string'],
