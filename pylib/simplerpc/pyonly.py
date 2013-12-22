@@ -1,11 +1,9 @@
-# generated from 'pyonly.rpc'
-
 import os
 from simplerpc import Marshal
 from simplerpc import Future
 
 class PythonOnlyService(object):
-    PYONLY_RPC = 0x63eb0242
+    PYONLY_RPC = 0x30ffcd3d
 
     __input_type_info__ = {
         'pyonly_rpc': ['std::string'],

@@ -188,7 +188,7 @@ static PyObject* _pyrpc_client_sync_call(PyObject* self, PyObject* args) {
 
 static PyObject* _pyrpc_client_async_call(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
-    
+
     unsigned long u;
     int rpc_id;
     unsigned long m_id;
@@ -435,7 +435,7 @@ static PyMethodDef _pyrpcMethods[] = {
     {"marshal_read_double", _pyrpc_marshal_read_double, METH_VARARGS, nullptr},
     {"marshal_write_str", _pyrpc_marshal_write_str, METH_VARARGS, nullptr},
     {"marshal_read_str", _pyrpc_marshal_read_str, METH_VARARGS, nullptr},
-    
+
     {"fini_future", _pyrpc_fini_future, METH_VARARGS, nullptr},
     {"future_wait", _pyrpc_future_wait, METH_VARARGS, nullptr},
     {"future_ready", _pyrpc_future_ready, METH_VARARGS, nullptr},

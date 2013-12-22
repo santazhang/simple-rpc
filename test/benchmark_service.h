@@ -1,5 +1,3 @@
-// generated from 'benchmark_service.rpc'
-
 #pragma once
 
 #include "rpc/server.h"
@@ -35,14 +33,14 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, point3& o) {
 class BenchmarkService: public rpc::Service {
 public:
     enum {
-        FAST_PRIME = 0x5663db73,
-        FAST_DOT_PROD = 0x6517304a,
-        FAST_ADD = 0x1f063008,
-        FAST_NOP = 0x4c4b1348,
-        PRIME = 0x4c4ebcce,
-        DOT_PROD = 0x3daf1670,
-        ADD = 0x5ca29cb4,
-        NOP = 0x598c4902,
+        FAST_PRIME = 0x4c24c64c,
+        FAST_DOT_PROD = 0x2e05570f,
+        FAST_ADD = 0x5352e4a0,
+        FAST_NOP = 0x3d013971,
+        PRIME = 0x5c5c049e,
+        DOT_PROD = 0x518c5fb0,
+        ADD = 0x246d75ec,
+        NOP = 0x4a0b5ac7,
     };
     int __reg_to__(rpc::Server* svr) {
         int ret = 0;

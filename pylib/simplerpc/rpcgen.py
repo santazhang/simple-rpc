@@ -3,7 +3,8 @@ import os
 import random
 import re
 sys.path += os.path.abspath(os.path.join(os.path.split(__file__)[0], "../../pylib")),
-
+from simplerpc.rpcgen_cpp import emit_rpc_source_cpp
+from simplerpc.rpcgen_python import emit_rpc_source_python
 
 def error(msg, ctx):
     from yapps import runtime
@@ -255,343 +256,13 @@ def parse(rule, text):
 
 
 
-# global variables
-rpc_table = {} # service.func = rpc_code
-
-
-class SourceFile(object):
-    def __init__(self, f):
-        self.f = f
-        self.indent_level = 0
-    def indent(self):
-        class Indent:
-            def __init__(self, sf):
-                self.sf = sf
-            def __enter__(self):
-                self.sf.indent_level += 1
-            def __exit__(self, type, value, traceback):
-                self.sf.indent_level -= 1
-        return Indent(self)
-    def incr_indent(self):
-        self.indent_level += 1
-    def decr_indent(self):
-        self.indent_level -= 1
-        assert self.indent_level >= 0
-
-    def write(self, txt):
-        self.f.write(txt)
-
-    def writeln(self, txt=None):
-        if txt != None:
-            self.f.write("    " * self.indent_level)
-            self.f.write(txt)
-        self.f.write("\n")
-
-def emit_struct(struct, f):
-    f.writeln("struct %s {" % struct.name)
-    with f.indent():
-        for field in struct.fields:
-            f.writeln("%s %s;" % (field.type, field.name))
-    f.writeln("};")
-    f.writeln()
-    f.writeln("inline rpc::Marshal& operator <<(rpc::Marshal& m, const %s& o) {" % struct.name)
-    with f.indent():
-        for field in struct.fields:
-            f.writeln("m << o.%s;" % field.name)
-        f.writeln("return m;")
-    f.writeln("}")
-    f.writeln()
-    f.writeln("inline rpc::Marshal& operator >>(rpc::Marshal& m, %s& o) {" % struct.name)
-    with f.indent():
-        for field in struct.fields:
-            f.writeln("m >> o.%s;" % field.name)
-        f.writeln("return m;")
-    f.writeln("}")
-    f.writeln()
-
-def emit_service_and_proxy(service, f):
-    f.writeln("class %sService: public rpc::Service {" % service.name)
-    f.writeln("public:")
-    with f.indent():
-        f.writeln("enum {")
-        with f.indent():
-            global rpc_table
-            for func in service.functions:
-                rpc_code = random.randint(0x10000000, 0x70000000)
-                rpc_table["%s.%s" % (service.name, func.name)] = rpc_code
-                f.writeln("%s = %s," % (func.name.upper(), hex(rpc_code)))
-        f.writeln("};")
-        f.writeln("int __reg_to__(rpc::Server* svr) {")
-        with f.indent():
-            f.writeln("int ret = 0;")
-            for func in service.functions:
-                if func.attr == "raw":
-                    f.writeln("if ((ret = svr->reg(%s, this, &%sService::%s)) != 0) {" % (func.name.upper(), service.name, func.name))
-                else:
-                    f.writeln("if ((ret = svr->reg(%s, this, &%sService::__%s__wrapper__)) != 0) {" % (func.name.upper(), service.name, func.name))
-                with f.indent():
-                    f.writeln("goto err;")
-                f.writeln("}")
-            f.writeln("return 0;")
-        f.writeln("err:")
-        with f.indent():
-            for func in service.functions:
-                f.writeln("svr->unreg(%s);" % func.name.upper())
-            f.writeln("return ret;")
-        f.writeln("}")
-        f.writeln("// these RPC handler functions need to be implemented by user")
-        f.writeln("// for 'raw' handlers, remember to reply req, delete req, and sconn->release(); use sconn->run_async for heavy job")
-        for func in service.functions:
-            if service.abstract or func.abstract:
-                postfix = " = 0"
-            else:
-                postfix = ""
-            if func.attr == "raw":
-                f.writeln("virtual void %s(rpc::Request* req, rpc::ServerConnection* sconn)%s;" % (func.name, postfix))
-            else:
-                func_args = []
-                for in_arg in func.input:
-                    if in_arg.name != None:
-                        func_args += "const %s& %s" % (in_arg.type, in_arg.name),
-                    else:
-                        func_args += "const %s&" % in_arg.type,
-                for out_arg in func.output:
-                    if out_arg.name != None:
-                        func_args += "%s* %s" % (out_arg.type, out_arg.name),
-                    else:
-                        func_args += "%s*" % out_arg.type,
-                f.writeln("virtual void %s(%s)%s;" % (func.name, ", ".join(func_args), postfix))
-    f.writeln("private:")
-    with f.indent():
-        for func in service.functions:
-            if func.attr == "raw":
-                continue
-            f.writeln("void __%s__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {" % func.name)
-            with f.indent():
-                if func.attr != "fast":
-                    f.writeln("auto f = [=] {")
-                    f.incr_indent()
-                invoke_with = []
-                in_counter = 0
-                out_counter = 0
-                for in_arg in func.input:
-                    f.writeln("%s in_%d;" % (in_arg.type, in_counter))
-                    f.writeln("req->m >> in_%d;" % in_counter)
-                    invoke_with += "in_%d" % in_counter,
-                    in_counter += 1
-                for out_arg in func.output:
-                    f.writeln("%s out_%d;" % (out_arg.type, out_counter))
-                    invoke_with += "&out_%d" % out_counter,
-                    out_counter += 1
-                f.writeln("this->%s(%s);" % (func.name, ", ".join(invoke_with)))
-                f.writeln("sconn->begin_reply(req);")
-                for i in range(out_counter):
-                    f.writeln("*sconn << out_%d;" % i)
-                f.writeln("sconn->end_reply();")
-                f.writeln("delete req;")
-                f.writeln("sconn->release();")
-                if func.attr != "fast":
-                    f.decr_indent()
-                    f.writeln("};")
-                    f.writeln("sconn->run_async(f);")
-            f.writeln("}")
-    f.writeln("};")
-    f.writeln()
-    f.writeln("class %sProxy {" % service.name)
-    f.writeln("protected:")
-    with f.indent():
-        f.writeln("rpc::Client* __cl__;")
-    f.writeln("public:")
-    with f.indent():
-        f.writeln("%sProxy(rpc::Client* cl): __cl__(cl) { }" % service.name)
-        for func in service.functions:
-            async_func_params = []
-            async_call_params = []
-            sync_func_params = []
-            sync_out_params = []
-            in_counter = 0
-            out_counter = 0
-            for in_arg in func.input:
-                if in_arg.name != None:
-                    async_func_params += "const %s& %s" % (in_arg.type, in_arg.name),
-                    async_call_params += in_arg.name,
-                    sync_func_params += "const %s& %s" % (in_arg.type, in_arg.name),
-                else:
-                    async_func_params += "const %s& in_%d" % (in_arg.type, in_counter),
-                    async_call_params += "in_%d" % in_counter,
-                    sync_func_params += "const %s& in_%d" % (in_arg.type, in_counter),
-                in_counter += 1
-            for out_arg in func.output:
-                if out_arg.name != None:
-                    sync_func_params += "%s* %s" % (out_arg.type, out_arg.name),
-                    sync_out_params += out_arg.name,
-                else:
-                    sync_func_params += "%s* out_%d" % (out_arg.type, out_counter),
-                    sync_out_params += "out_%d" % out_counter,
-                out_counter += 1
-            f.writeln("rpc::Future* async_%s(%sconst rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {" % (func.name, ", ".join(async_func_params + [""])))
-            with f.indent():
-                f.writeln("rpc::Future* __fu__ = __cl__->begin_request(%sService::%s, __fu_attr__);" % (service.name, func.name.upper()))
-                if len(async_call_params) > 0:
-                    f.writeln("if (__fu__ != nullptr) {")
-                    with f.indent():
-                        for param in async_call_params:
-                            f.writeln("*__cl__ << %s;" % param)
-                    f.writeln("}")
-                f.writeln("__cl__->end_request();")
-                f.writeln("return __fu__;")
-            f.writeln("}")
-            f.writeln("rpc::i32 %s(%s) {" % (func.name, ", ".join(sync_func_params)))
-            with f.indent():
-                f.writeln("rpc::Future* __fu__ = this->async_%s(%s);" % (func.name, ", ".join(async_call_params)))
-                f.writeln("if (__fu__ == nullptr) {")
-                with f.indent():
-                    f.writeln("return ENOTCONN;")
-                f.writeln("}")
-                f.writeln("rpc::i32 __ret__ = __fu__->get_error_code();")
-                if len(sync_out_params) > 0:
-                    f.writeln("if (__ret__ == 0) {")
-                    with f.indent():
-                        for param in sync_out_params:
-                            f.writeln("__fu__->get_reply() >> *%s;" % param)
-                    f.writeln("}")
-                f.writeln("__fu__->release();")
-                f.writeln("return __ret__;")
-            f.writeln("}")
-    f.writeln("};")
-    f.writeln()
-
-
-def emit_rpc_source(rpc_source, f):
-    if rpc_source.namespace != None:
-        f.writeln(" ".join(map(lambda x:"namespace %s {" % x, rpc_source.namespace)))
-        f.writeln()
-
-    for struct in rpc_source.structs:
-        emit_struct(struct, f)
-
+def generate_rpc_table(rpc_source):
+    rpc_table = {}
     for service in rpc_source.services:
-        emit_service_and_proxy(service, f)
-
-    if rpc_source.namespace != None:
-        f.writeln(" ".join(["}"] * len(rpc_source.namespace)) + " // namespace " + "::".join(rpc_source.namespace))
-        f.writeln()
-
-def emit_struct_python(struct, f):
-    f.writeln("%s = Marshal.reg_type('%s', [%s])" % (
-        struct.name, struct.name, ", ".join(["('%s', '%s')" % (field.name, field.type) for field in struct.fields])))
-    f.writeln()
-
-
-def emit_service_and_proxy_python(service, f):
-    f.writeln("class %sService(object):" % service.name)
-    with f.indent():
-        global rpc_table
         for func in service.functions:
-            rpc_id = rpc_table["%s.%s" % (service.name, func.name)]
-            f.writeln("%s = %s" % (func.name.upper(), hex(rpc_id)))
-        f.writeln()
-        f.writeln("__input_type_info__ = {")
-        with f.indent():
-            for func in service.functions:
-                f.writeln("'%s': [%s]," % (func.name, ",".join(["'%s'" % a.type for a in func.input])))
-        f.writeln("}")
-        f.writeln()
-        f.writeln("__output_type_info__ = {")
-        with f.indent():
-            for func in service.functions:
-                f.writeln("'%s': [%s]," % (func.name, ",".join(["'%s'" % a.type for a in func.output])))
-        f.writeln("}")
-        f.writeln()
-        f.writeln("def __bind_helper__(self, func):")
-        with f.indent():
-            f.writeln("def f(*args):")
-            with f.indent():
-                f.writeln("return getattr(self, func.__name__)(*args)")
-            f.writeln("return f")
-        f.writeln()
-        f.writeln("def __reg_to__(self, server):")
-        with f.indent():
-            for func in service.functions:
-                f.writeln("server.__reg_func__(%sService.%s, self.__bind_helper__(self.%s), [%s], [%s])" % (
-                    service.name, func.name.upper(), func.name,
-                    ",".join(["'%s'" % a.type for a in func.input]),
-                    ",".join(["'%s'" % a.type for a in func.output])))
-            if len(service.functions) == 0:
-                f.writeln("pass")
-        for func in service.functions:
-            f.writeln()
-            in_params_decl = ""
-            for i in range(len(func.input)):
-                in_arg = func.input[i]
-                if in_arg.name != None:
-                    in_params_decl += ", " + in_arg.name
-                else:
-                    in_params_decl += ", in%d" % i
-            f.writeln("def %s(__self__%s):" % (func.name, in_params_decl))
-            with f.indent():
-                f.writeln("raise NotImplementedError('subclass %sService and implement your own %s function')" % (service.name, func.name))
-    f.writeln()
-
-    f.writeln("class %sProxy(object):" % service.name)
-    with f.indent():
-        f.writeln("def __init__(self, clnt):")
-        with f.indent():
-            f.writeln("self.__clnt__ = clnt")
-
-        for func in service.functions:
-            f.writeln()
-            in_params_decl = ""
-            for i in range(len(func.input)):
-                in_arg = func.input[i]
-                if in_arg.name != None:
-                    in_params_decl += ", " + in_arg.name
-                else:
-                    in_params_decl += ", in%d" % i
-            f.writeln("#def async_%s(__self__%s, __done_callback__=None):" % (func.name, in_params_decl))
-            with f.indent():
-                if in_params_decl != "":
-                    in_params_decl = in_params_decl[2:] # strip the leading ", "
-                f.writeln("#__fu_id__ = __self__.__clnt__.async_call(%sService.%s, [%s], %sService.__input_type_info__['%s'], %sService.__output_type_info__['%s'], __done_callback__)" % (
-                    service.name, func.name.upper(), in_params_decl, service.name, func.name, service.name, func.name))
-                f.writeln("#if __fu_id__ != 0:")
-                with f.indent():
-                    f.writeln("#return Future(id=__fu_id__)")
-
-        for func in service.functions:
-            f.writeln()
-            in_params_decl = ""
-            for i in range(len(func.input)):
-                in_arg = func.input[i]
-                if in_arg.name != None:
-                    in_params_decl += ", " + in_arg.name
-                else:
-                    in_params_decl += ", in%d" % i
-            f.writeln("def sync_%s(__self__%s):" % (func.name, in_params_decl))
-            with f.indent():
-                if in_params_decl != "":
-                    in_params_decl = in_params_decl[2:] # strip the leading ", "
-                f.writeln("__result__ = __self__.__clnt__.sync_call(%sService.%s, [%s], %sService.__input_type_info__['%s'], %sService.__output_type_info__['%s'])" % (
-                    service.name, func.name.upper(), in_params_decl, service.name, func.name, service.name, func.name))
-                f.writeln("if __result__[0] != 0:")
-                with f.indent():
-                    f.writeln("raise Exception(\"RPC returned non-zero error code %d: %s\" % (__result__[0], os.strerror(__result__[0])))")
-                f.writeln("if len(__result__[1]) == 1:")
-                with f.indent():
-                    f.writeln("return __result__[1][0]")
-                f.writeln("elif len(__result__[1]) > 1:")
-                with f.indent():
-                    f.writeln("return __result__[1]")
-    f.writeln()
-
-
-def emit_rpc_source_python(rpc_source, f):
-
-    for struct in rpc_source.structs:
-        emit_struct_python(struct, f)
-
-    for service in rpc_source.services:
-        emit_service_and_proxy_python(service, f)
+            rpc_code = random.randint(0x10000000, 0x70000000)
+            rpc_table["%s.%s" % (service.name, func.name)] = rpc_code
+    return rpc_table
 
 def rpcgen(rpc_fpath, languages):
     with open(rpc_fpath) as f:
@@ -599,54 +270,30 @@ def rpcgen(rpc_fpath, languages):
 
     rpc_src_lines = rpc_src.split("\n")
 
-    header = footer = src = ''
+    cpp_header = cpp_footer = src = ''
 
     if rpc_src_lines.count('%%') == 2:
-        # header + source + footer
+        # cpp_header + source + cpp_footer
         first = rpc_src_lines.index("%%")
         next = rpc_src_lines.index("%%", first + 1)
-        header =  '\n'.join(rpc_src_lines[:first])
+        cpp_header =  '\n'.join(rpc_src_lines[:first])
         src = '\n'.join(rpc_src_lines[first + 1:next])
-        footer = '\n'.join(rpc_src_lines[next + 1:])
+        cpp_footer = '\n'.join(rpc_src_lines[next + 1:])
     elif rpc_src_lines.count('%%') == 1:
-        # source + footer
+        # source + cpp_footer
         first = rpc_src_lines.index("%%")
         src = '\n'.join(rpc_src_lines[:first])
-        footer = '\n'.join(rpc_src_lines[first + 1:])
+        cpp_footer = '\n'.join(rpc_src_lines[first + 1:])
     else:
         src = '\n'.join(rpc_src_lines)
 
     rpc_source = parse("rpc_source", src)
-    with open(os.path.splitext(rpc_fpath)[0] + ".h", "w") as f:
-        f = SourceFile(f)
-        f.writeln("// generated from '%s'" % os.path.split(rpc_fpath)[1])
-        f.writeln()
-        f.writeln("#pragma once")
-        f.writeln()
-        f.writeln('#include "rpc/server.h"')
-        f.writeln('#include "rpc/client.h"')
-        f.writeln()
-        f.writeln("#include <errno.h>")
-        f.writeln()
-        f.write(header)
-        f.writeln()
-        emit_rpc_source(rpc_source, f)
-        f.writeln()
-        f.write(footer)
-        f.writeln()
+    rpc_table = generate_rpc_table(rpc_source) # service.func = rpc_code
 
-    # generate python code
-    with open(os.path.splitext(rpc_fpath)[0] + ".py", "w") as f:
-        f = SourceFile(f)
-        f.writeln("# generated from '%s'" % os.path.split(rpc_fpath)[1])
-        f.writeln()
-        f.writeln("import os")
-        f.writeln("from simplerpc import Marshal")
-        f.writeln("from simplerpc import Future")
-        f.writeln()
-        emit_rpc_source_python(rpc_source, f)
+    if "cpp" in languages:
+        fpath = os.path.splitext(rpc_fpath)[0] + ".h"
+        emit_rpc_source_cpp(rpc_source, rpc_table, fpath, cpp_header, cpp_footer)
 
-    if "python" not in languages:
-        os.remove(os.path.splitext(rpc_fpath)[0] + ".py")
-    if "cpp" not in languages:
-        os.remove(os.path.splitext(rpc_fpath)[0] + ".h")
+    if "python" in languages:
+        fpath = os.path.splitext(rpc_fpath)[0] + ".py"
+        emit_rpc_source_python(rpc_source, rpc_table, fpath)

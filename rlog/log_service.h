@@ -1,5 +1,3 @@
-// generated from 'log_service.rpc'
-
 #pragma once
 
 #include "rpc/server.h"
@@ -13,8 +11,8 @@ namespace rlog {
 class RLogService: public rpc::Service {
 public:
     enum {
-        LOG = 0x28650037,
-        AGGREGATE_QPS = 0x69d09011,
+        LOG = 0x1275a362,
+        AGGREGATE_QPS = 0x6264d1c5,
     };
     int __reg_to__(rpc::Server* svr) {
         int ret = 0;

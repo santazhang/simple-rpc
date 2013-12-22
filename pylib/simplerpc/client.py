@@ -37,7 +37,7 @@ class Client(object):
         if done_cb == None:
             fu_id = _pyrpc.client_async_call(self.id, rpc_id, req_m.id, None)
         else:
-            
+
             def wrapped_cb(fu_id):
                 # make sure done_cb has input ([error_code], [results])
                 fu = Future(id=fu_id)

@@ -1,5 +1,3 @@
-# generated from 'test_service.rpc'
-
 import os
 from simplerpc import Marshal
 from simplerpc import Future
@@ -29,7 +27,7 @@ class EmptyProxy(object):
         self.__clnt__ = clnt
 
 class MathService(object):
-    GCD = 0x21c3ea46
+    GCD = 0x6533b3e9
 
     __input_type_info__ = {
         'gcd': ['rpc::i64','rpc::i64'],
