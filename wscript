@@ -12,7 +12,6 @@ def configure(conf):
     _enable_pic(conf)
     _enable_cxx11(conf)
     _enable_debug(conf)
-    _enable_tcmalloc(conf)
     conf.env.LIB_PTHREAD = 'pthread'
     conf.env.USES += " PTHREAD"
     conf.env.INCLUDES_BASE = os.path.join(os.getcwd(), "../base-utils")
@@ -32,7 +31,7 @@ def build(bld):
     _depend("test/test_service.py", "test/test_service.rpc", "bin/rpcgen --python test/test_service.rpc")
     _depend("pylib/simplerpc/pyonly.py", "pylib/simplerpc/pyonly.rpc", "bin/rpcgen --python pylib/simplerpc/pyonly.rpc")
 
-    bld.stlib(source=bld.path.ant_glob("rpc/*.cc"), target="simplerpc", includes="rpc", use="BASE PTHREAD")
+    bld.stlib(source=bld.path.ant_glob("rpc/*.cc"), target="simplerpc", includes="rpc", use=bld.env.USES)
     bld.stlib(
         source="rlog/rlog.cc",
         target="rlog",
@@ -86,15 +85,6 @@ def _enable_debug(conf):
         conf.env.append_value("CXXFLAGS", "-Wall -pthread -ggdb".split())
     else:
         conf.env.append_value("CXXFLAGS", "-Wall -pthread -O3 -ggdb -fno-omit-frame-pointer -DNDEBUG".split())
-
-def _enable_tcmalloc(conf):
-    if os.getenv("TCMALLOC") in ["true", "1"]:
-        Logs.pprint("PINK", "TCMalloc support enabled")
-        conf.env.append_value("CXXFLAGS", "-DUSE_TCMALLOC")
-        conf.env.INCLUDES_TCMALLOC = os.path.join(os.getcwd(), "../gperftools/src")
-        conf.env.LIB_TCMALLOC = "tcmalloc_minimal"
-        conf.env.LIBPATH_TCMALLOC = os.path.join(os.getcwd(), "../gperftools/.libs")
-        conf.env.USES += " TCMALLOC"
 
 def _run_cmd(cmd):
     Logs.pprint('PINK', cmd)
