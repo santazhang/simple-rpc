@@ -57,6 +57,10 @@ class ServerConnection: public Pollable {
      */
     void close();
 
+    // used to surpress multiple "no handler for rpc_id=..." errro
+    static std::unordered_set<i32> rpc_id_missing_s;
+    static SpinLock rpc_id_missing_l_s;
+
 protected:
 
     // Protected destructor as required by RefCounted.

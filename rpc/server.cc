@@ -15,6 +15,11 @@ using namespace std;
 
 namespace rpc {
 
+
+std::unordered_set<i32> ServerConnection::rpc_id_missing_s;
+SpinLock ServerConnection::rpc_id_missing_l_s;
+
+
 void ServerConnection::run_async(const std::function<void()>& f) {
     server_->threadpool_->run_async(f);
 }
@@ -101,7 +106,17 @@ void ServerConnection::handle_read() {
             // the handler should delete req, and release server_connection refcopy.
             it->second(req, (ServerConnection *) this->ref_copy());
         } else {
-            Log_error("rpc::ServerConnection: no handler for rpc_id=%d", rpc_id);
+            rpc_id_missing_l_s.lock();
+            bool surpress_warning = false;
+            if (rpc_id_missing_s.find(rpc_id) == rpc_id_missing_s.end()) {
+                rpc_id_missing_s.insert(rpc_id);
+            } else {
+                surpress_warning = true;
+            }
+            rpc_id_missing_l_s.unlock();
+            if (!surpress_warning) {
+                Log_error("rpc::ServerConnection: no handler for rpc_id=0x%08x", rpc_id);
+            }
             begin_reply(req, ENOENT);
             end_reply();
             delete req;
