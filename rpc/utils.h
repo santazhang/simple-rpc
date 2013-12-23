@@ -15,6 +15,8 @@
 
 #include "base/all.h"
 
+#include "allocator.h"
+
 namespace rpc {
 
 using base::i32;

@@ -8,17 +8,22 @@ def configure(conf):
     conf.load("compiler_cxx")
     conf.load("python")
     conf.check_python_headers()
+    conf.env.USES = "PYTHON"
     _enable_pic(conf)
     _enable_cxx11(conf)
     _enable_debug(conf)
+    _enable_tcmalloc(conf)
     conf.env.LIB_PTHREAD = 'pthread'
+    conf.env.USES += " PTHREAD"
     conf.env.INCLUDES_BASE = os.path.join(os.getcwd(), "../base-utils")
     conf.env.LIBPATH_BASE = os.path.join(os.getcwd(), "../base-utils/build")
     conf.env.LIB_BASE = 'base'
+    conf.env.USES += " BASE"
     conf.find_program('protoc', var='PROTOC', mandatory=False)
     if conf.env.PROTOC != []:
         Logs.pprint("PINK", "Google protocol buffer support enabled")
         conf.env.LIB_PROTOBUF = 'protobuf'
+        conf.env.USES += " PROTOBUF"
 
 def build(bld):
     _depend("pylib/simplerpc/rpcgen.py", "pylib/simplerpc/rpcgen.g", "pylib/yapps/main.py pylib/simplerpc/rpcgen.g")
@@ -32,27 +37,25 @@ def build(bld):
         source="rlog/rlog.cc",
         target="rlog",
         includes=". rlog rpc",
-        use="simplerpc BASE PTHREAD")
+        use="simplerpc %s" % bld.env.USES)
     bld.shlib(
         features="pyext",
         source=bld.path.ant_glob("pylib/simplerpc/*.cc"),
         target="_pyrpc",
         includes=". rpc",
-        use="simplerpc BASE PTHREAD PYTHON")
+        use="simplerpc %s" % bld.env.USES)
 
-    def _prog(source, target, includes=".", use="simplerpc BASE PTHREAD"):
+    def _prog(source, target, includes=".", use="simplerpc %s" % bld.env.USES):
         bld.program(source=source, target=target, includes=includes, use=use)
 
     _prog("test/rpcbench.cc test/benchmark_service.cc", "rpcbench")
-    _prog(bld.path.ant_glob("rlog/*.cc", excl="rlog/rlog.cc"), "rlogserver", use="simplerpc BASE PTHREAD")
+    _prog(bld.path.ant_glob("rlog/*.cc", excl="rlog/rlog.cc"), "rlogserver")
 
     test_src = bld.path.ant_glob("test/test*.cc") + bld.path.ant_glob("rlog/*.cc", excl="rlog/log_server.cc") + ["test/benchmark_service.cc"]
-    test_use = "rlog BASE PTHREAD"
     if bld.env.PROTOC != []:
         _depend("test/person.pb.cc test/person.pb.h", "test/person.proto", "%s --cpp_out=test -Itest test/person.proto" % bld.env.PROTOC)
         test_src += bld.path.ant_glob("test/*.pb.cc") + bld.path.ant_glob("test/protobuf-test*.cc")
-        test_use += " PROTOBUF"
-    _prog(test_src, "testharness", use=test_use)
+    _prog(test_src, "testharness", use="rlog %s" % bld.env.USES)
 
 #
 # waf helper code
@@ -83,6 +86,15 @@ def _enable_debug(conf):
         conf.env.append_value("CXXFLAGS", "-Wall -pthread -ggdb".split())
     else:
         conf.env.append_value("CXXFLAGS", "-Wall -pthread -O3 -ggdb -fno-omit-frame-pointer -DNDEBUG".split())
+
+def _enable_tcmalloc(conf):
+    if os.getenv("TCMALLOC") in ["true", "1"]:
+        Logs.pprint("PINK", "TCMalloc support enabled")
+        conf.env.append_value("CXXFLAGS", "-DUSE_TCMALLOC")
+        conf.env.INCLUDES_TCMALLOC = os.path.join(os.getcwd(), "../gperftools/src")
+        conf.env.LIB_TCMALLOC = "tcmalloc_minimal"
+        conf.env.LIBPATH_TCMALLOC = os.path.join(os.getcwd(), "../gperftools/.libs")
+        conf.env.USES += " TCMALLOC"
 
 def _run_cmd(cmd):
     Logs.pprint('PINK', cmd)
