@@ -20,7 +20,6 @@ struct FutureAttr {
 class Future: public RefCounted {
     friend class Client;
 
-    i64 xid_;
     i32 error_code_;
 
     FutureAttr attr_;
@@ -42,10 +41,15 @@ protected:
 
 public:
 
-    Future(i64 xid, const FutureAttr& attr = FutureAttr())
-            : xid_(xid), error_code_(0), attr_(attr), ready_(false) {
+    Future(const FutureAttr& attr = FutureAttr())
+            : error_code_(0), attr_(attr), ready_(false) {
         Pthread_mutex_init(&ready_m_, nullptr);
         Pthread_cond_init(&ready_cond_, nullptr);
+    }
+
+    inline i64 xid() const {
+        // Use memory address as xid, cheaper than maintaining a counter.
+        return (i64) this;
     }
 
     bool ready() {
@@ -117,7 +121,6 @@ class Client: public Pollable {
 
     Marshal::bookmark* bmark_;
 
-    Counter xid_counter_;
     std::unordered_map<i64, Future*> pending_fu_;
 
     SpinLock pending_fu_l_;

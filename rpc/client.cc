@@ -159,7 +159,7 @@ void Client::handle_read() {
             unordered_map<i64, Future*>::iterator it = pending_fu_.find(reply_xid);
             if (it != pending_fu_.end()) {
                 Future* fu = it->second;
-                verify(fu->xid_ == reply_xid);
+                verify(fu->xid() == reply_xid);
                 pending_fu_.erase(it);
                 pending_fu_l_.unlock();
 
@@ -198,15 +198,15 @@ Future* Client::begin_request(i32 rpc_id, const FutureAttr& attr /* =... */) {
         return nullptr;
     }
 
-    Future* fu = new Future(xid_counter_.next(), attr);
+    Future* fu = new Future(attr);
     pending_fu_l_.lock();
-    pending_fu_[fu->xid_] = fu;
+    pending_fu_[fu->xid()] = fu;
     pending_fu_l_.unlock();
 
     // check if the client gets closed in the meantime
     if (status_ != CONNECTED) {
         pending_fu_l_.lock();
-        unordered_map<i64, Future*>::iterator it = pending_fu_.find(fu->xid_);
+        unordered_map<i64, Future*>::iterator it = pending_fu_.find(fu->xid());
         if (it != pending_fu_.end()) {
             it->second->release();
             pending_fu_.erase(it);
@@ -218,7 +218,7 @@ Future* Client::begin_request(i32 rpc_id, const FutureAttr& attr /* =... */) {
 
     bmark_ = out_.set_bookmark(sizeof(i32)); // will fill packet size later
 
-    *this << fu->xid_;
+    *this << fu->xid();
     *this << rpc_id;
 
     // one ref is already in pending_fu_
