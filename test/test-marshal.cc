@@ -1,11 +1,13 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <cstdlib>
+#include <limits>
 
 #include "base/all.h"
 #include "rpc/marshal.h"
 
 using namespace rpc;
+using namespace std;
 
 TEST(marshal, content_size) {
     Marshal m;
@@ -17,6 +19,64 @@ TEST(marshal, content_size) {
     m >> b;
     EXPECT_EQ(m.content_size(), 0u);
     EXPECT_EQ(a, b);
+    i8 c = -3;
+    m << c;
+    EXPECT_EQ(m.content_size(), 1u);
+    i8 d;
+    m >> d;
+    EXPECT_EQ(m.content_size(), 0u);
+    EXPECT_EQ(c, d);
+    i16 e = -3;
+    m << e;
+    EXPECT_EQ(m.content_size(), 2u);
+    i16 f;
+    m >> f;
+    EXPECT_EQ(m.content_size(), 0u);
+    EXPECT_EQ(c, d);
+
+    v32 a1 = -3;
+    m << a1;
+    EXPECT_EQ(m.content_size(), 1u);
+    v32 b1;
+    m >> b1;
+    EXPECT_EQ(m.content_size(), 0u);
+    EXPECT_EQ(a1.get(), b1.get());
+
+    a1 = numeric_limits<i32>::max();
+    m << a1;
+    EXPECT_EQ(m.content_size(), 5u);
+    m >> b1;
+    EXPECT_EQ(m.content_size(), 0u);
+    EXPECT_EQ(a1.get(), b1.get());
+
+    a1 = numeric_limits<i32>::min();
+    m << a1;
+    EXPECT_EQ(m.content_size(), 5u);
+    m >> b1;
+    EXPECT_EQ(m.content_size(), 0u);
+    EXPECT_EQ(a1.get(), b1.get());
+
+    v64 a2 = -1987;
+    m << a2;
+    EXPECT_EQ(m.content_size(), 2u);
+    v64 b2;
+    m >> b2;
+    EXPECT_EQ(m.content_size(), 0u);
+    EXPECT_EQ(a2.get(), b2.get());
+
+    a2 = numeric_limits<i64>::max();
+    m << a2;
+    EXPECT_EQ(m.content_size(), 9u);
+    m >> b2;
+    EXPECT_EQ(m.content_size(), 0u);
+    EXPECT_EQ(a2.get(), b2.get());
+
+    a2 = numeric_limits<i64>::min();
+    m << a2;
+    EXPECT_EQ(m.content_size(), 9u);
+    m >> b2;
+    EXPECT_EQ(m.content_size(), 0u);
+    EXPECT_EQ(a2.get(), b2.get());
 }
 
 

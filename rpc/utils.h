@@ -17,8 +17,12 @@
 
 namespace rpc {
 
+using base::i8;
+using base::i16;
 using base::i32;
 using base::i64;
+using base::v32;
+using base::v64;
 using base::NoCopy;
 using base::Lockable;
 using base::SpinLock;

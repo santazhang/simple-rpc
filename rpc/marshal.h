@@ -236,6 +236,16 @@ public:
     }
 };
 
+inline rpc::Marshal& operator <<(rpc::Marshal& m, const rpc::i8& v) {
+    verify(m.write(&v, sizeof(v)) == sizeof(v));
+    return m;
+}
+
+inline rpc::Marshal& operator <<(rpc::Marshal& m, const rpc::i16& v) {
+    verify(m.write(&v, sizeof(v)) == sizeof(v));
+    return m;
+}
+
 inline rpc::Marshal& operator <<(rpc::Marshal& m, const rpc::i32& v) {
     verify(m.write(&v, sizeof(v)) == sizeof(v));
     return m;
@@ -243,6 +253,21 @@ inline rpc::Marshal& operator <<(rpc::Marshal& m, const rpc::i32& v) {
 
 inline rpc::Marshal& operator <<(rpc::Marshal& m, const rpc::i64& v) {
     verify(m.write(&v, sizeof(v)) == sizeof(v));
+    return m;
+}
+
+inline rpc::Marshal& operator <<(rpc::Marshal& m, const rpc::v32& v) {
+    char buf[5];
+    int bsize = base::SparseInt::dump(v.get(), buf);
+    verify(m.write(buf, bsize) == bsize);
+    Log::debug("out v32 = %d", bsize);
+    return m;
+}
+
+inline rpc::Marshal& operator <<(rpc::Marshal& m, const rpc::v64& v) {
+    char buf[9];
+    int bsize = base::SparseInt::dump(v.get(), buf);
+    verify(m.write(buf, bsize) == bsize);
     return m;
 }
 
@@ -320,6 +345,16 @@ inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::unordered_map<K, V>
     return m;
 }
 
+inline rpc::Marshal& operator >>(rpc::Marshal& m, rpc::i8& v) {
+    verify(m.read(&v, sizeof(v)) == sizeof(v));
+    return m;
+}
+
+inline rpc::Marshal& operator >>(rpc::Marshal& m, rpc::i16& v) {
+    verify(m.read(&v, sizeof(v)) == sizeof(v));
+    return m;
+}
+
 inline rpc::Marshal& operator >>(rpc::Marshal& m, rpc::i32& v) {
     verify(m.read(&v, sizeof(v)) == sizeof(v));
     return m;
@@ -327,6 +362,29 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, rpc::i32& v) {
 
 inline rpc::Marshal& operator >>(rpc::Marshal& m, rpc::i64& v) {
     verify(m.read(&v, sizeof(v)) == sizeof(v));
+    return m;
+}
+
+inline rpc::Marshal& operator >>(rpc::Marshal& m, rpc::v32& v) {
+    char byte0;
+    verify(m.peek(&byte0, 1) == 1);
+    int bsize = base::SparseInt::buf_size(byte0);
+    char buf[5];
+    verify(m.read(buf, bsize) == bsize);
+    Log::debug("in v32 = %d", bsize);
+    i32 val = base::SparseInt::load_i32(buf);
+    v.set(val);
+    return m;
+}
+
+inline rpc::Marshal& operator >>(rpc::Marshal& m, rpc::v64& v) {
+    char byte0;
+    verify(m.peek(&byte0, 1) == 1);
+    int bsize = base::SparseInt::buf_size(byte0);
+    char buf[9];
+    verify(m.read(buf, bsize) == bsize);
+    i64 val = base::SparseInt::load_i64(buf);
+    v.set(val);
     return m;
 }
 

@@ -9,7 +9,7 @@ using namespace rpc;
 
 static Counter g_nop_counter;
 
-void BenchmarkService::fast_prime(const i32& n, i32* flag) {
+void BenchmarkService::fast_prime(const i32& n, i8* flag) {
     if (n <= 0) {
         *flag = -1;
     } else if (n <= 3) {

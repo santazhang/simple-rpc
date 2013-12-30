@@ -64,11 +64,15 @@ parser Rpc:
             {{ return pack(name=SYMBOL, type=type) }}
 
     rule type:
-        "i32" {{ return "rpc::i32" }}
+        "i8" {{ return "rpc::i8" }}
+        | "i16" {{ return "rpc::i16" }}
+        | "i32" {{ return "rpc::i32" }}
         | "i64" {{ return "rpc::i64" }}
+        | "v32" {{ return "rpc::v32" }}
+        | "v64" {{ return "rpc::v64" }}
         | full_symbol {{ t = std_rename(full_symbol) }}
             ["<" type {{ t += "<" + type }} ("," type {{ t += ", " + type }})* ">" {{ t += ">" }}] {{ return t }}
-        | ("bool" | "int" | "unsigned" | "long" ) {{ error("please use i32 or i64 for any integer types", _context) }}
+        | ("bool" | "int" | "unsigned" | "long" ) {{ error("please use i8, i16, i32, i64, v32 or v64 instead", _context) }}
 
     rule full_symbol: {{ s = "" }}
         ["::" {{ s += "::" }}] SYMBOL {{ s += SYMBOL }} ("::" SYMBOL {{ s += "::" + SYMBOL }})*

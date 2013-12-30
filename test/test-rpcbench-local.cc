@@ -32,7 +32,7 @@ TEST(integration, rpc_bench_local) {
 
     timer.start();
     for (int i = 0; i < n_prime; i++) {
-        i32 flag = 0;
+        i8 flag = 0;
         clnt->fast_prime(i + 1987, &flag);
     }
     timer.stop();
@@ -49,7 +49,7 @@ TEST(integration, rpc_bench_local) {
 
     timer.start();
     for (int i = 0; i < n_prime; i++) {
-        i32 flag = 0;
+        i8 flag = 0;
         clnt->prime(i + 1987, &flag);
     }
     timer.stop();

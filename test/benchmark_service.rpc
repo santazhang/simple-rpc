@@ -9,14 +9,15 @@ struct point3 {
     double x;
     double y;
     double z;
+    v32 dummy;
 };
 
 service Benchmark {
-    fast fast_prime(i32 n | i32 flag);
+    fast fast_prime(i32 n | i8 flag);
     fast fast_dot_prod(point3 p1, point3 p2 | double v);
     fast fast_add(i32 a, i32 b | i32 a_add_b);
     fast fast_nop(string);
-    prime(i32 n | i32 flag);
+    prime(i32 n | i8 flag);
     dot_prod(point3 p1, point3 p2 | double v);
     add(i32 a, i32 b | i32 a_add_b);
     nop(string);
@@ -35,7 +36,7 @@ inline void BenchmarkService::fast_add(const rpc::i32& a, const rpc::i32& b, rpc
     *a_add_b = a + b;
 }
 
-inline void BenchmarkService::prime(const rpc::i32& n, rpc::i32* flag) {
+inline void BenchmarkService::prime(const rpc::i32& n, rpc::i8* flag) {
     return fast_prime(n, flag);
 }
 

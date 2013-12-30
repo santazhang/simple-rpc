@@ -20,7 +20,7 @@ struct FutureAttr {
 class Future: public RefCounted {
     friend class Client;
 
-    i32 error_code_;
+    int error_code_;
 
     FutureAttr attr_;
     Marshal reply_;

@@ -14,12 +14,14 @@ struct point3 {
     double x;
     double y;
     double z;
+    rpc::v32 dummy;
 };
 
 inline rpc::Marshal& operator <<(rpc::Marshal& m, const point3& o) {
     m << o.x;
     m << o.y;
     m << o.z;
+    m << o.dummy;
     return m;
 }
 
@@ -27,20 +29,21 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, point3& o) {
     m >> o.x;
     m >> o.y;
     m >> o.z;
+    m >> o.dummy;
     return m;
 }
 
 class BenchmarkService: public rpc::Service {
 public:
     enum {
-        FAST_PRIME = 0x4c24c64c,
-        FAST_DOT_PROD = 0x2e05570f,
-        FAST_ADD = 0x5352e4a0,
-        FAST_NOP = 0x3d013971,
-        PRIME = 0x5c5c049e,
-        DOT_PROD = 0x518c5fb0,
-        ADD = 0x246d75ec,
-        NOP = 0x4a0b5ac7,
+        FAST_PRIME = 0x594374db,
+        FAST_DOT_PROD = 0x44e26ff9,
+        FAST_ADD = 0x31a607f8,
+        FAST_NOP = 0x1f05eaeb,
+        PRIME = 0x1edfd446,
+        DOT_PROD = 0x24618ed6,
+        ADD = 0x6db98676,
+        NOP = 0x68faf413,
     };
     int __reg_to__(rpc::Server* svr) {
         int ret = 0;
@@ -82,11 +85,11 @@ public:
     }
     // these RPC handler functions need to be implemented by user
     // for 'raw' handlers, remember to reply req, delete req, and sconn->release(); use sconn->run_async for heavy job
-    virtual void fast_prime(const rpc::i32& n, rpc::i32* flag);
+    virtual void fast_prime(const rpc::i32& n, rpc::i8* flag);
     virtual void fast_dot_prod(const point3& p1, const point3& p2, double* v);
     virtual void fast_add(const rpc::i32& a, const rpc::i32& b, rpc::i32* a_add_b);
     virtual void fast_nop(const std::string&);
-    virtual void prime(const rpc::i32& n, rpc::i32* flag);
+    virtual void prime(const rpc::i32& n, rpc::i8* flag);
     virtual void dot_prod(const point3& p1, const point3& p2, double* v);
     virtual void add(const rpc::i32& a, const rpc::i32& b, rpc::i32* a_add_b);
     virtual void nop(const std::string&);
@@ -94,7 +97,7 @@ private:
     void __fast_prime__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
         rpc::i32 in_0;
         req->m >> in_0;
-        rpc::i32 out_0;
+        rpc::i8 out_0;
         this->fast_prime(in_0, &out_0);
         sconn->begin_reply(req);
         *sconn << out_0;
@@ -141,7 +144,7 @@ private:
         auto f = [=] {
             rpc::i32 in_0;
             req->m >> in_0;
-            rpc::i32 out_0;
+            rpc::i8 out_0;
             this->prime(in_0, &out_0);
             sconn->begin_reply(req);
             *sconn << out_0;
@@ -210,7 +213,7 @@ public:
         __cl__->end_request();
         return __fu__;
     }
-    rpc::i32 fast_prime(const rpc::i32& n, rpc::i32* flag) {
+    rpc::i32 fast_prime(const rpc::i32& n, rpc::i8* flag) {
         rpc::Future* __fu__ = this->async_fast_prime(n);
         if (__fu__ == nullptr) {
             return ENOTCONN;
@@ -289,7 +292,7 @@ public:
         __cl__->end_request();
         return __fu__;
     }
-    rpc::i32 prime(const rpc::i32& n, rpc::i32* flag) {
+    rpc::i32 prime(const rpc::i32& n, rpc::i8* flag) {
         rpc::Future* __fu__ = this->async_prime(n);
         if (__fu__ == nullptr) {
             return ENOTCONN;
@@ -377,7 +380,7 @@ inline void BenchmarkService::fast_add(const rpc::i32& a, const rpc::i32& b, rpc
     *a_add_b = a + b;
 }
 
-inline void BenchmarkService::prime(const rpc::i32& n, rpc::i32* flag) {
+inline void BenchmarkService::prime(const rpc::i32& n, rpc::i8* flag) {
     return fast_prime(n, flag);
 }
 

@@ -51,8 +51,12 @@ class RpcScanner(runtime.Scanner):
         ('">"', re.compile('>')),
         ('","', re.compile(',')),
         ('"<"', re.compile('<')),
+        ('"v64"', re.compile('v64')),
+        ('"v32"', re.compile('v32')),
         ('"i64"', re.compile('i64')),
         ('"i32"', re.compile('i32')),
+        ('"i16"', re.compile('i16')),
+        ('"i8"', re.compile('i8')),
         ('"}"', re.compile('}')),
         ('"{"', re.compile('{')),
         ('"struct"', re.compile('struct')),
@@ -115,7 +119,7 @@ class Rpc(runtime.Parser):
     def struct_fields(self, _parent=None):
         _context = self.Context(_parent, self._scanner, 'struct_fields', [])
         fields = []
-        while self._peek('"}"', '"i32"', '"i64"', '"bool"', '"int"', '"unsigned"', '"long"', '"::"', 'SYMBOL', context=_context) != '"}"':
+        while self._peek('"}"', '"i8"', '"i16"', '"i32"', '"i64"', '"v32"', '"v64"', '"bool"', '"int"', '"unsigned"', '"long"', '"::"', 'SYMBOL', context=_context) != '"}"':
             struct_field = self.struct_field(_context)
             fields += struct_field,
         return fields
@@ -128,13 +132,25 @@ class Rpc(runtime.Parser):
 
     def type(self, _parent=None):
         _context = self.Context(_parent, self._scanner, 'type', [])
-        _token = self._peek('"i32"', '"i64"', '"bool"', '"int"', '"unsigned"', '"long"', '"::"', 'SYMBOL', context=_context)
-        if _token == '"i32"':
+        _token = self._peek('"i8"', '"i16"', '"i32"', '"i64"', '"v32"', '"v64"', '"bool"', '"int"', '"unsigned"', '"long"', '"::"', 'SYMBOL', context=_context)
+        if _token == '"i8"':
+            self._scan('"i8"', context=_context)
+            return "rpc::i8"
+        elif _token == '"i16"':
+            self._scan('"i16"', context=_context)
+            return "rpc::i16"
+        elif _token == '"i32"':
             self._scan('"i32"', context=_context)
             return "rpc::i32"
         elif _token == '"i64"':
             self._scan('"i64"', context=_context)
             return "rpc::i64"
+        elif _token == '"v32"':
+            self._scan('"v32"', context=_context)
+            return "rpc::v32"
+        elif _token == '"v64"':
+            self._scan('"v64"', context=_context)
+            return "rpc::v64"
         elif _token in ['"::"', 'SYMBOL']:
             full_symbol = self.full_symbol(_context)
             t = std_rename(full_symbol)
@@ -159,7 +175,7 @@ class Rpc(runtime.Parser):
                 self._scan('"unsigned"', context=_context)
             else: # == '"long"'
                 self._scan('"long"', context=_context)
-            error("please use i32 or i64 for any integer types", _context)
+            error("please use i8, i16, i32, i64, v32 or v64 instead", _context)
 
     def full_symbol(self, _parent=None):
         _context = self.Context(_parent, self._scanner, 'full_symbol', [])
@@ -226,7 +242,7 @@ class Rpc(runtime.Parser):
     def func_arg_list(self, _parent=None):
         _context = self.Context(_parent, self._scanner, 'func_arg_list', [])
         args = []
-        _token = self._peek('"i32"', '"i64"', '"bool"', '"int"', '"unsigned"', '"long"', '","', '"::"', 'SYMBOL', '"\\|"', '"\\)"', context=_context)
+        _token = self._peek('"i8"', '"i16"', '"i32"', '"i64"', '"v32"', '"v64"', '"bool"', '"int"', '"unsigned"', '"long"', '","', '"::"', 'SYMBOL', '"\\|"', '"\\)"', context=_context)
         if _token in ['","', '"\\|"', '"\\)"']:
             pass
         else:
