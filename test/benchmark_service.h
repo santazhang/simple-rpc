@@ -36,14 +36,14 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, point3& o) {
 class BenchmarkService: public rpc::Service {
 public:
     enum {
-        FAST_PRIME = 0x594374db,
-        FAST_DOT_PROD = 0x44e26ff9,
-        FAST_ADD = 0x31a607f8,
-        FAST_NOP = 0x1f05eaeb,
-        PRIME = 0x1edfd446,
-        DOT_PROD = 0x24618ed6,
-        ADD = 0x6db98676,
-        NOP = 0x68faf413,
+        FAST_PRIME = 0x4a254cf2,
+        FAST_DOT_PROD = 0x3c58d377,
+        FAST_ADD = 0x13b97d47,
+        FAST_NOP = 0x11c2068a,
+        PRIME = 0x2dc6707c,
+        DOT_PROD = 0x5a9c453b,
+        ADD = 0x529258b4,
+        NOP = 0x5e3c4912,
     };
     int __reg_to__(rpc::Server* svr) {
         int ret = 0;
@@ -87,11 +87,11 @@ public:
     // for 'raw' handlers, remember to reply req, delete req, and sconn->release(); use sconn->run_async for heavy job
     virtual void fast_prime(const rpc::i32& n, rpc::i8* flag);
     virtual void fast_dot_prod(const point3& p1, const point3& p2, double* v);
-    virtual void fast_add(const rpc::i32& a, const rpc::i32& b, rpc::i32* a_add_b);
+    virtual void fast_add(const rpc::v32& a, const rpc::v32& b, rpc::v32* a_add_b);
     virtual void fast_nop(const std::string&);
     virtual void prime(const rpc::i32& n, rpc::i8* flag);
     virtual void dot_prod(const point3& p1, const point3& p2, double* v);
-    virtual void add(const rpc::i32& a, const rpc::i32& b, rpc::i32* a_add_b);
+    virtual void add(const rpc::v32& a, const rpc::v32& b, rpc::v32* a_add_b);
     virtual void nop(const std::string&);
 private:
     void __fast_prime__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
@@ -119,11 +119,11 @@ private:
         sconn->release();
     }
     void __fast_add__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
-        rpc::i32 in_0;
+        rpc::v32 in_0;
         req->m >> in_0;
-        rpc::i32 in_1;
+        rpc::v32 in_1;
         req->m >> in_1;
-        rpc::i32 out_0;
+        rpc::v32 out_0;
         this->fast_add(in_0, in_1, &out_0);
         sconn->begin_reply(req);
         *sconn << out_0;
@@ -172,11 +172,11 @@ private:
     }
     void __add__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
         auto f = [=] {
-            rpc::i32 in_0;
+            rpc::v32 in_0;
             req->m >> in_0;
-            rpc::i32 in_1;
+            rpc::v32 in_1;
             req->m >> in_1;
-            rpc::i32 out_0;
+            rpc::v32 out_0;
             this->add(in_0, in_1, &out_0);
             sconn->begin_reply(req);
             *sconn << out_0;
@@ -246,7 +246,7 @@ public:
         __fu__->release();
         return __ret__;
     }
-    rpc::Future* async_fast_add(const rpc::i32& a, const rpc::i32& b, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
+    rpc::Future* async_fast_add(const rpc::v32& a, const rpc::v32& b, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
         rpc::Future* __fu__ = __cl__->begin_request(BenchmarkService::FAST_ADD, __fu_attr__);
         if (__fu__ != nullptr) {
             *__cl__ << a;
@@ -255,7 +255,7 @@ public:
         __cl__->end_request();
         return __fu__;
     }
-    rpc::i32 fast_add(const rpc::i32& a, const rpc::i32& b, rpc::i32* a_add_b) {
+    rpc::i32 fast_add(const rpc::v32& a, const rpc::v32& b, rpc::v32* a_add_b) {
         rpc::Future* __fu__ = this->async_fast_add(a, b);
         if (__fu__ == nullptr) {
             return ENOTCONN;
@@ -325,7 +325,7 @@ public:
         __fu__->release();
         return __ret__;
     }
-    rpc::Future* async_add(const rpc::i32& a, const rpc::i32& b, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
+    rpc::Future* async_add(const rpc::v32& a, const rpc::v32& b, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
         rpc::Future* __fu__ = __cl__->begin_request(BenchmarkService::ADD, __fu_attr__);
         if (__fu__ != nullptr) {
             *__cl__ << a;
@@ -334,7 +334,7 @@ public:
         __cl__->end_request();
         return __fu__;
     }
-    rpc::i32 add(const rpc::i32& a, const rpc::i32& b, rpc::i32* a_add_b) {
+    rpc::i32 add(const rpc::v32& a, const rpc::v32& b, rpc::v32* a_add_b) {
         rpc::Future* __fu__ = this->async_add(a, b);
         if (__fu__ == nullptr) {
             return ENOTCONN;
@@ -376,8 +376,8 @@ inline void BenchmarkService::fast_dot_prod(const point3& p1, const point3& p2, 
     *v = p1.x * p2.x + p1.y * p2.y + p1.z * p2.z;
 }
 
-inline void BenchmarkService::fast_add(const rpc::i32& a, const rpc::i32& b, rpc::i32* a_add_b) {
-    *a_add_b = a + b;
+inline void BenchmarkService::fast_add(const rpc::v32& a, const rpc::v32& b, rpc::v32* a_add_b) {
+    a_add_b->set(a.get() + b.get());
 }
 
 inline void BenchmarkService::prime(const rpc::i32& n, rpc::i8* flag) {
@@ -388,8 +388,8 @@ inline void BenchmarkService::dot_prod(const point3& p1, const point3& p2, doubl
     *v = p1.x * p2.x + p1.y * p2.y + p1.z * p2.z;
 }
 
-inline void BenchmarkService::add(const rpc::i32& a, const rpc::i32& b, rpc::i32* a_add_b) {
-    *a_add_b = a + b;
+inline void BenchmarkService::add(const rpc::v32& a, const rpc::v32& b, rpc::v32* a_add_b) {
+    a_add_b->set(a.get() + b.get());
 }
 
 inline void BenchmarkService::fast_nop(const std::string& str) {

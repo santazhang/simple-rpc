@@ -5,34 +5,34 @@ from simplerpc import Future
 point3 = Marshal.reg_type('point3', [('x', 'double'), ('y', 'double'), ('z', 'double'), ('dummy', 'rpc::v32')])
 
 class BenchmarkService(object):
-    FAST_PRIME = 0x594374db
-    FAST_DOT_PROD = 0x44e26ff9
-    FAST_ADD = 0x31a607f8
-    FAST_NOP = 0x1f05eaeb
-    PRIME = 0x1edfd446
-    DOT_PROD = 0x24618ed6
-    ADD = 0x6db98676
-    NOP = 0x68faf413
+    FAST_PRIME = 0x4a254cf2
+    FAST_DOT_PROD = 0x3c58d377
+    FAST_ADD = 0x13b97d47
+    FAST_NOP = 0x11c2068a
+    PRIME = 0x2dc6707c
+    DOT_PROD = 0x5a9c453b
+    ADD = 0x529258b4
+    NOP = 0x5e3c4912
 
     __input_type_info__ = {
         'fast_prime': ['rpc::i32'],
         'fast_dot_prod': ['point3','point3'],
-        'fast_add': ['rpc::i32','rpc::i32'],
+        'fast_add': ['rpc::v32','rpc::v32'],
         'fast_nop': ['std::string'],
         'prime': ['rpc::i32'],
         'dot_prod': ['point3','point3'],
-        'add': ['rpc::i32','rpc::i32'],
+        'add': ['rpc::v32','rpc::v32'],
         'nop': ['std::string'],
     }
 
     __output_type_info__ = {
         'fast_prime': ['rpc::i8'],
         'fast_dot_prod': ['double'],
-        'fast_add': ['rpc::i32'],
+        'fast_add': ['rpc::v32'],
         'fast_nop': [],
         'prime': ['rpc::i8'],
         'dot_prod': ['double'],
-        'add': ['rpc::i32'],
+        'add': ['rpc::v32'],
         'nop': [],
     }
 
@@ -44,11 +44,11 @@ class BenchmarkService(object):
     def __reg_to__(self, server):
         server.__reg_func__(BenchmarkService.FAST_PRIME, self.__bind_helper__(self.fast_prime), ['rpc::i32'], ['rpc::i8'])
         server.__reg_func__(BenchmarkService.FAST_DOT_PROD, self.__bind_helper__(self.fast_dot_prod), ['point3','point3'], ['double'])
-        server.__reg_func__(BenchmarkService.FAST_ADD, self.__bind_helper__(self.fast_add), ['rpc::i32','rpc::i32'], ['rpc::i32'])
+        server.__reg_func__(BenchmarkService.FAST_ADD, self.__bind_helper__(self.fast_add), ['rpc::v32','rpc::v32'], ['rpc::v32'])
         server.__reg_func__(BenchmarkService.FAST_NOP, self.__bind_helper__(self.fast_nop), ['std::string'], [])
         server.__reg_func__(BenchmarkService.PRIME, self.__bind_helper__(self.prime), ['rpc::i32'], ['rpc::i8'])
         server.__reg_func__(BenchmarkService.DOT_PROD, self.__bind_helper__(self.dot_prod), ['point3','point3'], ['double'])
-        server.__reg_func__(BenchmarkService.ADD, self.__bind_helper__(self.add), ['rpc::i32','rpc::i32'], ['rpc::i32'])
+        server.__reg_func__(BenchmarkService.ADD, self.__bind_helper__(self.add), ['rpc::v32','rpc::v32'], ['rpc::v32'])
         server.__reg_func__(BenchmarkService.NOP, self.__bind_helper__(self.nop), ['std::string'], [])
 
     def fast_prime(__self__, n):

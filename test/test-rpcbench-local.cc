@@ -137,7 +137,7 @@ TEST(integration, rpc_bench_local) {
     const int n_add = 100000;
     timer.start();
     for (int i = 0; i < n_add; i++) {
-        i32 i_add_1987;
+        v32 i_add_1987;
         clnt->fast_add(i, 1987, &i_add_1987);
     }
     timer.stop();
@@ -155,7 +155,7 @@ TEST(integration, rpc_bench_local) {
 
     timer.start();
     for (int i = 0; i < n_add; i++) {
-        i32 i_add_1987;
+        v32 i_add_1987;
         clnt->add(i, 1987, &i_add_1987);
     }
     timer.stop();
