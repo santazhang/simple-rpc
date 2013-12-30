@@ -260,7 +260,6 @@ inline rpc::Marshal& operator <<(rpc::Marshal& m, const rpc::v32& v) {
     char buf[5];
     int bsize = base::SparseInt::dump(v.get(), buf);
     verify(m.write(buf, bsize) == bsize);
-    Log::debug("out v32 = %d", bsize);
     return m;
 }
 
@@ -371,7 +370,6 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, rpc::v32& v) {
     int bsize = base::SparseInt::buf_size(byte0);
     char buf[5];
     verify(m.read(buf, bsize) == bsize);
-    Log::debug("in v32 = %d", bsize);
     i32 val = base::SparseInt::load_i32(buf);
     v.set(val);
     return m;
