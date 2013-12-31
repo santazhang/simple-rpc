@@ -218,7 +218,7 @@ Future* Client::begin_request(i32 rpc_id, const FutureAttr& attr /* =... */) {
 
     bmark_ = out_.set_bookmark(sizeof(i32)); // will fill packet size later
 
-    *this << fu->xid_;
+    *this << v64(fu->xid_);
     *this << rpc_id;
 
     // one ref is already in pending_fu_

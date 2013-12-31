@@ -80,7 +80,9 @@ void ServerConnection::handle_read() {
                 // All we can do is simply cleanup resource.
                 delete req;
             } else {
-                req->m >> req->xid;
+                v64 v_xid;
+                req->m >> v_xid;
+                req->xid = v_xid.get();
                 complete_requests.push_back(req);
             }
 
