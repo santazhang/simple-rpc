@@ -73,18 +73,10 @@ void ServerConnection::handle_read() {
             Request* req = new Request;
             verify(req->m.read_from_marshal(in_, packet_size) == (size_t) packet_size);
 
-            if (packet_size < (int) sizeof(i64)) {
-                Log_warn("rpc::ServerConnection: got an incomplete packet, xid not included");
-
-                // Since we don't have xid, we don't know how to notify client about the failure.
-                // All we can do is simply cleanup resource.
-                delete req;
-            } else {
-                v64 v_xid;
-                req->m >> v_xid;
-                req->xid = v_xid.get();
-                complete_requests.push_back(req);
-            }
+            v64 v_xid;
+            req->m >> v_xid;
+            req->xid = v_xid.get();
+            complete_requests.push_back(req);
 
         } else {
             // packet not complete or there's no more packet to process
