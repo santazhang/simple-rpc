@@ -23,7 +23,7 @@ TEST(marshal, protobuf) {
     EXPECT_EQ(p2.name(), p1.name());
     EXPECT_EQ(p2.id(), 1987);
     EXPECT_EQ(p2.name(), "Santa Zhang");
-    EXPECT_EQ(m.content_size(), 0);
+    EXPECT_EQ(m.content_size(), 0u);
 
     int n_marshal = 1000000;
     Timer t;

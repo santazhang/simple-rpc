@@ -260,14 +260,14 @@ inline rpc::Marshal& operator <<(rpc::Marshal& m, const rpc::i64& v) {
 
 inline rpc::Marshal& operator <<(rpc::Marshal& m, const rpc::v32& v) {
     char buf[5];
-    int bsize = base::SparseInt::dump(v.get(), buf);
+    size_t bsize = base::SparseInt::dump(v.get(), buf);
     verify(m.write(buf, bsize) == bsize);
     return m;
 }
 
 inline rpc::Marshal& operator <<(rpc::Marshal& m, const rpc::v64& v) {
     char buf[9];
-    int bsize = base::SparseInt::dump(v.get(), buf);
+    size_t bsize = base::SparseInt::dump(v.get(), buf);
     verify(m.write(buf, bsize) == bsize);
     return m;
 }
@@ -281,7 +281,7 @@ inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::string& v) {
     v64 v_len = v.length();
     m << v_len;
     if (v_len.get() > 0) {
-        verify(m.write(v.c_str(), v_len.get()) == v_len.get());
+        verify(m.write(v.c_str(), v_len.get()) == (size_t) v_len.get());
     }
     return m;
 }
@@ -369,7 +369,7 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, rpc::i64& v) {
 inline rpc::Marshal& operator >>(rpc::Marshal& m, rpc::v32& v) {
     char byte0;
     verify(m.peek(&byte0, 1) == 1);
-    int bsize = base::SparseInt::buf_size(byte0);
+    size_t bsize = base::SparseInt::buf_size(byte0);
     char buf[5];
     verify(m.read(buf, bsize) == bsize);
     i32 val = base::SparseInt::load_i32(buf);
@@ -380,7 +380,7 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, rpc::v32& v) {
 inline rpc::Marshal& operator >>(rpc::Marshal& m, rpc::v64& v) {
     char byte0;
     verify(m.peek(&byte0, 1) == 1);
-    int bsize = base::SparseInt::buf_size(byte0);
+    size_t bsize = base::SparseInt::buf_size(byte0);
     char buf[9];
     verify(m.read(buf, bsize) == bsize);
     i64 val = base::SparseInt::load_i64(buf);
@@ -398,7 +398,7 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, std::string& v) {
     m >> v_len;
     v.resize(v_len.get());
     if (v_len.get() > 0) {
-        verify(m.read(&v[0], v_len.get()) == v_len.get());
+        verify(m.read(&v[0], v_len.get()) == (size_t) v_len.get());
     }
     return m;
 }
