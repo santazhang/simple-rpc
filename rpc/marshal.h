@@ -276,18 +276,18 @@ inline rpc::Marshal& operator <<(rpc::Marshal& m, const double& v) {
 }
 
 inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::string& v) {
-    rpc::i32 len = (rpc::i32) v.length();
-    m << len;
-    if (len > 0) {
-        verify(m.write(v.c_str(), len) == (size_t) len);
+    v64 v_len = v.length();
+    m << v_len;
+    if (v_len.get() > 0) {
+        verify(m.write(v.c_str(), v_len.get()) == v_len.get());
     }
     return m;
 }
 
 template<class T>
 inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::vector<T>& v) {
-    rpc::i32 len = (rpc::i32) v.size();
-    m << len;
+    v64 v_len = v.size();
+    m << v_len;
     for (typename std::vector<T>::const_iterator it = v.begin(); it != v.end(); ++it) {
         m << *it;
     }
@@ -296,8 +296,8 @@ inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::vector<T>& v) {
 
 template<class T>
 inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::list<T>& v) {
-    rpc::i32 len = (rpc::i32) v.size();
-    m << len;
+    v64 v_len = v.size();
+    m << v_len;
     for (typename std::list<T>::const_iterator it = v.begin(); it != v.end(); ++it) {
         m << *it;
     }
@@ -306,8 +306,8 @@ inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::list<T>& v) {
 
 template<class T>
 inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::set<T>& v) {
-    rpc::i32 len = (rpc::i32) v.size();
-    m << len;
+    v64 v_len = v.size();
+    m << v_len;
     for (typename std::set<T>::const_iterator it = v.begin(); it != v.end(); ++it) {
         m << *it;
     }
@@ -316,8 +316,8 @@ inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::set<T>& v) {
 
 template<class K, class V>
 inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::map<K, V>& v) {
-    rpc::i32 len = (rpc::i32) v.size();
-    m << len;
+    v64 v_len = v.size();
+    m << v_len;
     for (typename std::map<K, V>::const_iterator it = v.begin(); it != v.end(); ++it) {
         m << it->first << it->second;
     }
@@ -326,8 +326,8 @@ inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::map<K, V>& v) {
 
 template<class T>
 inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::unordered_set<T>& v) {
-    rpc::i32 len = (rpc::i32) v.size();
-    m << len;
+    v64 v_len = v.size();
+    m << v_len;
     for (typename std::unordered_set<T>::const_iterator it = v.begin(); it != v.end(); ++it) {
         m << *it;
     }
@@ -336,8 +336,8 @@ inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::unordered_set<T>& v
 
 template<class K, class V>
 inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::unordered_map<K, V>& v) {
-    rpc::i32 len = (rpc::i32) v.size();
-    m << len;
+    v64 v_len = v.size();
+    m << v_len;
     for (typename std::unordered_map<K, V>::const_iterator it = v.begin(); it != v.end(); ++it) {
         m << it->first << it->second;
     }
@@ -392,22 +392,22 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, double& v) {
 }
 
 inline rpc::Marshal& operator >>(rpc::Marshal& m, std::string& v) {
-    rpc::i32 len;
-    m >> len;
-    v.resize(len);
-    if (len > 0) {
-        verify(m.read(&v[0], len) == (size_t) len);
+    v64 v_len;
+    m >> v_len;
+    v.resize(v_len.get());
+    if (v_len.get() > 0) {
+        verify(m.read(&v[0], v_len.get()) == v_len.get());
     }
     return m;
 }
 
 template<class T>
 inline rpc::Marshal& operator >>(rpc::Marshal& m, std::vector<T>& v) {
-    rpc::i32 len;
-    verify(m.read(&len, sizeof(len)) == sizeof(len));
+    v64 v_len;
+    m >> v_len;
     v.clear();
-    v.reserve(len);
-    for (rpc::i32 i = 0; i < len; i++) {
+    v.reserve(v_len.get());
+    for (int i = 0; i < v_len.get(); i++) {
         T elem;
         m >> elem;
         v.push_back(elem);
@@ -417,10 +417,10 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, std::vector<T>& v) {
 
 template<class T>
 inline rpc::Marshal& operator >>(rpc::Marshal& m, std::list<T>& v) {
-    rpc::i32 len;
-    verify(m.read(&len, sizeof(len)) == sizeof(len));
+    v64 v_len;
+    m >> v_len;
     v.clear();
-    for (rpc::i32 i = 0; i < len; i++) {
+    for (int i = 0; i < v_len.get(); i++) {
         T elem;
         m >> elem;
         v.push_back(elem);
@@ -430,10 +430,10 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, std::list<T>& v) {
 
 template<class T>
 inline rpc::Marshal& operator >>(rpc::Marshal& m, std::set<T>& v) {
-    rpc::i32 len;
-    verify(m.read(&len, sizeof(len)) == sizeof(len));
+    v64 v_len;
+    m >> v_len;
     v.clear();
-    for (rpc::i32 i = 0; i < len; i++) {
+    for (int i = 0; i < v_len.get(); i++) {
         T elem;
         m >> elem;
         v.insert(elem);
@@ -443,10 +443,10 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, std::set<T>& v) {
 
 template<class K, class V>
 inline rpc::Marshal& operator >>(rpc::Marshal& m, std::map<K, V>& v) {
-    rpc::i32 len;
-    verify(m.read(&len, sizeof(len)) == sizeof(len));
+    v64 v_len;
+    m >> v_len;
     v.clear();
-    for (rpc::i32 i = 0; i < len; i++) {
+    for (int i = 0; i < v_len.get(); i++) {
         K key;
         V value;
         m >> key >> value;
@@ -457,10 +457,10 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, std::map<K, V>& v) {
 
 template<class T>
 inline rpc::Marshal& operator >>(rpc::Marshal& m, std::unordered_set<T>& v) {
-    rpc::i32 len;
-    verify(m.read(&len, sizeof(len)) == sizeof(len));
+    v64 v_len;
+    m >> v_len;
     v.clear();
-    for (rpc::i32 i = 0; i < len; i++) {
+    for (int i = 0; i < v_len.get(); i++) {
         T elem;
         m >> elem;
         v.insert(elem);
@@ -470,10 +470,10 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, std::unordered_set<T>& v) {
 
 template<class K, class V>
 inline rpc::Marshal& operator >>(rpc::Marshal& m, std::unordered_map<K, V>& v) {
-    rpc::i32 len;
-    verify(m.read(&len, sizeof(len)) == sizeof(len));
+    v64 v_len;
+    m >> v_len;
     v.clear();
-    for (rpc::i32 i = 0; i < len; i++) {
+    for (int i = 0; i < v_len.get(); i++) {
         K key;
         V value;
         m >> key >> value;
