@@ -26,11 +26,13 @@ void ServerConnection::run_async(const std::function<void()>& f) {
 
 void ServerConnection::begin_reply(Request* req, i32 error_code /* =... */) {
     out_l_.lock();
+    v32 v_error_code = error_code;
+    v64 v_reply_xid = req->xid;
 
     bmark_ = this->out_.set_bookmark(sizeof(i32)); // will write reply size later
 
-    *this << req->xid;
-    *this << error_code;
+    *this << v_reply_xid;
+    *this << v_error_code;
 }
 
 void ServerConnection::end_reply() {

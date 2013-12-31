@@ -150,21 +150,21 @@ void Client::handle_read() {
             // consume the packet size
             verify(in_.read(&packet_size, sizeof(i32)) == sizeof(i32));
 
-            i64 reply_xid;
-            i32 error_code;
+            v64 v_reply_xid;
+            v32 v_error_code;
 
-            in_ >> reply_xid >> error_code;
+            in_ >> v_reply_xid >> v_error_code;
 
             pending_fu_l_.lock();
-            unordered_map<i64, Future*>::iterator it = pending_fu_.find(reply_xid);
+            unordered_map<i64, Future*>::iterator it = pending_fu_.find(v_reply_xid.get());
             if (it != pending_fu_.end()) {
                 Future* fu = it->second;
-                verify(fu->xid() == reply_xid);
+                verify(fu->xid() == v_reply_xid.get());
                 pending_fu_.erase(it);
                 pending_fu_l_.unlock();
 
-                fu->error_code_ = error_code;
-                fu->reply_.read_from_marshal(in_, packet_size - sizeof(reply_xid) - sizeof(error_code));
+                fu->error_code_ = v_error_code.get();
+                fu->reply_.read_from_marshal(in_, packet_size - v_reply_xid.val_size() - v_error_code.val_size());
 
                 fu->notify_ready();
 
