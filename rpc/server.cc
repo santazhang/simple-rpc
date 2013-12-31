@@ -66,7 +66,7 @@ void ServerConnection::handle_read() {
     for (;;) {
         i32 packet_size;
         int n_peek = in_.peek(&packet_size, sizeof(i32));
-        if (n_peek == sizeof(i32) && in_.content_size_ge(packet_size + sizeof(i32))) {
+        if (n_peek == sizeof(i32) && in_.content_size() >= packet_size + sizeof(i32)) {
             // consume the packet size
             verify(in_.read(&packet_size, sizeof(i32)) == sizeof(i32));
 
@@ -86,7 +86,7 @@ void ServerConnection::handle_read() {
 
     for (auto& req: complete_requests) {
 
-        if (!req->m.content_size_ge(sizeof(i32))) {
+        if (req->m.content_size() < sizeof(i32)) {
             // rpc id not provided
             begin_reply(req, EINVAL);
             end_reply();

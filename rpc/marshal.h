@@ -193,22 +193,24 @@ private:
     chunk* head_;
     chunk* tail_;
     i32 write_cnt_;
+    size_t content_size_;
+
+    // for debugging purpose
+    size_t content_size_slow() const;
 
 public:
 
-    Marshal(): head_(nullptr), tail_(nullptr), write_cnt_(0) { }
+    Marshal(): head_(nullptr), tail_(nullptr), write_cnt_(0), content_size_(0) { }
     ~Marshal();
 
     bool empty() const {
-        return !content_size_gt(0);
+        assert(content_size_ == content_size_slow());
+        return content_size_ == 0;
     }
-    // gt: greater than
-    bool content_size_gt(size_t n) const {
-        return content_size_ge(n + 1);
+    size_t content_size() const {
+        assert(content_size_ == content_size_slow());
+        return content_size_;
     }
-    // ge: greater than or equal to
-    bool content_size_ge(size_t n) const;
-    size_t content_size() const;
 
     size_t write(const void* p, size_t n);
     size_t read(void* p, size_t n);

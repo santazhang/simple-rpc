@@ -23,20 +23,20 @@ Marshal::~Marshal() {
     }
 }
 
-bool Marshal::content_size_ge(size_t n) const {
-    size_t sz = 0;
-    chunk* chnk = head_;
-    while (chnk != nullptr) {
-        sz += chnk->content_size();
-        if (sz >= n) {
-            return true;
-        }
-        chnk = chnk->next;
-    }
-    return sz >= n;
-}
+// bool Marshal::content_size_ge(size_t n) const {
+//     size_t sz = 0;
+//     chunk* chnk = head_;
+//     while (chnk != nullptr) {
+//         sz += chnk->content_size();
+//         if (sz >= n) {
+//             return true;
+//         }
+//         chnk = chnk->next;
+//     }
+//     return sz >= n;
+// }
 
-size_t Marshal::content_size() const {
+size_t Marshal::content_size_slow() const {
     assert(tail_ == nullptr || tail_->next == nullptr);
 
     size_t sz = 0;
@@ -53,7 +53,6 @@ size_t Marshal::write(const void* p, size_t n) {
 
     if (head_ == nullptr) {
         assert(tail_ == nullptr);
-
         head_ = new chunk(p, n);
         tail_ = head_;
     } else if (tail_->fully_written()) {
@@ -72,6 +71,8 @@ size_t Marshal::write(const void* p, size_t n) {
         }
     }
     write_cnt_ += n;
+    content_size_ += n;
+    assert(content_size_ == content_size_slow());
 
     return n;
 }
@@ -99,6 +100,10 @@ size_t Marshal::read(void* p, size_t n) {
         }
         n_read += cnt;
     }
+    assert(content_size_ >= n_read);
+    content_size_ -= n_read;
+    assert(content_size_ == content_size_slow());
+
     assert(n_read <= n);
     assert(tail_ == nullptr || tail_->next == nullptr);
     assert(empty() || (head_ != nullptr && !head_->fully_read()));
@@ -148,13 +153,15 @@ size_t Marshal::read_from_fd(int fd) {
         n_bytes += r;
     }
     write_cnt_ += n_bytes;
+    content_size_ += n_bytes;
+    assert(content_size_ == content_size_slow());
 
     assert(empty() || (head_ != nullptr && !head_->fully_read()));
     return n_bytes;
 }
 
 size_t Marshal::read_from_marshal(Marshal& m, size_t n) {
-    assert(m.content_size_ge(n));   // require m.content_size() >= n > 0
+    assert(m.content_size() >= n);   // require m.content_size() >= n > 0
     size_t n_fetch = 0;
 
     if (head_ == nullptr && tail_ == nullptr) {
@@ -185,6 +192,9 @@ size_t Marshal::read_from_marshal(Marshal& m, size_t n) {
             }
         }
         write_cnt_ += n_fetch;
+        content_size_ += n_fetch;
+        verify(m.content_size_ >= n_fetch);
+        m.content_size_ -= n_fetch;
 
     } else {
         // TODO dummy implementation for python rpc, improve!
@@ -195,6 +205,7 @@ size_t Marshal::read_from_marshal(Marshal& m, size_t n) {
         delete[] buf;
     }
     assert(n_fetch == n);
+    assert(content_size_ == content_size_slow());
     return n_fetch;
 }
 
@@ -212,9 +223,11 @@ size_t Marshal::write_to_fd(int fd) {
             // currently there's no data available, so stop
             break;
         }
+        assert(content_size_ >= cnt);
+        content_size_ -= cnt;
         n_write += cnt;
     }
-
+    assert(content_size_ == content_size_slow());
     return n_write;
 }
 
@@ -234,6 +247,8 @@ Marshal::bookmark* Marshal::set_bookmark(size_t n) {
         }
         bm->ptr[i] = tail_->set_bookmark();
     }
+    content_size_ += n;
+    assert(content_size_ == content_size_slow());
 
     return bm;
 }
