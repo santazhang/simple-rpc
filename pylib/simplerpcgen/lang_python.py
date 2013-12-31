@@ -1,4 +1,4 @@
-from simplerpc.rpcgen_misc import SourceFile
+from simplerpcgen.misc import SourceFile
 
 def emit_struct_python(struct, f):
     f.writeln("%s = Marshal.reg_type('%s', [%s])" % (

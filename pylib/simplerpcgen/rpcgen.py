@@ -3,8 +3,8 @@ import os
 import random
 import re
 sys.path += os.path.abspath(os.path.join(os.path.split(__file__)[0], "../../pylib")),
-from simplerpc.rpcgen_cpp import emit_rpc_source_cpp
-from simplerpc.rpcgen_python import emit_rpc_source_python
+from simplerpcgen.lang_cpp import emit_rpc_source_cpp
+from simplerpcgen.lang_python import emit_rpc_source_python
 
 def error(msg, ctx):
     from yapps import runtime

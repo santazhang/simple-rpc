@@ -4,7 +4,7 @@ import sys
 import os
 import argparse
 sys.path += os.path.abspath(os.path.join(os.path.split(__file__)[0], "../pylib")),
-from simplerpc.rpcgen import rpcgen
+from simplerpcgen import rpcgen
 
 def main():
     argparser = argparse.ArgumentParser(prog=sys.argv[0])

@@ -1,4 +1,4 @@
-from simplerpc.rpcgen_misc import SourceFile
+from simplerpcgen.misc import SourceFile
 
 def emit_struct(struct, f):
     f.writeln("struct %s {" % struct.name)

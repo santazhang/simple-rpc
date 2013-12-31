@@ -25,7 +25,7 @@ def configure(conf):
         conf.env.USES += " PROTOBUF"
 
 def build(bld):
-    _depend("pylib/simplerpc/rpcgen.py", "pylib/simplerpc/rpcgen.g", "pylib/yapps/main.py pylib/simplerpc/rpcgen.g")
+    _depend("pylib/simplerpcgen/rpcgen.py", "pylib/simplerpcgen/rpcgen.g", "pylib/yapps/main.py pylib/simplerpcgen/rpcgen.g")
     _depend("rlog/log_service.h", "rlog/log_service.rpc", "bin/rpcgen rlog/log_service.rpc")
     _depend("test/benchmark_service.h test/benchmark_service.py", "test/benchmark_service.rpc", "bin/rpcgen --cpp --python test/benchmark_service.rpc")
     _depend("test/test_service.py", "test/test_service.rpc", "bin/rpcgen --python test/test_service.rpc")
