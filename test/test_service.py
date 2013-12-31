@@ -1,6 +1,6 @@
 import os
-from simplerpc import Marshal
-from simplerpc import Future
+from simplerpc.marshal import Marshal
+from simplerpc.future import Future
 
 empty_struct = Marshal.reg_type('empty_struct', [])
 
@@ -27,7 +27,7 @@ class EmptyProxy(object):
         self.__clnt__ = clnt
 
 class MathService(object):
-    GCD = 0x2c801f72
+    GCD = 0x6d4a5586
 
     __input_type_info__ = {
         'gcd': ['rpc::i64','rpc::i64'],

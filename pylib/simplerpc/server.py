@@ -1,8 +1,7 @@
 import traceback
 
 from simplerpc import _pyrpc
-from simplerpc import Marshal
-from simplerpc.pyonly import PythonOnlyService
+from simplerpc.marshal import Marshal
 
 # f input: input_marshal (id only), f output: output_marshal (id only)
 def marshal_wrap(f, input_types, output_types):

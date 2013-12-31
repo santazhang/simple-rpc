@@ -6,13 +6,15 @@ import time
 import sys
 import os
 sys.path += os.path.abspath(os.path.join(os.path.split(__file__)[0], "../pylib")),
-import simplerpc
+from simplerpc.marshal import Marshal
+from simplerpc.server import Server
+from simplerpc.client import Client
 from benchmark_service import *
 from test_service import *
 
 class TestMarshal(TestCase):
     def test_marshal(self):
-        m = simplerpc.Marshal()
+        m = Marshal()
         assert len(m) == 0
         m.write_i32(45)
         assert len(m) == 4
@@ -53,12 +55,12 @@ class TestUtils(TestCase):
 
         f = marshal_wrap(a_add_b, ["rpc::i32", "rpc::i32"], ["rpc::i32"])
 
-        req_m = simplerpc.Marshal()
+        req_m = Marshal()
         req_m.write_i32(3)
         req_m.write_i32(4)
 
         rep_m_id = f(req_m.id)
-        rep_m = simplerpc.Marshal(id=rep_m_id)
+        rep_m = Marshal(id=rep_m_id)
 
         assert len(rep_m) == 4
         assert rep_m.read_i32() == 7
@@ -69,12 +71,12 @@ class TestUtils(TestCase):
 
         f = marshal_wrap(a_swap_b, ["rpc::i32", "rpc::i32"], ["rpc::i32", "rpc::i32"])
 
-        req_m = simplerpc.Marshal()
+        req_m = Marshal()
         req_m.write_i32(3)
         req_m.write_i32(4)
 
         rep_m_id = f(req_m.id)
-        rep_m = simplerpc.Marshal(id=rep_m_id)
+        rep_m = Marshal(id=rep_m_id)
 
         assert len(rep_m) == 8
         assert rep_m.read_i32() == 4
@@ -87,7 +89,7 @@ class TestUtils(TestCase):
 
         f = marshal_wrap(hello_world, [], [])
 
-        req_m = simplerpc.Marshal()
+        req_m = Marshal()
         assert f(req_m.id) == 0 # NULL rpc return
 
 
@@ -96,7 +98,7 @@ class TestUtils(TestCase):
 
         f = marshal_wrap(hello_greetings, ["std::string"], [])
 
-        req_m = simplerpc.Marshal()
+        req_m = Marshal()
         req_m.write_str("simple-rpc")
         assert f(req_m.id) == 0 # NULL rpc return
 
@@ -128,7 +130,7 @@ class TestRpcGen(TestCase):
             def fast_dot_prod(self, a, b):
                 print "called 2"
                 return 0
-        s = simplerpc.Server()
+        s = Server()
         s.reg_svc(BS())
         class MyMath(MathService):
             def gcd(self, a, b):
@@ -142,7 +144,7 @@ class TestRpcGen(TestCase):
         s.reg_svc(MyMath())
         s.start("0.0.0.0:8848")
 
-        c = simplerpc.Client()
+        c = Client()
         c.connect("127.0.0.1:8848")
 
         # raw marshal handling

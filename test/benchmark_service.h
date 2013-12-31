@@ -14,14 +14,12 @@ struct point3 {
     double x;
     double y;
     double z;
-    rpc::v32 dummy;
 };
 
 inline rpc::Marshal& operator <<(rpc::Marshal& m, const point3& o) {
     m << o.x;
     m << o.y;
     m << o.z;
-    m << o.dummy;
     return m;
 }
 
@@ -29,21 +27,20 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, point3& o) {
     m >> o.x;
     m >> o.y;
     m >> o.z;
-    m >> o.dummy;
     return m;
 }
 
 class BenchmarkService: public rpc::Service {
 public:
     enum {
-        FAST_PRIME = 0x4a254cf2,
-        FAST_DOT_PROD = 0x3c58d377,
-        FAST_ADD = 0x13b97d47,
-        FAST_NOP = 0x11c2068a,
-        PRIME = 0x2dc6707c,
-        DOT_PROD = 0x5a9c453b,
-        ADD = 0x529258b4,
-        NOP = 0x5e3c4912,
+        FAST_PRIME = 0x4bdfad44,
+        FAST_DOT_PROD = 0x455fc1c1,
+        FAST_ADD = 0x4a784cb4,
+        FAST_NOP = 0x1afb1e2c,
+        PRIME = 0x4312718d,
+        DOT_PROD = 0x53cd3b4e,
+        ADD = 0x1b885350,
+        NOP = 0x24702cc5,
     };
     int __reg_to__(rpc::Server* svr) {
         int ret = 0;

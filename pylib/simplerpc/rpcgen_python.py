@@ -111,8 +111,8 @@ def emit_rpc_source_python(rpc_source, rpc_table, fpath):
     with open(fpath, "w") as f:
         f = SourceFile(f)
         f.writeln("import os")
-        f.writeln("from simplerpc import Marshal")
-        f.writeln("from simplerpc import Future")
+        f.writeln("from simplerpc.marshal import Marshal")
+        f.writeln("from simplerpc.future import Future")
         f.writeln()
         for struct in rpc_source.structs:
             emit_struct_python(struct, f)

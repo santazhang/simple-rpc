@@ -9,7 +9,6 @@ struct point3 {
     double x;
     double y;
     double z;
-    v32 dummy;
 };
 
 service Benchmark {

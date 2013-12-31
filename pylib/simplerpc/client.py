@@ -1,6 +1,6 @@
 import errno
-from simplerpc import Marshal
 from simplerpc import _pyrpc
+from simplerpc.marshal import Marshal
 
 class Client(object):
 
