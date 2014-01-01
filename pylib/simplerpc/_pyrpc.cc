@@ -250,6 +250,56 @@ static PyObject* _pyrpc_marshal_size(PyObject* self, PyObject* args) {
     return Py_BuildValue("k", m->content_size());
 }
 
+static PyObject* _pyrpc_marshal_write_i8(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    long vl;
+    if (!PyArg_ParseTuple(args, "kl", &u, &vl))
+        return nullptr;
+    Marshal* m = (Marshal *) u;
+    rpc::i8 v = (rpc::i8) vl;
+    *m << v;
+    Py_RETURN_NONE;
+}
+
+
+static PyObject* _pyrpc_marshal_read_i8(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    if (!PyArg_ParseTuple(args, "k", &u))
+        return nullptr;
+    Marshal* m = (Marshal *) u;
+    rpc::i8 v;
+    *m >> v;
+    long vl = v;
+    return Py_BuildValue("l", vl);
+}
+
+static PyObject* _pyrpc_marshal_write_i16(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    long vl;
+    if (!PyArg_ParseTuple(args, "kl", &u, &vl))
+        return nullptr;
+    Marshal* m = (Marshal *) u;
+    rpc::i16 v = (rpc::i16) vl;
+    *m << v;
+    Py_RETURN_NONE;
+}
+
+
+static PyObject* _pyrpc_marshal_read_i16(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    if (!PyArg_ParseTuple(args, "k", &u))
+        return nullptr;
+    Marshal* m = (Marshal *) u;
+    rpc::i16 v;
+    *m >> v;
+    long vl = v;
+    return Py_BuildValue("l", vl);
+}
+
 static PyObject* _pyrpc_marshal_write_i32(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
     unsigned long u;
@@ -297,6 +347,56 @@ static PyObject* _pyrpc_marshal_read_i64(PyObject* self, PyObject* args) {
     rpc::i64 v;
     *m >> v;
     long long vll = v;
+    return Py_BuildValue("L", vll);
+}
+
+static PyObject* _pyrpc_marshal_write_v32(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    long long vll;
+    if (!PyArg_ParseTuple(args, "kL", &u, &vll))
+        return nullptr;
+    Marshal* m = (Marshal *) u;
+    rpc::v32 v = vll;
+    *m << v;
+    Py_RETURN_NONE;
+}
+
+
+static PyObject* _pyrpc_marshal_read_v32(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    if (!PyArg_ParseTuple(args, "k", &u))
+        return nullptr;
+    Marshal* m = (Marshal *) u;
+    rpc::v32 v;
+    *m >> v;
+    long long vll = v.get();
+    return Py_BuildValue("L", vll);
+}
+
+static PyObject* _pyrpc_marshal_write_v64(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    long long vll;
+    if (!PyArg_ParseTuple(args, "kL", &u, &vll))
+        return nullptr;
+    Marshal* m = (Marshal *) u;
+    rpc::v64 v = vll;
+    *m << v;
+    Py_RETURN_NONE;
+}
+
+
+static PyObject* _pyrpc_marshal_read_v64(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    if (!PyArg_ParseTuple(args, "k", &u))
+        return nullptr;
+    Marshal* m = (Marshal *) u;
+    rpc::v64 v;
+    *m >> v;
+    long long vll = v.get();
     return Py_BuildValue("L", vll);
 }
 
@@ -427,10 +527,18 @@ static PyMethodDef _pyrpcMethods[] = {
     {"init_marshal", _pyrpc_init_marshal, METH_VARARGS, nullptr},
     {"fini_marshal", _pyrpc_fini_marshal, METH_VARARGS, nullptr},
     {"marshal_size", _pyrpc_marshal_size, METH_VARARGS, nullptr},
+    {"marshal_write_i8", _pyrpc_marshal_write_i8, METH_VARARGS, nullptr},
+    {"marshal_read_i8", _pyrpc_marshal_read_i8, METH_VARARGS, nullptr},
+    {"marshal_write_i16", _pyrpc_marshal_write_i16, METH_VARARGS, nullptr},
+    {"marshal_read_i16", _pyrpc_marshal_read_i16, METH_VARARGS, nullptr},
     {"marshal_write_i32", _pyrpc_marshal_write_i32, METH_VARARGS, nullptr},
     {"marshal_read_i32", _pyrpc_marshal_read_i32, METH_VARARGS, nullptr},
     {"marshal_write_i64", _pyrpc_marshal_write_i64, METH_VARARGS, nullptr},
     {"marshal_read_i64", _pyrpc_marshal_read_i64, METH_VARARGS, nullptr},
+    {"marshal_write_v32", _pyrpc_marshal_write_v32, METH_VARARGS, nullptr},
+    {"marshal_read_v32", _pyrpc_marshal_read_v32, METH_VARARGS, nullptr},
+    {"marshal_write_v64", _pyrpc_marshal_write_v64, METH_VARARGS, nullptr},
+    {"marshal_read_v64", _pyrpc_marshal_read_v64, METH_VARARGS, nullptr},
     {"marshal_write_double", _pyrpc_marshal_write_double, METH_VARARGS, nullptr},
     {"marshal_read_double", _pyrpc_marshal_read_double, METH_VARARGS, nullptr},
     {"marshal_write_str", _pyrpc_marshal_write_str, METH_VARARGS, nullptr},

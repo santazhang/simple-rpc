@@ -20,7 +20,7 @@ class pack:
         return str(self.__dict__)
 
 def std_rename(t):
-    if t in ["string", "map", "list", "set", "deque", "vector", "unordered_map", "unordered_set"]:
+    if t in ["pair", "string", "map", "list", "set", "vector", "unordered_map", "unordered_set"]:
         t = "std::" + t
     return t
 

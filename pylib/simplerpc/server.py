@@ -43,10 +43,6 @@ class Server(object):
     def __del__(self):
         _pyrpc.fini_server(self.id)
 
-    def reg_pyfunc(self, rpc_name, func):
-        # TODO register python-only functions
-        pass
-
     def __reg_func__(self, rpc_id, func, input_types, output_types):
         return _pyrpc.server_reg(self.id, rpc_id, marshal_wrap(func, input_types, output_types))
 

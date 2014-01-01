@@ -14,6 +14,22 @@ class TestMarshal(TestCase):
     def test_marshal(self):
         m = simplerpc.Marshal()
         assert len(m) == 0
+        m.write_v32(45)
+        assert len(m) == 1
+        assert m.read_v32() == 45
+        assert len(m) == 0
+        m.write_v64(45)
+        assert len(m) == 1
+        assert m.read_v64() == 45
+        assert len(m) == 0
+        m.write_i8(45)
+        assert len(m) == 1
+        assert m.read_i8() == 45
+        assert len(m) == 0
+        m.write_i16(45)
+        assert len(m) == 2
+        assert m.read_i16() == 45
+        assert len(m) == 0
         m.write_i32(45)
         assert len(m) == 4
         assert m.read_i32() == 45
@@ -43,6 +59,13 @@ class TestMarshal(TestCase):
         print len(m)
         print m.read_obj("point3")
         print len(m)
+        comp_s = set(["abc", "def"])
+        comp_d = {}
+        comp_d[("1", "2")] = []
+        comp_d[("a", "b")] = [[("e", "f"), ("g", "hi")], []]
+        comp = complex_struct(d=comp_d, s=comp_s, e=empty_struct())
+        m.write_obj(comp, "complex_struct")
+        print m.read_obj("complex_struct")
 
 class TestUtils(TestCase):
     def test_marshal_wrap(self):

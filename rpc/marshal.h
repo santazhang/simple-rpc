@@ -286,6 +286,13 @@ inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::string& v) {
     return m;
 }
 
+template<class T1, class T2>
+inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::pair<T1, T2>& v) {
+    m << v.first;
+    m << v.second;
+    return m;
+}
+
 template<class T>
 inline rpc::Marshal& operator <<(rpc::Marshal& m, const std::vector<T>& v) {
     v64 v_len = v.size();
@@ -400,6 +407,13 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, std::string& v) {
     if (v_len.get() > 0) {
         verify(m.read(&v[0], v_len.get()) == (size_t) v_len.get());
     }
+    return m;
+}
+
+template<class T1, class T2>
+inline rpc::Marshal& operator >>(rpc::Marshal& m, std::pair<T1, T2>& v) {
+    m >> v.first;
+    m >> v.second;
     return m;
 }
 
