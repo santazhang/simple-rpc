@@ -9,6 +9,7 @@ sys.path += os.path.abspath(os.path.join(os.path.split(__file__)[0], "../pylib")
 import simplerpc
 from benchmark_service import *
 from test_service import *
+from threading import Thread
 
 class TestMarshal(TestCase):
     def test_marshal(self):
@@ -137,6 +138,40 @@ class TestUtils(TestCase):
 #             assert c.sync_call(1987, 1, 2) == 3
 
 
+class TestMultithread(TestCase):
+    def test_mt_rpc(self):
+        s = simplerpc.Server()
+        class MyMath(MathService):
+            def gcd(self, a, b):
+                while True:
+                    r = a % b
+                    if r == 0:
+                        return b
+                    else:
+                        a = b
+                        b = r
+        s.reg_svc(MyMath())
+        s.start("0.0.0.0:8848")
+        n_th = 100
+        n_jobs = 200
+        start = time.time()
+        class MyThread(Thread):
+            def run(self):
+                c = simplerpc.Client()
+                c.connect("127.0.0.1:8848")
+                mp = MathProxy(c)
+                for i in range(n_jobs):
+                    mp.sync_gcd(124, 84)
+        th = []
+        for i in range(n_th):
+            t = MyThread()
+            t.start()
+            th += t,
+        for t in th:
+            t.join()
+        end = time.time()
+        print "mt: qps = %.2lf" % (1.0 * n_th * n_jobs / (end - start))
+
 class TestRpcGen(TestCase):
     def test_struct_gen(self):
         p = point3(x=3.0, y=4.0, z=5.0)
@@ -192,9 +227,6 @@ class TestRpcGen(TestCase):
         #     print results
         #
         # mp.async_gcd(124, 84, done_cb)
-
-    def test_proxy_gen(self):
-        pass
 
 
 if __name__ == "__main__":
