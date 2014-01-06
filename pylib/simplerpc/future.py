@@ -21,6 +21,3 @@ class Future(object):
 
     def ready(self):
         return _pyrpc.future_ready(self.id) != 0
-
-    def result(self):
-        pass

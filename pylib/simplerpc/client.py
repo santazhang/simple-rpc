@@ -88,4 +88,4 @@ class Client(object):
         fu_id = _pyrpc.client_async_call(self.id, self.cb_queue_id, rpc_id, req_m.id, cb_id)
         self.async_m.release()
 
-        return Future(fu_id)
+        return fu_id

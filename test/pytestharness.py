@@ -225,13 +225,25 @@ class TestAsync(TestCase):
         c = simplerpc.Client()
         c.connect("127.0.0.1:8848")
 
-        # raw async_rpc testing
+
         def done_cb(error_code, results):
-            print "async rpc callback called!"
-            print error_code
-            print results
-        fu = c.async_call(MathService.GCD, [124, 84], ["rpc::i64", "rpc::i64"], ["rpc::i64"], done_cb)
+            pass
+            #print error_code
+            #print results
+
+        # raw async_rpc testing
+        fu = Future(id=c.async_call(MathService.GCD, [124, 84], ["rpc::i64", "rpc::i64"], ["rpc::i64"], done_cb))
         fu.wait()
+        mp = MathProxy(c)
+        fu_list = []
+        start = time.time()
+        for i in range(10000):
+            fu2 = mp.async_gcd(128, 84, done_cb)
+            fu_list += fu2,
+        for fu in fu_list:
+            fu.wait()
+        end = time.time()
+        print "async qps = %.2lf" % (10000.0 / (end - start))
         c.close()
 
 if __name__ == "__main__":
