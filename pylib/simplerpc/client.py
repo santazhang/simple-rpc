@@ -72,7 +72,7 @@ class Client(object):
 
             def wrapped_cb(fu_id):
                 # make sure done_cb has input ([error_code], [results])
-                fu = Future(id=fu_id)
+                fu = Future(id=fu_id, should_release=False)
                 results = []
                 if fu.get_error_code() == 0:
                     rep_m = fu.get_reply()

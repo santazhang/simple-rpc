@@ -125,19 +125,6 @@ class TestUtils(TestCase):
         assert f(req_m.id) == 0 # NULL rpc return
 
 
-# class TestUtils(TestCase):
-#     def test_cpp_python_interop(self):
-#         s = simplerpc.Server()
-#
-#         s.reg_func(1987, lambda x, y: x + y)
-#         s.start("0.0.0.0:8848")
-#
-#         c = simplerpc.Client()
-#         c.connect("0.0.0.0:8848")
-#         for i in range(1000):
-#             assert c.sync_call(1987, 1, 2) == 3
-
-
 class TestMultithread(TestCase):
     def test_mt_rpc(self):
         s = simplerpc.Server()
@@ -162,6 +149,7 @@ class TestMultithread(TestCase):
                 mp = MathProxy(c)
                 for i in range(n_jobs):
                     mp.sync_gcd(124, 84)
+                c.close()
         th = []
         for i in range(n_th):
             t = MyThread()
@@ -216,17 +204,7 @@ class TestRpcGen(TestCase):
         end = time.time()
         print "qps = %.2lf" % (10000.0 / (end - start))
 
-        # fu = mp.async_gcd(124, 84)
-        # fu.wait()
-        # fu.wait()
-        # print "fu done", fu.get_error_code(), fu.ready()
-        #
-        # def done_cb(error_code, results):
-        #     # results is a list
-        #     print "ball back, error_code=%d," % error_code
-        #     print results
-        #
-        # mp.async_gcd(124, 84, done_cb)
+        c.close()
 
 
 class TestAsync(TestCase):
