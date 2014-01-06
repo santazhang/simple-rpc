@@ -229,5 +229,32 @@ class TestRpcGen(TestCase):
         # mp.async_gcd(124, 84, done_cb)
 
 
+class TestAsync(TestCase):
+    def test_async_rpc(self):
+        s = simplerpc.Server()
+        class MyMath(MathService):
+            def gcd(self, a, b):
+                while True:
+                    r = a % b
+                    if r == 0:
+                        return b
+                    else:
+                        a = b
+                        b = r
+        s.reg_svc(MyMath())
+        s.start("0.0.0.0:8848")
+
+        c = simplerpc.Client()
+        c.connect("127.0.0.1:8848")
+
+        # raw async_rpc testing
+        def done_cb(error_code, results):
+            print "async rpc callback called!"
+            print error_code
+            print results
+        fu = c.async_call(MathService.GCD, [124, 84], ["rpc::i64", "rpc::i64"], ["rpc::i64"], done_cb)
+        fu.wait()
+        c.close()
+
 if __name__ == "__main__":
     unittest.main()

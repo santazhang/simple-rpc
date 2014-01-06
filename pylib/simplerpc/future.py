@@ -1,4 +1,5 @@
 from simplerpc import _pyrpc
+from simplerpc.marshal import Marshal
 
 class Future(object):
     def __init__(self, id):
@@ -18,3 +19,6 @@ class Future(object):
 
     def ready(self):
         return _pyrpc.future_ready(self.id) != 0
+
+    def result(self):
+        pass

@@ -1,6 +1,9 @@
 import errno
+from threading import Thread
+from threading import Lock
 from simplerpc import _pyrpc
 from simplerpc.marshal import Marshal
+from simplerpc.future import Future
 
 class Client(object):
 
@@ -11,11 +14,30 @@ class Client(object):
             Client.pollmgr = _pyrpc.init_poll_mgr()
         self.id = _pyrpc.init_client(Client.pollmgr)
 
+        # for async rpc
+        self.closed = False
+        self.cb_counter = 1 # 0 means no callback
+        self.cb_func = {} # cb_id => cb_func
+        self.cb_queue_id = _pyrpc.init_async_queue()
+        self.async_m = Lock()
+        self.cb_thread = Thread(target=self.cb_loop)
+        self.cb_thread.start()
+
     def __del__(self):
-        _pyrpc.fini_client(self.id)
+        if not self.closed:
+            _pyrpc.fini_client(self.id)
 
     def connect(self, addr):
         _pyrpc.client_connect(self.id, addr)
+
+    def close(self):
+        self.async_m.acquire()
+        self.closed = True
+        _pyrpc.async_queue_push(self.cb_queue_id, -1) # death pill
+        self.async_m.release()
+        self.cb_thread.join()
+        _pyrpc.fini_async_queue(self.cb_queue_id)
+        _pyrpc.fini_client(self.id)
 
     def sync_call(self, rpc_id, req_values, req_types, rep_types):
         req_m = Marshal()
@@ -29,14 +51,24 @@ class Client(object):
                 results += rep_m.read_obj(ty),
         return error_code, results
 
+    def cb_loop(self):
+        while not self.closed:
+            cb_id = _pyrpc.async_queue_pop(self.cb_queue_id)
+            if cb_id == -1:
+                continue
+            fu_id = _pyrpc.async_queue_pop(self.cb_queue_id)
+            self.async_m.acquire()
+            func = self.cb_func.pop(cb_id)
+            self.async_m.release()
+            func(fu_id)
+
     def async_call(self, rpc_id, req_values, req_types, rep_types, done_cb):
         req_m = Marshal()
         for i in range(len(req_values)):
             req_m.write_obj(req_values[i], req_types[i])
 
-        if done_cb == None:
-            fu_id = _pyrpc.client_async_call(self.id, rpc_id, req_m.id, None)
-        else:
+        self.async_m.acquire()
+        if done_cb:
 
             def wrapped_cb(fu_id):
                 # make sure done_cb has input ([error_code], [results])
@@ -48,8 +80,12 @@ class Client(object):
                         results += rep_m.read_obj(ty),
                 done_cb(fu.get_error_code(), results)
 
-            fu_id = _pyrpc.client_async_call(self.id, rpc_id, req_m.id, wrapped_cb)
-            if fu_id == 0: # ENOTCONN
-                done_cb(errno.ENOTCONN, [])
+            cb_id = self.cb_counter
+            self.cb_counter += 1
+            self.cb_func[cb_id] = wrapped_cb
+        else:
+            cb_id = 0 # no callback
+        fu_id = _pyrpc.client_async_call(self.id, self.cb_queue_id, rpc_id, req_m.id, cb_id)
+        self.async_m.release()
 
-        return fu_id
+        return Future(fu_id)

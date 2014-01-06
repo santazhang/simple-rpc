@@ -19,6 +19,19 @@ public:
     }
 };
 
+class AsyncQueue: public RefCounted {
+    Queue<i64> q_;
+protected:
+    ~AsyncQueue() {}
+public:
+    void push(i64 v) {
+        q_.push(v);
+    }
+    i64 pop() {
+        return q_.pop();
+    }
+};
+
 static PyObject* _pyrpc_init_server(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
     Server* svr = new Server;
@@ -190,26 +203,24 @@ static PyObject* _pyrpc_client_async_call(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
 
     unsigned long u;
+    unsigned long qu;
     int rpc_id;
     unsigned long m_id;
-    PyObject* cb;
-    if (!PyArg_ParseTuple(args, "kikO", &u, &rpc_id, &m_id, &cb))
+    unsigned long cb_id;
+    if (!PyArg_ParseTuple(args, "kkikk", &u, &qu, &rpc_id, &m_id, &cb_id))
         return nullptr;
 
     Client* clnt = (Client *) u;
     Marshal* m = (Marshal *) m_id;
+    AsyncQueue* q = (AsyncQueue *) qu;
 
     FutureAttr fu_attr;
-    if (cb != Py_None) {
-        Py_XINCREF(cb);
-        fu_attr.callback = [cb] (Future* fu) {
-            GILHelper gil_helper;
-            PyObject* params = Py_BuildValue("(k)", fu);
-            PyObject* result = PyObject_CallObject(cb, params);
-
-            Py_XDECREF(cb);
-            Py_XDECREF(params);
-            Py_XDECREF(result);
+    if (cb_id != 0) {
+        q->ref_copy();
+        fu_attr.callback = [cb_id, q] (Future* fu) {
+            q->push(cb_id);
+            q->push((i64) fu);
+            q->release();
         };
     }
 
@@ -509,6 +520,62 @@ static PyObject* _pyrpc_future_get_error_code(PyObject* self, PyObject* args) {
     return Py_BuildValue("i", fu->get_error_code());
 }
 
+static PyObject* _pyrpc_future_get_reply(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    if (!PyArg_ParseTuple(args, "k", &u))
+        return nullptr;
+    Future* fu = (Future *) u;
+
+    if (!fu->ready()) {
+        PyThreadState *_save;
+        _save = PyEval_SaveThread();
+        fu->wait();
+        PyEval_RestoreThread(_save);
+    }
+    return Py_BuildValue("k", &fu->get_reply());
+}
+
+static PyObject* _pyrpc_init_async_queue(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    AsyncQueue* q = new AsyncQueue();
+    return Py_BuildValue("k", q);
+}
+
+static PyObject* _pyrpc_fini_async_queue(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    if (!PyArg_ParseTuple(args, "k", &u))
+        return nullptr;
+    AsyncQueue* q = (AsyncQueue *) u;
+    q->release();
+    Py_RETURN_NONE;
+}
+
+static PyObject* _pyrpc_async_queue_pop(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    if (!PyArg_ParseTuple(args, "k", &u))
+        return nullptr;
+    AsyncQueue* q = (AsyncQueue *) u;
+    PyThreadState *_save;
+    _save = PyEval_SaveThread();
+    i64 cb_id = q->pop();
+    PyEval_RestoreThread(_save);
+    return Py_BuildValue("l", cb_id);
+}
+
+static PyObject* _pyrpc_async_queue_push(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    long v;
+    if (!PyArg_ParseTuple(args, "kl", &u, &v))
+        return nullptr;
+    AsyncQueue* q = (AsyncQueue *) u;
+    q->push(v);
+    Py_RETURN_NONE;
+}
+
 static PyMethodDef _pyrpcMethods[] = {
     {"init_server", _pyrpc_init_server, METH_VARARGS, nullptr},
     {"fini_server", _pyrpc_fini_server, METH_VARARGS, nullptr},
@@ -548,6 +615,12 @@ static PyMethodDef _pyrpcMethods[] = {
     {"future_wait", _pyrpc_future_wait, METH_VARARGS, nullptr},
     {"future_ready", _pyrpc_future_ready, METH_VARARGS, nullptr},
     {"future_get_error_code", _pyrpc_future_get_error_code, METH_VARARGS, nullptr},
+    {"future_get_reply", _pyrpc_future_get_reply, METH_VARARGS, nullptr},
+
+    {"init_async_queue", _pyrpc_init_async_queue, METH_VARARGS, nullptr},
+    {"fini_async_queue", _pyrpc_fini_async_queue, METH_VARARGS, nullptr},
+    {"async_queue_pop", _pyrpc_async_queue_pop, METH_VARARGS, nullptr},
+    {"async_queue_push", _pyrpc_async_queue_push, METH_VARARGS, nullptr},
 
     {nullptr, nullptr, 0, nullptr}
 };
