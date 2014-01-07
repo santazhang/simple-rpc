@@ -105,7 +105,6 @@ class TestUtils(TestCase):
         assert rep_m.read_i32() == 3
         assert len(rep_m) == 0
 
-
         def hello_world():
             print "** hello world! **"
 
@@ -113,7 +112,6 @@ class TestUtils(TestCase):
 
         req_m = simplerpc.Marshal()
         assert f(req_m.id) == 0 # NULL rpc return
-
 
         def hello_greetings(greetings):
             print "** hello %s **" % greetings
@@ -149,7 +147,6 @@ class TestMultithread(TestCase):
                 mp = MathProxy(c)
                 for i in range(n_jobs):
                     mp.sync_gcd(124, 84)
-                c.close()
         th = []
         for i in range(n_th):
             t = MyThread()
@@ -203,47 +200,6 @@ class TestRpcGen(TestCase):
         print "done 10000 sync_gcd operation"
         end = time.time()
         print "qps = %.2lf" % (10000.0 / (end - start))
-
-        c.close()
-
-
-class TestAsync(TestCase):
-    def test_async_rpc(self):
-        s = simplerpc.Server()
-        class MyMath(MathService):
-            def gcd(self, a, b):
-                while True:
-                    r = a % b
-                    if r == 0:
-                        return b
-                    else:
-                        a = b
-                        b = r
-        s.reg_svc(MyMath())
-        s.start("0.0.0.0:8848")
-
-        c = simplerpc.Client()
-        c.connect("127.0.0.1:8848")
-
-
-        def done_cb(error_code, results):
-            pass
-            #print error_code
-            #print results
-
-        # raw async_rpc testing
-        fu = Future(id=c.async_call(MathService.GCD, [124, 84], ["rpc::i64", "rpc::i64"], ["rpc::i64"], done_cb))
-        fu.wait()
-        mp = MathProxy(c)
-        fu_list = []
-        start = time.time()
-        for i in range(10000):
-            fu2 = mp.async_gcd(128, 84, done_cb)
-            fu_list += fu2,
-        for fu in fu_list:
-            fu.wait()
-        end = time.time()
-        print "async qps = %.2lf" % (10000.0 / (end - start))
         c.close()
 
 if __name__ == "__main__":
