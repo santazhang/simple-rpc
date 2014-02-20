@@ -1,3 +1,5 @@
+#pragma once
+
 #include <sstream>
 #include <string>
 #include <google/protobuf/message.h>
@@ -6,14 +8,14 @@
 
 namespace rpc {
 
-rpc::Marshal& operator <<(rpc::Marshal& m, const ::google::protobuf::Message& msg) {
+inline rpc::Marshal& operator <<(rpc::Marshal& m, const ::google::protobuf::Message& msg) {
     std::ostringstream ostr;
     msg.SerializeToOstream(&ostr);
     m << ostr.str();
     return m;
 }
 
-rpc::Marshal& operator >>(rpc::Marshal& m, ::google::protobuf::Message& msg) {
+inline rpc::Marshal& operator >>(rpc::Marshal& m, ::google::protobuf::Message& msg) {
     std::string str;
     m >> str;
     std::istringstream istr(str);
