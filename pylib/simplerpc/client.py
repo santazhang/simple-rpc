@@ -15,7 +15,7 @@ class Client(object):
         _pyrpc.fini_client(self.id)
 
     def connect(self, addr):
-        _pyrpc.client_connect(self.id, addr)
+        return _pyrpc.client_connect(self.id, addr)
 
     def sync_call(self, rpc_id, req_values, req_types, rep_types):
         req_m = Marshal()
