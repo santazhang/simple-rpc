@@ -19,7 +19,7 @@ class Client(object):
             _pyrpc.fini_client(self.id)
 
     def connect(self, addr):
-        _pyrpc.client_connect(self.id, addr)
+        return _pyrpc.client_connect(self.id, addr)
 
     def close(self):
         self.closed = True
