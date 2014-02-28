@@ -40,22 +40,21 @@ class Marshal: public NoCopy {
         raw_bytes* data;
         size_t read_idx;
         size_t write_idx;
-        bool rdonly;
         chunk* next;
 
-        chunk(): data(new raw_bytes), read_idx(0), write_idx(0), rdonly(false), next(nullptr) {}
-        chunk(const void* p, size_t n): data(new raw_bytes(p, n)), read_idx(0), write_idx(n), rdonly(false), next(nullptr) {}
+        chunk(): data(new raw_bytes), read_idx(0), write_idx(0), next(nullptr) {}
+        chunk(const void* p, size_t n): data(new raw_bytes(p, n)), read_idx(0), write_idx(n), next(nullptr) {}
         ~chunk() { data->release(); }
 
     private:
-        // make readonly copy
         chunk(raw_bytes* data, size_t read_idx, size_t write_idx)
-                : data((raw_bytes *) data->ref_copy()), read_idx(read_idx), write_idx(write_idx), rdonly(true), next(nullptr) {
+                : data((raw_bytes *) data->ref_copy()), read_idx(read_idx), write_idx(write_idx), next(nullptr) {
             assert(write_idx <= data->size);
             assert(read_idx <= write_idx);
         }
     public:
-        chunk* rdonly_copy() const {
+        // NOTE: This function is only intended for Marshal::read_from_marshal.
+        chunk* shared_copy() const {
             return new chunk(data, read_idx, write_idx);
         }
 
@@ -69,7 +68,6 @@ class Marshal: public NoCopy {
             assert(write_idx <= data->size);
             assert(read_idx <= write_idx);
 
-            verify(!rdonly);
             char* p = &data->ptr[write_idx];
             write_idx++;
 
@@ -82,7 +80,6 @@ class Marshal: public NoCopy {
             assert(write_idx <= data->size);
             assert(read_idx <= write_idx);
 
-            verify(!rdonly);
             size_t n_write = std::min(n, data->size - write_idx);
             if (n_write > 0) {
                 memcpy(data->ptr + write_idx, p, n_write);
@@ -148,7 +145,6 @@ class Marshal: public NoCopy {
             assert(write_idx <= data->size);
             assert(read_idx <= write_idx);
 
-            verify(!rdonly);
             int cnt = 0;
             if (write_idx < data->size) {
                 cnt = ::read(fd, data->ptr + write_idx, data->size - write_idx);
@@ -218,7 +214,10 @@ public:
 
     size_t read_from_fd(int fd);
 
-    // NOTE: this function is only used *internally* to chop a slice of marshal object
+    // NOTE: This function is only used *internally* to chop a slice of marshal object.
+    // Use case 1: In C++ server io thread, when a compelete packet is received, read it off
+    //             into a Marshal object and hand over to worker threads.
+    // Use case 2: In Python extension, buffer message in Marshal object, and send to network.
     size_t read_from_marshal(Marshal& m, size_t n);
 
     size_t write_to_fd(int fd);

@@ -154,7 +154,10 @@ size_t Marshal::read_from_marshal(Marshal& m, size_t n) {
     if ((head_ == nullptr && tail_ == nullptr) || tail_->fully_written()) {
         // efficiently copy data by only copying pointers
         while (n_fetch < n) {
-            chunk* chnk = m.head_->rdonly_copy();
+            // NOTE: The copied chunk is shared by 2 Marshal objects. Be careful
+            //       that only one Marshal should be able to write to it! For the
+            //       given 2 use cases, it works.
+            chunk* chnk = m.head_->shared_copy();
             if (n_fetch + chnk->content_size() > n) {
                 // only fetch enough bytes we need
                 chnk->write_idx -= (n_fetch + chnk->content_size()) - n;
