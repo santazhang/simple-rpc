@@ -165,6 +165,9 @@ static PyObject* _pyrpc_client_sync_call(PyObject* self, PyObject* args) {
 
     Future* fu = clnt->begin_request(rpc_id);
     if (fu != nullptr) {
+        // NOTE: We use Marshal as a buffer to packup an RPC message, then push it into
+        //       client side buffer. Here is the only place that we are using Marshal's
+        //       read_from_marshal function with non-empty Marshal object.
         *clnt << *m;
     }
     clnt->end_request();

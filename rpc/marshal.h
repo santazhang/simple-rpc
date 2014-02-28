@@ -218,6 +218,7 @@ public:
 
     size_t read_from_fd(int fd);
 
+    // NOTE: this function is only used *internally* to chop a slice of marshal object
     size_t read_from_marshal(Marshal& m, size_t n);
 
     size_t write_to_fd(int fd);

@@ -1,5 +1,5 @@
 APPNAME="simple-rpc"
-VERSION="0.1.1"
+VERSION="0.1.2"
 
 def options(opt):
     opt.load("compiler_cxx")
@@ -53,7 +53,7 @@ def build(bld):
     if bld.env.PROTOC != []:
         _depend("test/person.pb.cc test/person.pb.h", "test/person.proto", "%s --cpp_out=test -Itest test/person.proto" % bld.env.PROTOC)
         test_src += bld.path.ant_glob("test/*.pb.cc") + bld.path.ant_glob("test/protobuf-test*.cc")
-    _prog(test_src, "testharness", use="rlog %s" % bld.env.USES)
+    _prog(test_src, "unittest", use="rlog %s" % bld.env.USES)
 
 #
 # waf helper code

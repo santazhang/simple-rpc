@@ -158,6 +158,7 @@ public:
         return *this;
     }
 
+    // NOTE: this function is used *internally* by Python extension
     Client& operator <<(Marshal& m) {
         if (status_ == CONNECTED) {
             this->out_.read_from_marshal(m, m.content_size());

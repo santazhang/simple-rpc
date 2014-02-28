@@ -151,7 +151,8 @@ size_t Marshal::read_from_marshal(Marshal& m, size_t n) {
     assert(m.content_size() >= n);   // require m.content_size() >= n > 0
     size_t n_fetch = 0;
 
-    if (head_ == nullptr && tail_ == nullptr) {
+    if ((head_ == nullptr && tail_ == nullptr) || tail_->fully_written()) {
+        // efficiently copy data by only copying pointers
         while (n_fetch < n) {
             chunk* chnk = m.head_->rdonly_copy();
             if (n_fetch + chnk->content_size() > n) {
@@ -184,12 +185,20 @@ size_t Marshal::read_from_marshal(Marshal& m, size_t n) {
         m.content_size_ -= n_fetch;
 
     } else {
-        // TODO dummy implementation for python rpc, improve!
-        char* buf = new char[n];
-        n_fetch = m.read(buf, n);
-        verify(n_fetch == n);
+
+        // number of bytes that need to be copied
+        size_t copy_n = std::min(tail_->data->size - tail_->write_idx, n);
+        char* buf = new char[copy_n];
+        n_fetch = m.read(buf, copy_n);
+        verify(n_fetch == copy_n);
         verify(this->write(buf, n_fetch) == n_fetch);
         delete[] buf;
+
+        size_t leftover = n - copy_n;
+        if (leftover > 0) {
+            verify(tail_->fully_written());
+            n_fetch += this->read_from_marshal(m, leftover);
+        }
     }
     assert(n_fetch == n);
     assert(content_size_ == content_size_slow());
