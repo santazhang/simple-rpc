@@ -70,12 +70,12 @@ class TestMarshal(TestCase):
 
 class TestUtils(TestCase):
     def test_marshal_wrap(self):
-        from simplerpc.server import marshal_wrap
+        from simplerpc.server import MarshalWrap
 
         def a_add_b(a, b):
             return a + b
 
-        f = marshal_wrap(a_add_b, ["rpc::i32", "rpc::i32"], ["rpc::i32"])
+        f = MarshalWrap(a_add_b, ["rpc::i32", "rpc::i32"], ["rpc::i32"])
 
         req_m = simplerpc.Marshal()
         req_m.write_i32(3)
@@ -91,7 +91,7 @@ class TestUtils(TestCase):
         def a_swap_b(a, b):
             return b, a
 
-        f = marshal_wrap(a_swap_b, ["rpc::i32", "rpc::i32"], ["rpc::i32", "rpc::i32"])
+        f = MarshalWrap(a_swap_b, ["rpc::i32", "rpc::i32"], ["rpc::i32", "rpc::i32"])
 
         req_m = simplerpc.Marshal()
         req_m.write_i32(3)
@@ -108,7 +108,7 @@ class TestUtils(TestCase):
         def hello_world():
             print "** hello world! **"
 
-        f = marshal_wrap(hello_world, [], [])
+        f = MarshalWrap(hello_world, [], [])
 
         req_m = simplerpc.Marshal()
         assert f(req_m.id) == 0 # NULL rpc return
@@ -116,7 +116,7 @@ class TestUtils(TestCase):
         def hello_greetings(greetings):
             print "** hello %s **" % greetings
 
-        f = marshal_wrap(hello_greetings, ["std::string"], [])
+        f = MarshalWrap(hello_greetings, ["std::string"], [])
 
         req_m = simplerpc.Marshal()
         req_m.write_str("simple-rpc")

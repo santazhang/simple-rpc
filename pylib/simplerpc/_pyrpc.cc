@@ -68,7 +68,7 @@ static PyObject* _pyrpc_server_reg(PyObject* self, PyObject* args) {
     Server* svr = (Server *) u;
 
     // incr ref_count on PyObject func
-    // TODO remember this, and decr ref_count on PyObject func when shutting down server
+    // This reference count will be decreased when shutting down server
     Py_XINCREF(func);
 
     int ret = svr->reg(rpc_id, [func](Request* req, ServerConnection* sconn) {
@@ -419,6 +419,14 @@ static PyObject* _pyrpc_marshal_read_str(PyObject* self, PyObject* args) {
     return Py_BuildValue("O", str_obj);
 }
 
+static PyObject* _pyrpc_helper_decr_ref(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    PyObject* pyobj;
+    if (!PyArg_ParseTuple(args, "O", &pyobj))
+        return nullptr;
+    Py_XDECREF(pyobj);
+    Py_RETURN_NONE;
+}
 
 static PyMethodDef _pyrpcMethods[] = {
     {"init_server", _pyrpc_init_server, METH_VARARGS, nullptr},
@@ -453,6 +461,8 @@ static PyMethodDef _pyrpcMethods[] = {
     {"marshal_read_double", _pyrpc_marshal_read_double, METH_VARARGS, nullptr},
     {"marshal_write_str", _pyrpc_marshal_write_str, METH_VARARGS, nullptr},
     {"marshal_read_str", _pyrpc_marshal_read_str, METH_VARARGS, nullptr},
+
+    {"helper_decr_ref", _pyrpc_helper_decr_ref, METH_VARARGS, nullptr},
 
     {nullptr, nullptr, 0, nullptr}
 };
