@@ -157,7 +157,7 @@ static Marshal* marshal_with_size(size_t n) {
 
 TEST(marshal, read_from_marshal) {
     Marshal* m1 = marshal_with_size(2);
-    const int size2 = 19877;
+    const size_t size2 = 19877;
     Marshal* m2 = marshal_with_size(size2);
     EXPECT_EQ(m1->read_from_marshal(*m2, m2->content_size()), size2);
     delete m1;
@@ -165,12 +165,12 @@ TEST(marshal, read_from_marshal) {
 }
 
 TEST(marshal_regression, update_tail_when_marshal_is_full_read) {
-    const int marshal_chunk_size = 8192;
+    const size_t marshal_chunk_size = 8192;
     Marshal* m = marshal_with_size(marshal_chunk_size);
     EXPECT_EQ(m->content_size(), marshal_chunk_size);
     int null_fd = open("/dev/null", O_WRONLY);
     m->write_to_fd(null_fd);
-    for (int i = 0; i < marshal_chunk_size / 2; i++) {
+    for (size_t i = 0; i < marshal_chunk_size / 2; i++) {
         *m << "x";   // actually writing 2 bytes (1 for var_int size, 1 for 'x')
     }
     EXPECT_EQ(m->content_size(), marshal_chunk_size);

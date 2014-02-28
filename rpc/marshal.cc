@@ -225,7 +225,7 @@ size_t Marshal::write_to_fd(int fd) {
             // currently there's no data available, so stop
             break;
         }
-        assert(content_size_ >= cnt);
+        assert(content_size_ >= (size_t) cnt);
         content_size_ -= cnt;
         n_write += cnt;
     }
