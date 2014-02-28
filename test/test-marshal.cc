@@ -140,3 +140,19 @@ TEST(marshal, mt_benchmark) {
         Pthread_join(th_writers[i], nullptr);
     }
 }
+
+
+TEST(marshal_regression, update_tail_when_marshal_is_full_read) {
+    Marshal m;
+    for (int i = 0; i < 4096; i++) {
+        m << "x";
+    }
+    EXPECT_EQ(m.content_size(), 8192);
+    int null_fd = open("/dev/null", O_WRONLY);
+    m.write_to_fd(null_fd);
+    for (int i = 0; i < 4096; i++) {
+        m << "x";
+    }
+    EXPECT_EQ(m.content_size(), 8192);
+    m.write_to_fd(null_fd);
+}

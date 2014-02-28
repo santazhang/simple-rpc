@@ -23,19 +23,6 @@ Marshal::~Marshal() {
     }
 }
 
-// bool Marshal::content_size_ge(size_t n) const {
-//     size_t sz = 0;
-//     chunk* chnk = head_;
-//     while (chnk != nullptr) {
-//         sz += chnk->content_size();
-//         if (sz >= n) {
-//             return true;
-//         }
-//         chnk = chnk->next;
-//     }
-//     return sz >= n;
-// }
-
 size_t Marshal::content_size_slow() const {
     assert(tail_ == nullptr || tail_->next == nullptr);
 
@@ -215,6 +202,9 @@ size_t Marshal::write_to_fd(int fd) {
     while (!empty()) {
         int cnt = head_->write_to_fd(fd);
         if (head_->fully_read()) {
+            if (head_ == tail_) {
+                tail_ = nullptr;
+            }
             chunk* chnk = head_;
             head_ = head_->next;
             delete chnk;
