@@ -10,12 +10,12 @@ from benchmark_service import *
 
 def main():
     argparser = argparse.ArgumentParser(prog=sys.argv[0])
-    argparser.add_argument("-c")
-    argparser.add_argument("-s")
+    argparser.add_argument("-c", dest="client_addr", help="server address (ip:port)")
+    argparser.add_argument("-s", dest="server_addr", help="client address (ip:port)")
     opt = argparser.parse_args(sys.argv[1:])
-    if opt.c:
+    if opt.client_addr:
         c = simplerpc.Client()
-        c.connect(opt.c)
+        c.connect(opt.client_addr)
         bp = BenchmarkProxy(c)
         counter = 0
         last_time = time.time()
@@ -28,7 +28,7 @@ def main():
             bp.sync_nop("")
             counter += 1
 
-    elif opt.s:
+    elif opt.server_addr:
         s = simplerpc.Server()
 
         class MyBenchmarkService(BenchmarkService):
@@ -37,9 +37,12 @@ def main():
 
         s.reg_svc(MyBenchmarkService())
 
-        s.start(opt.s)
+        s.start(opt.server_addr)
         while True:
             time.sleep(1)
+
+    else:
+        argparser.print_help()
 
 if __name__ == "__main__":
     main()
