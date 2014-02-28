@@ -8,13 +8,6 @@
 namespace rpc {
 
 
-struct poll_options {
-    int n_threads;
-
-    poll_options(): n_threads(1) {}
-};
-
-
 class Pollable: public RefCounted {
 protected:
 
@@ -39,7 +32,7 @@ class PollMgr: public RefCounted {
     class PollThread;
 
     PollThread* poll_threads_;
-    poll_options opts_;
+    const int n_threads_;
 
 protected:
 
@@ -48,7 +41,7 @@ protected:
 
 public:
 
-    PollMgr(const poll_options& opts = poll_options());
+    PollMgr(int n_threads = 1);
 
     void add(Pollable*);
     void remove(Pollable*);

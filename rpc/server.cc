@@ -185,9 +185,7 @@ Server::Server(PollMgr* pollmgr /* =... */, ThreadPool* thrpool /* =? */)
     memset(&loop_th_, 0, sizeof(loop_th_));
 
     if (pollmgr == nullptr) {
-        poll_options opt;
-        opt.n_threads = 8;
-        pollmgr_ = new PollMgr(opt);
+        pollmgr_ = new PollMgr;
     } else {
         pollmgr_ = (PollMgr *) pollmgr->ref_copy();
     }

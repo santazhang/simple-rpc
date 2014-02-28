@@ -85,12 +85,12 @@ public:
     void update_mode(Pollable*, int new_mode);
 };
 
-PollMgr::PollMgr(const poll_options& opts /* =... */): opts_(opts) {
-    poll_threads_ = new PollThread[opts_.n_threads];
-    for (int i = 0; i < opts_.n_threads; i++) {
+PollMgr::PollMgr(int n_threads /* =... */): n_threads_(n_threads) {
+    verify(n_threads_ > 0);
+    poll_threads_ = new PollThread[n_threads_];
+    for (int i = 0; i < n_threads_; i++) {
         poll_threads_[i].start(this);
     }
-    //Log_debug("rpc::PollMgr: start with %d thread", opts_.n_threads);
 }
 
 PollMgr::~PollMgr() {
@@ -365,7 +365,7 @@ void PollMgr::PollThread::update_mode(Pollable* poll, int new_mode) {
 void PollMgr::add(Pollable* poll) {
     int fd = poll->fd();
     if (fd >= 0) {
-        int tid = fd % opts_.n_threads;
+        int tid = fd % n_threads_;
         poll_threads_[tid].add(poll);
     }
 }
@@ -373,7 +373,7 @@ void PollMgr::add(Pollable* poll) {
 void PollMgr::remove(Pollable* poll) {
     int fd = poll->fd();
     if (fd >= 0) {
-        int tid = fd % opts_.n_threads;
+        int tid = fd % n_threads_;
         poll_threads_[tid].remove(poll);
     }
 }
@@ -381,7 +381,7 @@ void PollMgr::remove(Pollable* poll) {
 void PollMgr::update_mode(Pollable* poll, int new_mode) {
     int fd = poll->fd();
     if (fd >= 0) {
-        int tid = fd % opts_.n_threads;
+        int tid = fd % n_threads_;
         poll_threads_[tid].update_mode(poll, new_mode);
     }
 }
