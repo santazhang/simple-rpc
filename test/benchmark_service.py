@@ -5,14 +5,14 @@ from simplerpc.future import Future
 point3 = Marshal.reg_type('point3', [('x', 'double'), ('y', 'double'), ('z', 'double')])
 
 class BenchmarkService(object):
-    FAST_PRIME = 0x2d76fbb4
-    FAST_DOT_PROD = 0x3774f29b
-    FAST_ADD = 0x2906c4e7
-    FAST_NOP = 0x4c6262e6
-    PRIME = 0x662f37d5
-    DOT_PROD = 0x2b9b324a
-    ADD = 0x5502f879
-    NOP = 0x42a378ac
+    FAST_PRIME = 0x3878ec49
+    FAST_DOT_PROD = 0x66008dde
+    FAST_ADD = 0x5b784b6e
+    FAST_NOP = 0x1b0bc814
+    PRIME = 0x3570d500
+    DOT_PROD = 0x1d9429bb
+    ADD = 0x1724187d
+    NOP = 0x3720dc1c
 
     __input_type_info__ = {
         'fast_prime': ['rpc::i32'],
@@ -78,6 +78,30 @@ class BenchmarkService(object):
 class BenchmarkProxy(object):
     def __init__(self, clnt):
         self.__clnt__ = clnt
+
+    def async_fast_prime(__self__, n):
+        return __self__.__clnt__.async_call(BenchmarkService.FAST_PRIME, [n], BenchmarkService.__input_type_info__['fast_prime'], BenchmarkService.__output_type_info__['fast_prime'])
+
+    def async_fast_dot_prod(__self__, p1, p2):
+        return __self__.__clnt__.async_call(BenchmarkService.FAST_DOT_PROD, [p1, p2], BenchmarkService.__input_type_info__['fast_dot_prod'], BenchmarkService.__output_type_info__['fast_dot_prod'])
+
+    def async_fast_add(__self__, a, b):
+        return __self__.__clnt__.async_call(BenchmarkService.FAST_ADD, [a, b], BenchmarkService.__input_type_info__['fast_add'], BenchmarkService.__output_type_info__['fast_add'])
+
+    def async_fast_nop(__self__, in0):
+        return __self__.__clnt__.async_call(BenchmarkService.FAST_NOP, [in0], BenchmarkService.__input_type_info__['fast_nop'], BenchmarkService.__output_type_info__['fast_nop'])
+
+    def async_prime(__self__, n):
+        return __self__.__clnt__.async_call(BenchmarkService.PRIME, [n], BenchmarkService.__input_type_info__['prime'], BenchmarkService.__output_type_info__['prime'])
+
+    def async_dot_prod(__self__, p1, p2):
+        return __self__.__clnt__.async_call(BenchmarkService.DOT_PROD, [p1, p2], BenchmarkService.__input_type_info__['dot_prod'], BenchmarkService.__output_type_info__['dot_prod'])
+
+    def async_add(__self__, a, b):
+        return __self__.__clnt__.async_call(BenchmarkService.ADD, [a, b], BenchmarkService.__input_type_info__['add'], BenchmarkService.__output_type_info__['add'])
+
+    def async_nop(__self__, in0):
+        return __self__.__clnt__.async_call(BenchmarkService.NOP, [in0], BenchmarkService.__input_type_info__['nop'], BenchmarkService.__output_type_info__['nop'])
 
     def sync_fast_prime(__self__, n):
         __result__ = __self__.__clnt__.sync_call(BenchmarkService.FAST_PRIME, [n], BenchmarkService.__input_type_info__['fast_prime'], BenchmarkService.__output_type_info__['fast_prime'])

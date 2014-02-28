@@ -27,7 +27,7 @@ class EmptyProxy(object):
         self.__clnt__ = clnt
 
 class MathService(object):
-    GCD = 0x4f8f0fb4
+    GCD = 0x2062ca57
 
     __input_type_info__ = {
         'gcd': ['rpc::i64','rpc::i64'],
@@ -51,6 +51,9 @@ class MathService(object):
 class MathProxy(object):
     def __init__(self, clnt):
         self.__clnt__ = clnt
+
+    def async_gcd(__self__, a, in1):
+        return __self__.__clnt__.async_call(MathService.GCD, [a, in1], MathService.__input_type_info__['gcd'], MathService.__output_type_info__['gcd'])
 
     def sync_gcd(__self__, a, in1):
         __result__ = __self__.__clnt__.sync_call(MathService.GCD, [a, in1], MathService.__input_type_info__['gcd'], MathService.__output_type_info__['gcd'])

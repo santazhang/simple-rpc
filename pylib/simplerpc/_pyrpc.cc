@@ -148,6 +148,35 @@ static PyObject* _pyrpc_client_connect(PyObject* self, PyObject* args) {
     return Py_BuildValue("i", ret);
 }
 
+static PyObject* _pyrpc_client_async_call(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+
+    unsigned long u;
+    int rpc_id;
+    unsigned long m_id;
+    if (!PyArg_ParseTuple(args, "kik", &u, &rpc_id, &m_id))
+        return nullptr;
+
+    Client* clnt = (Client *) u;
+    Marshal* m = (Marshal *) m_id;
+
+    Future* fu = clnt->begin_request(rpc_id);
+    if (fu != nullptr) {
+        // NOTE: We use Marshal as a buffer to packup an RPC message, then push it into
+        //       client side buffer. Here is the only place that we are using Marshal's
+        //       read_from_marshal function with non-empty Marshal object.
+        *clnt << *m;
+    }
+    clnt->end_request();
+
+    if (fu == nullptr) {
+        // ENOTCONN
+        Py_RETURN_NONE;
+    } else {
+        return Py_BuildValue("k", fu);
+    }
+}
+
 static PyObject* _pyrpc_client_sync_call(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
 
@@ -419,6 +448,36 @@ static PyObject* _pyrpc_marshal_read_str(PyObject* self, PyObject* args) {
     return Py_BuildValue("O", str_obj);
 }
 
+
+static PyObject* _pyrpc_future_wait(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+
+    PyThreadState *_save;
+    _save = PyEval_SaveThread();
+
+    unsigned long fu_id;
+    if (!PyArg_ParseTuple(args, "k", &fu_id))
+        return nullptr;
+
+    Future* fu = (Future *) fu_id;
+    Marshal* m_rep = new Marshal;
+    int error_code;
+    if (fu == nullptr) {
+        error_code = ENOTCONN;
+    } else {
+        error_code = fu->get_error_code();
+        if (error_code == 0) {
+            m_rep->read_from_marshal(fu->get_reply(), fu->get_reply().content_size());
+        }
+        fu->release();
+    }
+
+    PyEval_RestoreThread(_save);
+
+    unsigned long m_rep_id = (unsigned long) m_rep;
+    return Py_BuildValue("(ik)", error_code, m_rep_id);
+}
+
 static PyObject* _pyrpc_helper_decr_ref(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
     PyObject* pyobj;
@@ -440,6 +499,7 @@ static PyMethodDef _pyrpcMethods[] = {
     {"init_client", _pyrpc_init_client, METH_VARARGS, nullptr},
     {"fini_client", _pyrpc_fini_client, METH_VARARGS, nullptr},
     {"client_connect", _pyrpc_client_connect, METH_VARARGS, nullptr},
+    {"client_async_call", _pyrpc_client_async_call, METH_VARARGS, nullptr},
     {"client_sync_call", _pyrpc_client_sync_call, METH_VARARGS, nullptr},
 
     {"init_marshal", _pyrpc_init_marshal, METH_VARARGS, nullptr},
@@ -461,6 +521,8 @@ static PyMethodDef _pyrpcMethods[] = {
     {"marshal_read_double", _pyrpc_marshal_read_double, METH_VARARGS, nullptr},
     {"marshal_write_str", _pyrpc_marshal_write_str, METH_VARARGS, nullptr},
     {"marshal_read_str", _pyrpc_marshal_read_str, METH_VARARGS, nullptr},
+
+    {"future_wait", _pyrpc_future_wait, METH_VARARGS, nullptr},
 
     {"helper_decr_ref", _pyrpc_helper_decr_ref, METH_VARARGS, nullptr},
 

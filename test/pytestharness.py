@@ -122,6 +122,36 @@ class TestUtils(TestCase):
         req_m.write_str("simple-rpc")
         assert f(req_m.id) == 0 # NULL rpc return
 
+class TestAsync(TestCase):
+    def test_async_rpc(self):
+        s = simplerpc.Server()
+        class LazyMath(MathService):
+            def gcd(self, a, b):
+                print "server zzz..."
+                time.sleep(1)
+                print "server wake up"
+                while True:
+                    r = a % b
+                    if r == 0:
+                        return b
+                    else:
+                        a = b
+                        b = r
+        s.reg_svc(LazyMath())
+        s.start("0.0.0.0:8848")
+        c = simplerpc.Client()
+        c.connect("127.0.0.1:8848")
+        mp = MathProxy(c)
+        n_jobs = 10
+        fu_all = []
+        for i in range(n_jobs):
+            print "client calling..."
+            fu = mp.async_gcd(124, 84)
+            fu_all += fu,
+        for fu in fu_all:
+            print "client waiting..."
+            print "error code: %d" % fu.error_code
+            print "client got result:", fu.result
 
 class TestMultithread(TestCase):
     def test_mt_rpc(self):
@@ -200,6 +230,20 @@ class TestRpcGen(TestCase):
         print "done 10000 sync_gcd operation"
         end = time.time()
         print "qps = %.2lf" % (10000.0 / (end - start))
+
+        n_async = 40000
+        print "begin 100000 async_gcd operation"
+        start = time.time()
+        fu_list = []
+        for i in range(n_async):
+            fu_list += mp.async_gcd(124, 84),
+        print "now waiting..."
+        for fu in fu_list:
+            fu.wait()
+        print "done 100000 async_gcd operation"
+        end = time.time()
+        print "qps = %.2lf" % (n_async * 1.0 / (end - start))
+
         c.close()
 
 if __name__ == "__main__":

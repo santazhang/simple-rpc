@@ -3,6 +3,7 @@ from threading import Thread
 from threading import Lock
 from simplerpc import _pyrpc
 from simplerpc.marshal import Marshal
+from simplerpc.future import Future
 
 class Client(object):
 
@@ -24,6 +25,15 @@ class Client(object):
     def close(self):
         self.closed = True
         _pyrpc.fini_client(self.id)
+
+    def async_call(self, rpc_id, req_values, req_types, rep_types):
+        req_m = Marshal()
+        for i in range(len(req_values)):
+            req_m.write_obj(req_values[i], req_types[i])
+        fu_id = _pyrpc.client_async_call(self.id, rpc_id, req_m.id)
+        if fu_id is None:
+            raise Exception("ENOTCONN: %s" % os.strerror(errno.ENOTCONN))
+        return Future(id=fu_id, rep_types=rep_types)
 
     def sync_call(self, rpc_id, req_values, req_types, rep_types):
         req_m = Marshal()
