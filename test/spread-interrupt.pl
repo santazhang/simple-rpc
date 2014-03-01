@@ -1,7 +1,8 @@
 #!/usr/bin/perl
+
 $device = "eth0";
 
-#check if device has an expected ip address
+# check if device has an expected ip address
 $ifoutput = `ifconfig $device`;
 if (!($ifoutput =~ /216.165.108/)) {
     $device = "eth1";
@@ -10,7 +11,7 @@ if (!($ifoutput =~ /216.165.108/)) {
 }
 print "spreading interrupts for $device\n";
 
-#figure out the list of irqs on $device
+# figure out the list of irqs on $device
 $irqoutput = `grep $device /proc/interrupts`;
 
 @lines = split('\n', $irqoutput);
@@ -24,7 +25,7 @@ foreach $l (@lines) {
     for $f (@fields) {
         if ($f =~ /(\d+):/) {
             $irq = $1;
-        }elsif ($f =~ /^(\d+)$/) {
+        } elsif ($f =~ /^(\d+)$/) {
             $cpu[$num_cpu] = $1;
             $num_cpu++;
             if ($1 > 100) {
@@ -34,7 +35,7 @@ foreach $l (@lines) {
     }
     if (!$total_cpus) {
         $total_cpus = $num_cpu;
-    }else {
+    } else {
         die if ($total_cpus != $num_cpu);
     }
     if ($active) {
@@ -44,8 +45,7 @@ foreach $l (@lines) {
 print "irqs: @irqs\n";
 print "total CPUs: $num_cpu\n";
 
-
-#figure out how many CPU cores in total, which ones are hyper-threaded together
+# figure out how many CPU cores in total, which ones are hyper-threaded together
 open FILE, "/proc/cpuinfo" or die "cannot open /proc/cpuinfo\n";
 $virtual_id = 0;
 $num_phy = 0;
@@ -53,22 +53,22 @@ $num_core = 0;
 while (<FILE>) {
     if (/processor\s+:\s+(\d+)/) {
         $virtual_id = $1;
-    }elsif (/physical id\s+:\s+(\d+)/) {
+    } elsif (/physical id\s+:\s+(\d+)/) {
         $phy_id = $1;
-        if (($phy_id+1) > $num_phy) {
-            $num_phy = $phy_id+1;
+        if (($phy_id + 1) > $num_phy) {
+            $num_phy = $phy_id + 1;
         }
-    }elsif (/core id\s+:\s+(\d+)/) {
+    } elsif (/core id\s+:\s+(\d+)/) {
         $core_id = $1;
-        if (($core_id+1) > $num_core) {
-            $num_core = $core_id+1;
+        if (($core_id + 1) > $num_core) {
+            $num_core = $core_id + 1;
         }
-    }elsif (/cpu cores\s+:\s+(\d+)/) {
+    } elsif (/cpu cores\s+:\s+(\d+)/) {
         print "processor $virtual_id: phy_id $phy_id core_id $core_id\n";
         $my_mask = 1 << $virtual_id;
         if (!defined($masks{"$phy_id.$core_id"})) {
             $masks{"$phy_id.$core_id"} = $my_mask;
-        }else{
+        } else{
             $masks{"$phy_id.$core_id"} |= $my_mask;
         }
     }
@@ -85,7 +85,7 @@ for ($i = 0; $i < $num_phy; $i++) {
     }
 }
 
-#spread irqs to differen physical cores
+# spread irqs to different physical cores
 $phy_id = 0;
 $core_id = 0;
 for ($i = 0; $i <= $#irqs; $i++) {
