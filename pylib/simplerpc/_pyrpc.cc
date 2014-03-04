@@ -478,6 +478,38 @@ static PyObject* _pyrpc_future_wait(PyObject* self, PyObject* args) {
     return Py_BuildValue("(ik)", error_code, m_rep_id);
 }
 
+static PyObject* _pyrpc_future_timedwait(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+
+    PyThreadState *_save;
+    _save = PyEval_SaveThread();
+
+    unsigned long fu_id;
+    unsigned long wait_msec;
+    if (!PyArg_ParseTuple(args, "kk", &fu_id, &wait_msec))
+        return nullptr;
+    double wait_sec = wait_msec / 1000.0;
+
+    Future* fu = (Future *) fu_id;
+    Marshal* m_rep = new Marshal;
+    int error_code;
+    if (fu == nullptr) {
+        error_code = ENOTCONN;
+    } else {
+        fu->timed_wait(wait_sec);
+        error_code = fu->get_error_code();
+        if (error_code == 0) {
+            m_rep->read_from_marshal(fu->get_reply(), fu->get_reply().content_size());
+        }
+        fu->release();
+    }
+
+    PyEval_RestoreThread(_save);
+
+    unsigned long m_rep_id = (unsigned long) m_rep;
+    return Py_BuildValue("(ik)", error_code, m_rep_id);
+}
+
 static PyObject* _pyrpc_helper_decr_ref(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
     PyObject* pyobj;
@@ -523,6 +555,7 @@ static PyMethodDef _pyrpcMethods[] = {
     {"marshal_read_str", _pyrpc_marshal_read_str, METH_VARARGS, nullptr},
 
     {"future_wait", _pyrpc_future_wait, METH_VARARGS, nullptr},
+    {"future_timedwait", _pyrpc_future_timedwait, METH_VARARGS, nullptr},
 
     {"helper_decr_ref", _pyrpc_helper_decr_ref, METH_VARARGS, nullptr},
 

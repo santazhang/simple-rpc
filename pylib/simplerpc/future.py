@@ -17,10 +17,14 @@ class Future(object):
         self.wait()
         return self.err_code
 
-    def wait(self):
+    def wait(self, timeout_sec=None):
         if self.wait_ok:
             return
-        self.err_code, rep_marshal_id = _pyrpc.future_wait(self.id)
+        if timeout_sec is None:
+            self.err_code, rep_marshal_id = _pyrpc.future_wait(self.id)
+        else:
+            timeout_msec = int(timeout_sec * 1000)
+            self.err_code, rep_marshal_id = _pyrpc.future_timedwait(self.id, timeout_msec)
         results = []
         if rep_marshal_id != 0 and self.err_code == 0:
             rep_m = Marshal(id=rep_marshal_id)

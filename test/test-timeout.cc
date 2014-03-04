@@ -29,14 +29,16 @@ TEST(future, wait_timeout) {
     Log::debug("do wait");
     Timer t;
     t.start();
-    Future* fu = clnt->async_sleep(2.3);
+    FutureAttr fu_attr;
+    fu_attr.callback = [] (Future* fu) {
+        Log::debug("fu->get_error_code() = %d", fu->get_error_code());
+    };
+    Future* fu = clnt->async_sleep(2.3, fu_attr);
     double wait_sec = 1.0;
     fu->timed_wait(wait_sec);
     t.stop();
     Log::debug("done wait: %lf seconds", t.elapsed());
     EXPECT_LT(fabs(wait_sec - t.elapsed()), 0.1);
-
-    sleep(5);
 
     delete clnt;
     delete clnt_pool;

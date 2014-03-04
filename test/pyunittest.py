@@ -192,17 +192,23 @@ class TestRpcGen(TestCase):
         p = point3(x=3.0, y=4.0, z=5.0)
         print p
 
-    def test_service_gen(self):
+
+    def test_timedwait(self):
         class BS(BenchmarkService):
-            def fast_prime(self, n):
-                print self, n
-                print "called 1 %d" % n
-                return n
-            def fast_dot_prod(self, a, b):
-                print "called 2"
-                return 0
+            def sleep(self, sec):
+                time.sleep(sec)
         s = simplerpc.Server()
         s.reg_svc(BS())
+        s.start("0.0.0.0:8848")
+        c = simplerpc.Client()
+        c.connect("127.0.0.1:8848")
+        bp = BenchmarkProxy(c)
+        fu = bp.async_sleep(2.3)
+        fu.wait(1.0)
+        print "done"
+
+    def test_service_gen(self):
+        s = simplerpc.Server()
         class MyMath(MathService):
             def gcd(self, a, b):
                 while True:

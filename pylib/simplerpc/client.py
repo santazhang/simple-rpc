@@ -1,4 +1,5 @@
 import errno
+import os
 from threading import Thread
 from threading import Lock
 from simplerpc import _pyrpc
