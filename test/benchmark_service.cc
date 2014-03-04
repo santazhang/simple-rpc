@@ -36,3 +36,14 @@ void BenchmarkService::nop(const std::string&) {
         Log::info("%d nop requests", cnt);
     }
 }
+
+void BenchmarkService::sleep(const double& sec) {
+    int full_sec = (int) sec;
+    int usec = int((sec - full_sec) * 1000 * 1000);
+    if (full_sec > 0) {
+        ::sleep(full_sec);
+    }
+    if (usec > 0) {
+        usleep(usec);
+    }
+}

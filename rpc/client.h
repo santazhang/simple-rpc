@@ -27,6 +27,7 @@ class Future: public RefCounted {
     Marshal reply_;
 
     bool ready_;
+    bool timed_out_;
     pthread_cond_t ready_cond_;
     pthread_mutex_t ready_m_;
 
@@ -43,7 +44,7 @@ protected:
 public:
 
     Future(i64 xid, const FutureAttr& attr = FutureAttr())
-            : xid_(xid), error_code_(0), attr_(attr), ready_(false) {
+            : xid_(xid), error_code_(0), attr_(attr), ready_(false), timed_out_(false) {
         Pthread_mutex_init(&ready_m_, nullptr);
         Pthread_cond_init(&ready_cond_, nullptr);
     }
@@ -57,6 +58,8 @@ public:
 
     // wait till reply done
     void wait();
+
+    void timed_wait(double sec);
 
     Marshal& get_reply() {
         wait();

@@ -33,14 +33,15 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, point3& o) {
 class BenchmarkService: public rpc::Service {
 public:
     enum {
-        FAST_PRIME = 0x3878ec49,
-        FAST_DOT_PROD = 0x66008dde,
-        FAST_ADD = 0x5b784b6e,
-        FAST_NOP = 0x1b0bc814,
-        PRIME = 0x3570d500,
-        DOT_PROD = 0x1d9429bb,
-        ADD = 0x1724187d,
-        NOP = 0x3720dc1c,
+        FAST_PRIME = 0x5c7e92ba,
+        FAST_DOT_PROD = 0x21c6da3e,
+        FAST_ADD = 0x53d953db,
+        FAST_NOP = 0x1d565e3d,
+        PRIME = 0x55aa82a9,
+        DOT_PROD = 0x3c5a28d1,
+        ADD = 0x5a233840,
+        NOP = 0x15b70547,
+        SLEEP = 0x681349ab,
     };
     int __reg_to__(rpc::Server* svr) {
         int ret = 0;
@@ -68,6 +69,9 @@ public:
         if ((ret = svr->reg(NOP, this, &BenchmarkService::__nop__wrapper__)) != 0) {
             goto err;
         }
+        if ((ret = svr->reg(SLEEP, this, &BenchmarkService::__sleep__wrapper__)) != 0) {
+            goto err;
+        }
         return 0;
     err:
         svr->unreg(FAST_PRIME);
@@ -78,6 +82,7 @@ public:
         svr->unreg(DOT_PROD);
         svr->unreg(ADD);
         svr->unreg(NOP);
+        svr->unreg(SLEEP);
         return ret;
     }
     // these RPC handler functions need to be implemented by user
@@ -90,6 +95,7 @@ public:
     virtual void dot_prod(const point3& p1, const point3& p2, double* v);
     virtual void add(const rpc::v32& a, const rpc::v32& b, rpc::v32* a_add_b);
     virtual void nop(const std::string&);
+    virtual void sleep(const double& sec);
 private:
     void __fast_prime__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
         rpc::i32 in_0;
@@ -188,6 +194,18 @@ private:
             std::string in_0;
             req->m >> in_0;
             this->nop(in_0);
+            sconn->begin_reply(req);
+            sconn->end_reply();
+            delete req;
+            sconn->release();
+        };
+        sconn->run_async(f);
+    }
+    void __sleep__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
+        auto f = [=] {
+            double in_0;
+            req->m >> in_0;
+            this->sleep(in_0);
             sconn->begin_reply(req);
             sconn->end_reply();
             delete req;
@@ -353,6 +371,23 @@ public:
     }
     rpc::i32 nop(const std::string& in_0) {
         rpc::Future* __fu__ = this->async_nop(in_0);
+        if (__fu__ == nullptr) {
+            return ENOTCONN;
+        }
+        rpc::i32 __ret__ = __fu__->get_error_code();
+        __fu__->release();
+        return __ret__;
+    }
+    rpc::Future* async_sleep(const double& sec, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
+        rpc::Future* __fu__ = __cl__->begin_request(BenchmarkService::SLEEP, __fu_attr__);
+        if (__fu__ != nullptr) {
+            *__cl__ << sec;
+        }
+        __cl__->end_request();
+        return __fu__;
+    }
+    rpc::i32 sleep(const double& sec) {
+        rpc::Future* __fu__ = this->async_sleep(sec);
         if (__fu__ == nullptr) {
             return ENOTCONN;
         }

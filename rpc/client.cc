@@ -15,18 +15,51 @@ namespace rpc {
 
 void Future::wait() {
     Pthread_mutex_lock(&ready_m_);
-    while (!ready_) {
+    while (!ready_ && !timed_out_) {
         Pthread_cond_wait(&ready_cond_, &ready_m_);
     }
     Pthread_mutex_unlock(&ready_m_);
 }
 
+void Future::timed_wait(double sec) {
+    Pthread_mutex_lock(&ready_m_);
+    while (!ready_ && !timed_out_) {
+        int full_sec = (int) sec;
+        int nsec = int((sec - full_sec) * 1000 * 1000 * 1000);
+        struct timeval tv;
+        gettimeofday(&tv, nullptr);
+        timespec abstime;
+        abstime.tv_sec = tv.tv_sec + full_sec;
+        abstime.tv_nsec = tv.tv_usec * 1000 + nsec;
+        if (abstime.tv_nsec > 1000 * 1000 * 1000) {
+            abstime.tv_nsec -= 1000 * 1000 * 1000;
+            abstime.tv_sec += 1;
+        }
+        Log::debug("wait for %lf", sec);
+        int ret = pthread_cond_timedwait(&ready_cond_, &ready_m_, &abstime);
+        if (ret == ETIMEDOUT) {
+            timed_out_ = true;
+        } else {
+            verify(ret == 0);
+        }
+    }
+    Pthread_mutex_unlock(&ready_m_);
+    if (timed_out_) {
+        error_code_ = ETIMEDOUT;
+        if (attr_.callback != nullptr) {
+            attr_.callback(this);
+        }
+    }
+}
+
 void Future::notify_ready() {
     Pthread_mutex_lock(&ready_m_);
-    ready_ = true;
+    if (!timed_out_) {
+        ready_ = true;
+    }
     Pthread_cond_signal(&ready_cond_);
     Pthread_mutex_unlock(&ready_m_);
-    if (attr_.callback != nullptr) {
+    if (ready_ && attr_.callback != nullptr) {
         attr_.callback(this);
     }
 }
@@ -171,6 +204,7 @@ void Client::handle_read() {
                 // since we removed it from pending_fu_
                 fu->release();
             } else {
+                // the future might timed out
                 pending_fu_l_.unlock();
             }
 
