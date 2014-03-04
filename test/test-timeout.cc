@@ -42,8 +42,9 @@ TEST(future, wait_timeout) {
 
     delete clnt;
     delete clnt_pool;
-    delete svr;
 
     thrpool->release();
     poll->release();
+
+    delete svr;
 }
