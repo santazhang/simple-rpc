@@ -47,8 +47,8 @@ class Marshal: public NoCopy {
         ~chunk() { data->release(); }
 
     private:
-        chunk(raw_bytes* data, size_t read_idx, size_t write_idx)
-                : data((raw_bytes *) data->ref_copy()), read_idx(read_idx), write_idx(write_idx), next(nullptr) {
+        chunk(raw_bytes* dt, size_t rd_idx, size_t wr_idx)
+                : data((raw_bytes *) dt->ref_copy()), read_idx(rd_idx), write_idx(wr_idx), next(nullptr) {
             assert(write_idx <= data->size);
             assert(read_idx <= write_idx);
         }

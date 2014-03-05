@@ -37,7 +37,7 @@ void RLogServiceImpl::log(const i32& level, const std::string& source, const i64
     l_.unlock();
 }
 
-void RLogServiceImpl::aggregate_qps(const std::string& metric_name, const rpc::i32& increment) {
+void RLogServiceImpl::aggregate_qps(const std::string& metric_name, const rpc::i32& incr) {
     agg_qps_l_.lock();
     list<agg_qps_record>& records = agg_qps_[metric_name];
     agg_qps_record new_rec;
@@ -46,9 +46,9 @@ void RLogServiceImpl::aggregate_qps(const std::string& metric_name, const rpc::i
     double now = tv.tv_sec + tv.tv_usec / 1000.0 / 1000.0;
     new_rec.tm = now;
     if (records.empty()) {
-        new_rec.agg_count = increment;
+        new_rec.agg_count = incr;
     } else {
-        new_rec.agg_count = records.back().agg_count + increment;
+        new_rec.agg_count = records.back().agg_count + incr;
     }
     records.push_back(new_rec);
 

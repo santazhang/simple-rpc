@@ -75,9 +75,9 @@ static PyObject* _pyrpc_server_reg(PyObject* self, PyObject* args) {
         Marshal* output_m = nullptr;
         int error_code = 0;
         {
-            unsigned long u = (unsigned long) &req->m;
-            GILHelper gil_helper;
-            PyObject* params = Py_BuildValue("(k)", u);
+            unsigned long inner_u = (unsigned long) &req->m;
+            GILHelper inner_gil_helper;
+            PyObject* params = Py_BuildValue("(k)", inner_u);
             PyObject* result = PyObject_CallObject(func, params);
             if (result == nullptr) {
                 // exception handling
