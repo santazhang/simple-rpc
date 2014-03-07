@@ -36,21 +36,12 @@ using base::Counter;
 using base::Timer;
 using base::Rand;
 using base::ThreadPool;
+using base::insert_into_map;
 
 int set_nonblocking(int fd, bool nonblocking);
 
 int find_open_port();
 
 std::string get_host_name();
-
-template<class K, class V>
-inline void insert_into_map(std::map<K, V>& dict, const K& key, const V& value) {
-    dict.insert(typename std::map<K, V>::value_type(key, value));
-}
-
-template<class K, class V>
-inline void insert_into_map(std::unordered_map<K, V>& dict, const K& key, const V& value) {
-    dict.insert(typename std::unordered_map<K, V>::value_type(key, value));
-}
 
 }
