@@ -112,5 +112,6 @@ def _depend(target, source, action):
     for t in target:
         if not os.path.exists(t):
             _run_cmd(action)
+            return
     if not target or min([os.stat(t).st_mtime for t in target]) < max([os.stat(s).st_mtime for s in source]):
         _run_cmd(action)
