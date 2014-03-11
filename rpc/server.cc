@@ -20,6 +20,18 @@ std::unordered_set<i32> ServerConnection::rpc_id_missing_s;
 SpinLock ServerConnection::rpc_id_missing_l_s;
 
 
+ServerConnection::ServerConnection(Server* server, int socket)
+        : server_(server), socket_(socket), bmark_(nullptr), status_(CONNECTED) {
+    // increase number of open connections
+    server_->sconns_ctr_.next(1);
+}
+
+ServerConnection::~ServerConnection() {
+    // decrease number of open connections
+    server_->sconns_ctr_.next(-1);
+//    Log_debug("rpc::ServerConnection: destroyed");
+}
+
 void ServerConnection::run_async(const std::function<void()>& f) {
     server_->threadpool_->run_async(f);
 }
@@ -217,7 +229,19 @@ Server::~Server() {
         it->close();
     }
 
-    // always release ThreadPool before PollMgr, in case some running task want to access PollMgr
+    // make sure all open connections are closed
+    int alive_connection_count = sconns_ctr_.peek_next();
+    while (alive_connection_count > 0) {
+        // sleep 0.05 sec because this is the timeout for PollMgr's epoll()
+        usleep(50 * 1000);
+        int new_alive_connection_count = sconns_ctr_.peek_next();
+        if (new_alive_connection_count < alive_connection_count && new_alive_connection_count > 0) {
+            Log_debug("waiting for %d alive connections to shutdown", new_alive_connection_count);
+        }
+        alive_connection_count = new_alive_connection_count;
+    }
+    verify(sconns_ctr_.peek_next() == 0);
+
     threadpool_->release();
     pollmgr_->release();
 
