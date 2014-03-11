@@ -64,13 +64,11 @@ class ServerConnection: public Pollable {
 protected:
 
     // Protected destructor as required by RefCounted.
-    ~ServerConnection() {
-        //Log_debug("rpc::ServerConnection: destroyed");
-    }
+    ~ServerConnection();
 
 public:
 
-    ServerConnection(Server* server, int socket): server_(server), socket_(socket), bmark_(nullptr), status_(CONNECTED) {}
+    ServerConnection(Server* server, int socket);
 
     /**
      * Start a reply message. Must be paired with end_reply().
@@ -122,6 +120,8 @@ class Server: public NoCopy {
     PollMgr* pollmgr_;
     ThreadPool* threadpool_;
     int server_sock_;
+
+    Counter sconns_ctr_;
 
     SpinLock sconns_l_;
     std::unordered_set<ServerConnection*> sconns_;
