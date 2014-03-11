@@ -53,6 +53,7 @@ int find_open_port() {
 
         sockaddr_in addr;
         socklen_t addrlen;
+        memset(&addr, 0, sizeof(addr));
         if (getsockname(fd, (sockaddr*)&addr, &addrlen) != 0) {
             Log_error("Failed to get socket address");
             return -1;
