@@ -94,6 +94,7 @@ void Client::close() {
 }
 
 int Client::connect(const char* addr) {
+    verify(status_ != CONNECTED);
     string addr_str(addr);
     size_t idx = addr_str.find(":");
     if (idx == string::npos) {
