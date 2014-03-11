@@ -29,7 +29,6 @@ ServerConnection::ServerConnection(Server* server, int socket)
 ServerConnection::~ServerConnection() {
     // decrease number of open connections
     server_->sconns_ctr_.next(-1);
-//    Log_debug("rpc::ServerConnection: destroyed");
 }
 
 void ServerConnection::run_async(const std::function<void()>& f) {
@@ -230,15 +229,18 @@ Server::~Server() {
     }
 
     // make sure all open connections are closed
-    int alive_connection_count = sconns_ctr_.peek_next();
-    while (alive_connection_count > 0) {
-        // sleep 0.05 sec because this is the timeout for PollMgr's epoll()
-        usleep(50 * 1000);
+    int alive_connection_count = -1;
+    for (;;) {
         int new_alive_connection_count = sconns_ctr_.peek_next();
-        if (new_alive_connection_count < alive_connection_count && new_alive_connection_count > 0) {
+        if (new_alive_connection_count <= 0) {
+            break;
+        }
+        if (alive_connection_count == -1 || new_alive_connection_count < alive_connection_count) {
             Log_debug("waiting for %d alive connections to shutdown", new_alive_connection_count);
         }
         alive_connection_count = new_alive_connection_count;
+        // sleep 0.05 sec because this is the timeout for PollMgr's epoll()
+        usleep(50 * 1000);
     }
     verify(sconns_ctr_.peek_next() == 0);
 
