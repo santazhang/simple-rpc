@@ -8,8 +8,8 @@ using namespace rpc;
 
 TEST(issue, 7) {
     const int rpc_id = 1987;
-    PollMgr* poll = new PollMgr;
-    ThreadPool* thrpool = new ThreadPool;
+    PollMgr* poll = new PollMgr(1);
+    ThreadPool* thrpool = new ThreadPool(1);
     Server *svr = new Server(poll, thrpool);
     // directly release poll to make sure it has ref_count of 1
     // other other hand, thrpool is kept till end of program, with ref_count of 2
@@ -29,7 +29,7 @@ TEST(issue, 7) {
     });
     svr->start("127.0.0.1:7891");
 
-    PollMgr* poll_clnt = new PollMgr;
+    PollMgr* poll_clnt = new PollMgr(1);
     Client* clnt = new Client(poll_clnt);
     clnt->connect("127.0.0.1:7891");
     Future* fu = clnt->begin_request(rpc_id);
