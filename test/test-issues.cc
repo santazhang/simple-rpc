@@ -2,9 +2,11 @@
 
 #include "rpc/server.h"
 #include "rpc/client.h"
+#include "benchmark_service.h"
 
 using namespace base;
 using namespace rpc;
+using namespace benchmark;
 
 TEST(issue, 7) {
     const int rpc_id = 1987;
@@ -63,4 +65,22 @@ TEST(issue, 7) {
 
     // thrpool is kept till end of program, with ref_count of 2
     thrpool->release();
+}
+
+
+TEST(issue, 8) {
+    BenchmarkService svc;
+    Server *svr = new Server;
+    PollMgr* clnt_poll = new PollMgr(1);
+    svr->reg(&svc);
+    svr->start("0.0.0.0:9876");
+    Client* clnt = new Client(clnt_poll);
+    clnt->connect("127.0.0.1:9876");
+    BenchmarkProxy bp(clnt);
+    Future* fu = bp.async_sleep(2);
+    fu->timed_wait(0.1);
+    fu->release();
+    clnt->close_and_release();
+    delete svr;
+    clnt_poll->release();
 }
