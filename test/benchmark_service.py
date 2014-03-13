@@ -5,15 +5,16 @@ from simplerpc.future import Future
 point3 = Marshal.reg_type('point3', [('x', 'double'), ('y', 'double'), ('z', 'double')])
 
 class BenchmarkService(object):
-    FAST_PRIME = 0x5c7e92ba
-    FAST_DOT_PROD = 0x21c6da3e
-    FAST_ADD = 0x53d953db
-    FAST_NOP = 0x1d565e3d
-    PRIME = 0x55aa82a9
-    DOT_PROD = 0x3c5a28d1
-    ADD = 0x5a233840
-    NOP = 0x15b70547
-    SLEEP = 0x681349ab
+    FAST_PRIME = 0x1063a429
+    FAST_DOT_PROD = 0x39bd79f4
+    FAST_ADD = 0x1be610d7
+    FAST_NOP = 0x358fd99f
+    PRIME = 0x29c7c532
+    DOT_PROD = 0x6b700adc
+    ADD = 0x51c8241f
+    NOP = 0x43cbe56e
+    SLEEP = 0x1774f547
+    ADD_LATER = 0x234edf75
 
     __input_type_info__ = {
         'fast_prime': ['rpc::i32'],
@@ -25,6 +26,7 @@ class BenchmarkService(object):
         'add': ['rpc::v32','rpc::v32'],
         'nop': ['std::string'],
         'sleep': ['double'],
+        'add_later': ['rpc::i32','rpc::i32'],
     }
 
     __output_type_info__ = {
@@ -37,6 +39,7 @@ class BenchmarkService(object):
         'add': ['rpc::v32'],
         'nop': [],
         'sleep': [],
+        'add_later': ['rpc::i32'],
     }
 
     def __bind_helper__(self, func):
@@ -54,6 +57,7 @@ class BenchmarkService(object):
         server.__reg_func__(BenchmarkService.ADD, self.__bind_helper__(self.add), ['rpc::v32','rpc::v32'], ['rpc::v32'])
         server.__reg_func__(BenchmarkService.NOP, self.__bind_helper__(self.nop), ['std::string'], [])
         server.__reg_func__(BenchmarkService.SLEEP, self.__bind_helper__(self.sleep), ['double'], [])
+        server.__reg_func__(BenchmarkService.ADD_LATER, self.__bind_helper__(self.add_later), ['rpc::i32','rpc::i32'], ['rpc::i32'])
 
     def fast_prime(__self__, n):
         raise NotImplementedError('subclass BenchmarkService and implement your own fast_prime function')
@@ -81,6 +85,9 @@ class BenchmarkService(object):
 
     def sleep(__self__, sec):
         raise NotImplementedError('subclass BenchmarkService and implement your own sleep function')
+
+    def add_later(__self__, a, b):
+        raise NotImplementedError('subclass BenchmarkService and implement your own add_later function')
 
 class BenchmarkProxy(object):
     def __init__(self, clnt):
@@ -112,6 +119,9 @@ class BenchmarkProxy(object):
 
     def async_sleep(__self__, sec):
         return __self__.__clnt__.async_call(BenchmarkService.SLEEP, [sec], BenchmarkService.__input_type_info__['sleep'], BenchmarkService.__output_type_info__['sleep'])
+
+    def async_add_later(__self__, a, b):
+        return __self__.__clnt__.async_call(BenchmarkService.ADD_LATER, [a, b], BenchmarkService.__input_type_info__['add_later'], BenchmarkService.__output_type_info__['add_later'])
 
     def sync_fast_prime(__self__, n):
         __result__ = __self__.__clnt__.sync_call(BenchmarkService.FAST_PRIME, [n], BenchmarkService.__input_type_info__['fast_prime'], BenchmarkService.__output_type_info__['fast_prime'])
@@ -187,6 +197,15 @@ class BenchmarkProxy(object):
 
     def sync_sleep(__self__, sec):
         __result__ = __self__.__clnt__.sync_call(BenchmarkService.SLEEP, [sec], BenchmarkService.__input_type_info__['sleep'], BenchmarkService.__output_type_info__['sleep'])
+        if __result__[0] != 0:
+            raise Exception("RPC returned non-zero error code %d: %s" % (__result__[0], os.strerror(__result__[0])))
+        if len(__result__[1]) == 1:
+            return __result__[1][0]
+        elif len(__result__[1]) > 1:
+            return __result__[1]
+
+    def sync_add_later(__self__, a, b):
+        __result__ = __self__.__clnt__.sync_call(BenchmarkService.ADD_LATER, [a, b], BenchmarkService.__input_type_info__['add_later'], BenchmarkService.__output_type_info__['add_later'])
         if __result__[0] != 0:
             raise Exception("RPC returned non-zero error code %d: %s" % (__result__[0], os.strerror(__result__[0])))
         if len(__result__[1]) == 1:

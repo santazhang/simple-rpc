@@ -33,15 +33,16 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, point3& o) {
 class BenchmarkService: public rpc::Service {
 public:
     enum {
-        FAST_PRIME = 0x5c7e92ba,
-        FAST_DOT_PROD = 0x21c6da3e,
-        FAST_ADD = 0x53d953db,
-        FAST_NOP = 0x1d565e3d,
-        PRIME = 0x55aa82a9,
-        DOT_PROD = 0x3c5a28d1,
-        ADD = 0x5a233840,
-        NOP = 0x15b70547,
-        SLEEP = 0x681349ab,
+        FAST_PRIME = 0x1063a429,
+        FAST_DOT_PROD = 0x39bd79f4,
+        FAST_ADD = 0x1be610d7,
+        FAST_NOP = 0x358fd99f,
+        PRIME = 0x29c7c532,
+        DOT_PROD = 0x6b700adc,
+        ADD = 0x51c8241f,
+        NOP = 0x43cbe56e,
+        SLEEP = 0x1774f547,
+        ADD_LATER = 0x234edf75,
     };
     int __reg_to__(rpc::Server* svr) {
         int ret = 0;
@@ -72,6 +73,9 @@ public:
         if ((ret = svr->reg(SLEEP, this, &BenchmarkService::__sleep__wrapper__)) != 0) {
             goto err;
         }
+        if ((ret = svr->reg(ADD_LATER, this, &BenchmarkService::__add_later__wrapper__)) != 0) {
+            goto err;
+        }
         return 0;
     err:
         svr->unreg(FAST_PRIME);
@@ -83,6 +87,7 @@ public:
         svr->unreg(ADD);
         svr->unreg(NOP);
         svr->unreg(SLEEP);
+        svr->unreg(ADD_LATER);
         return ret;
     }
     // these RPC handler functions need to be implemented by user
@@ -96,6 +101,7 @@ public:
     virtual void add(const rpc::v32& a, const rpc::v32& b, rpc::v32* a_add_b);
     virtual void nop(const std::string&);
     virtual void sleep(const double& sec);
+    virtual void add_later(const rpc::i32& a, const rpc::i32& b, rpc::i32* sum);
 private:
     void __fast_prime__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
         rpc::i32 in_0;
@@ -207,6 +213,22 @@ private:
             req->m >> in_0;
             this->sleep(in_0);
             sconn->begin_reply(req);
+            sconn->end_reply();
+            delete req;
+            sconn->release();
+        };
+        sconn->run_async(f);
+    }
+    void __add_later__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
+        auto f = [=] {
+            rpc::i32 in_0;
+            req->m >> in_0;
+            rpc::i32 in_1;
+            req->m >> in_1;
+            rpc::i32 out_0;
+            this->add_later(in_0, in_1, &out_0);
+            sconn->begin_reply(req);
+            *sconn << out_0;
             sconn->end_reply();
             delete req;
             sconn->release();
@@ -392,6 +414,27 @@ public:
             return ENOTCONN;
         }
         rpc::i32 __ret__ = __fu__->get_error_code();
+        __fu__->release();
+        return __ret__;
+    }
+    rpc::Future* async_add_later(const rpc::i32& a, const rpc::i32& b, const rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {
+        rpc::Future* __fu__ = __cl__->begin_request(BenchmarkService::ADD_LATER, __fu_attr__);
+        if (__fu__ != nullptr) {
+            *__cl__ << a;
+            *__cl__ << b;
+        }
+        __cl__->end_request();
+        return __fu__;
+    }
+    rpc::i32 add_later(const rpc::i32& a, const rpc::i32& b, rpc::i32* sum) {
+        rpc::Future* __fu__ = this->async_add_later(a, b);
+        if (__fu__ == nullptr) {
+            return ENOTCONN;
+        }
+        rpc::i32 __ret__ = __fu__->get_error_code();
+        if (__ret__ == 0) {
+            __fu__->get_reply() >> *sum;
+        }
         __fu__->release();
         return __ret__;
     }

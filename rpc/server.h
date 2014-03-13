@@ -34,6 +34,17 @@ public:
     virtual int __reg_to__(Server*) = 0;
 };
 
+class Defer: public NoCopy {
+public:
+    int run_async(const std::function<void()>& f) {
+        // TODO
+        return -1;
+    }
+    void reply() {
+        // TODO
+    }
+};
+
 class ServerConnection: public Pollable {
 
     friend class Server;
@@ -89,7 +100,7 @@ public:
     void end_reply();
 
     // helper function, do some work in background
-    void run_async(const std::function<void()>& f);
+    int run_async(const std::function<void()>& f);
 
     template<class T>
     ServerConnection& operator <<(const T& v) {

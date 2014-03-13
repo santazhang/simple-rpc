@@ -31,8 +31,8 @@ ServerConnection::~ServerConnection() {
     server_->sconns_ctr_.next(-1);
 }
 
-void ServerConnection::run_async(const std::function<void()>& f) {
-    server_->threadpool_->run_async(f);
+int ServerConnection::run_async(const std::function<void()>& f) {
+    return server_->threadpool_->run_async(f);
 }
 
 void ServerConnection::begin_reply(Request* req, i32 error_code /* =... */) {

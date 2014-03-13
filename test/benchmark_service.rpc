@@ -21,6 +21,8 @@ service Benchmark {
     add(v32 a, v32 b | v32 a_add_b);
     nop(string);
     sleep(double sec);
+
+    defer add_later(i32 a, i32 b | i32 sum);
 };
 
 %%
