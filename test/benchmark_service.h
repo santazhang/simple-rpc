@@ -33,16 +33,16 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, point3& o) {
 class BenchmarkService: public rpc::Service {
 public:
     enum {
-        FAST_PRIME = 0x1063a429,
-        FAST_DOT_PROD = 0x39bd79f4,
-        FAST_ADD = 0x1be610d7,
-        FAST_NOP = 0x358fd99f,
-        PRIME = 0x29c7c532,
-        DOT_PROD = 0x6b700adc,
-        ADD = 0x51c8241f,
-        NOP = 0x43cbe56e,
-        SLEEP = 0x1774f547,
-        ADD_LATER = 0x234edf75,
+        FAST_PRIME = 0x2ee8609b,
+        FAST_DOT_PROD = 0x1defcdef,
+        FAST_ADD = 0x48c5acbe,
+        FAST_NOP = 0x26fbda22,
+        PRIME = 0x1515b9a3,
+        DOT_PROD = 0x62fc6462,
+        ADD = 0x2fbb6f1c,
+        NOP = 0x3fe3a23a,
+        SLEEP = 0x2baab5ad,
+        ADD_LATER = 0x2b8d10c3,
     };
     int __reg_to__(rpc::Server* svr) {
         int ret = 0;
@@ -101,7 +101,7 @@ public:
     virtual void add(const rpc::v32& a, const rpc::v32& b, rpc::v32* a_add_b);
     virtual void nop(const std::string&);
     virtual void sleep(const double& sec);
-    virtual void add_later(const rpc::i32& a, const rpc::i32& b, rpc::i32* sum);
+    virtual void add_later(const rpc::i32& a, const rpc::i32& b, rpc::i32* sum, rpc::DeferredReply* defer);
 private:
     void __fast_prime__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
         rpc::i32 in_0;
@@ -220,20 +220,21 @@ private:
         sconn->run_async(f);
     }
     void __add_later__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
-        auto f = [=] {
-            rpc::i32 in_0;
-            req->m >> in_0;
-            rpc::i32 in_1;
-            req->m >> in_1;
-            rpc::i32 out_0;
-            this->add_later(in_0, in_1, &out_0);
-            sconn->begin_reply(req);
-            *sconn << out_0;
-            sconn->end_reply();
-            delete req;
-            sconn->release();
+        rpc::i32* in_0 = new rpc::i32;
+        req->m >> *in_0;
+        rpc::i32* in_1 = new rpc::i32;
+        req->m >> *in_1;
+        rpc::i32* out_0 = new rpc::i32;
+        auto __marshal_reply__ = [=] {
+            *sconn << *out_0;
         };
-        sconn->run_async(f);
+        auto __cleanup__ = [=] {
+            delete in_0;
+            delete in_1;
+            delete out_0;
+        };
+        rpc::DeferredReply* __defer__ = new rpc::DeferredReply(req, sconn, __marshal_reply__, __cleanup__);
+        this->add_later(*in_0, *in_1, out_0, __defer__);
     }
 };
 

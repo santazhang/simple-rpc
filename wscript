@@ -7,8 +7,14 @@ def options(opt):
 def configure(conf):
     conf.load("compiler_cxx")
     conf.load("python")
-    conf.check_python_headers()
-    conf.env.USES = "PYTHON"
+    conf.env.USES = ""
+
+    try:
+        conf.check_python_headers()
+        conf.env.USES += " PYTHON"
+    except conf.errors.ConfigurationError as e:
+        Logs.pprint("RED", "Python extension will not be built")
+
     _enable_pic(conf)
     _enable_cxx11(conf)
     _enable_debug(conf)
@@ -37,12 +43,16 @@ def build(bld):
         target="rlog",
         includes=". rlog rpc",
         use="simplerpc %s" % bld.env.USES)
-    bld.shlib(
-        features="pyext",
-        source=bld.path.ant_glob("pylib/simplerpc/*.cc"),
-        target="_pyrpc",
-        includes=". rpc",
-        use="simplerpc %s" % bld.env.USES)
+
+    if "PYTHON" in bld.env.USES:
+        bld.shlib(
+            features="pyext",
+            source=bld.path.ant_glob("pylib/simplerpc/*.cc"),
+            target="_pyrpc",
+            includes=". rpc",
+            use="simplerpc %s" % bld.env.USES)
+    else:
+        Logs.pprint("RED", "Python extension will not be built")
 
     def _prog(source, target, includes=".", use="simplerpc %s" % bld.env.USES):
         bld.program(source=source, target=target, includes=includes, use=use)

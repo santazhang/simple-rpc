@@ -47,3 +47,10 @@ void BenchmarkService::sleep(const double& sec) {
         usleep(usec);
     }
 }
+
+void BenchmarkService::add_later(const rpc::i32& a, const rpc::i32& b, rpc::i32* sum, rpc::DeferredReply* defer) {
+    *sum = a + b;
+
+    // defer->reply() will cleanup all resource, including `defer` itself
+    defer->reply();
+}

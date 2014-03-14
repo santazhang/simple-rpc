@@ -27,7 +27,7 @@ class EmptyProxy(object):
         self.__clnt__ = clnt
 
 class MathService(object):
-    GCD = 0x27220aa4
+    GCD = 0x2f531156
 
     __input_type_info__ = {
         'gcd': ['rpc::i64','rpc::i64'],

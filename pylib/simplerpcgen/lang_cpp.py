@@ -71,6 +71,8 @@ def emit_service_and_proxy(service, f, rpc_table):
                         func_args += "%s* %s" % (out_arg.type, out_arg.name),
                     else:
                         func_args += "%s*" % out_arg.type,
+                if func.attr == "defer":
+                    func_args += "rpc::DeferredReply* defer",
                 f.writeln("virtual void %s(%s)%s;" % (func.name, ", ".join(func_args), postfix))
     f.writeln("private:")
     with f.indent():
@@ -79,32 +81,67 @@ def emit_service_and_proxy(service, f, rpc_table):
                 continue
             f.writeln("void __%s__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {" % func.name)
             with f.indent():
-                if func.attr != "fast":
-                    f.writeln("auto f = [=] {")
-                    f.incr_indent()
-                invoke_with = []
-                in_counter = 0
-                out_counter = 0
-                for in_arg in func.input:
-                    f.writeln("%s in_%d;" % (in_arg.type, in_counter))
-                    f.writeln("req->m >> in_%d;" % in_counter)
-                    invoke_with += "in_%d" % in_counter,
-                    in_counter += 1
-                for out_arg in func.output:
-                    f.writeln("%s out_%d;" % (out_arg.type, out_counter))
-                    invoke_with += "&out_%d" % out_counter,
-                    out_counter += 1
-                f.writeln("this->%s(%s);" % (func.name, ", ".join(invoke_with)))
-                f.writeln("sconn->begin_reply(req);")
-                for i in range(out_counter):
-                    f.writeln("*sconn << out_%d;" % i)
-                f.writeln("sconn->end_reply();")
-                f.writeln("delete req;")
-                f.writeln("sconn->release();")
-                if func.attr != "fast":
-                    f.decr_indent()
-                    f.writeln("};")
-                    f.writeln("sconn->run_async(f);")
+                if func.attr == "defer":
+                    invoke_with = []
+                    in_counter = 0
+                    out_counter = 0
+                    for in_arg in func.input:
+                        f.writeln("%s* in_%d = new %s;" % (in_arg.type, in_counter, in_arg.type))
+                        f.writeln("req->m >> *in_%d;" % in_counter)
+                        invoke_with += "*in_%d" % in_counter,
+                        in_counter += 1
+                    for out_arg in func.output:
+                        f.writeln("%s* out_%d = new %s;" % (out_arg.type, out_counter, out_arg.type))
+                        invoke_with += "out_%d" % out_counter,
+                        out_counter += 1
+                    f.writeln("auto __marshal_reply__ = [=] {");
+                    with f.indent():
+                        out_counter = 0
+                        for out_arg in func.output:
+                            f.writeln("*sconn << *out_%d;" % out_counter)
+                            out_counter += 1
+                    f.writeln("};");
+                    f.writeln("auto __cleanup__ = [=] {");
+                    with f.indent():
+                        in_counter = 0
+                        out_counter = 0
+                        for in_arg in func.input:
+                            f.writeln("delete in_%d;" % in_counter)
+                            in_counter += 1
+                        for out_arg in func.output:
+                            f.writeln("delete out_%d;" % out_counter)
+                            out_counter += 1
+                    f.writeln("};");
+                    f.writeln("rpc::DeferredReply* __defer__ = new rpc::DeferredReply(req, sconn, __marshal_reply__, __cleanup__);")
+                    invoke_with += "__defer__",
+                    f.writeln("this->%s(%s);" % (func.name, ", ".join(invoke_with)))
+                else: # normal and fast rpc
+                    if func.attr != "fast":
+                        f.writeln("auto f = [=] {")
+                        f.incr_indent()
+                    invoke_with = []
+                    in_counter = 0
+                    out_counter = 0
+                    for in_arg in func.input:
+                        f.writeln("%s in_%d;" % (in_arg.type, in_counter))
+                        f.writeln("req->m >> in_%d;" % in_counter)
+                        invoke_with += "in_%d" % in_counter,
+                        in_counter += 1
+                    for out_arg in func.output:
+                        f.writeln("%s out_%d;" % (out_arg.type, out_counter))
+                        invoke_with += "&out_%d" % out_counter,
+                        out_counter += 1
+                    f.writeln("this->%s(%s);" % (func.name, ", ".join(invoke_with)))
+                    f.writeln("sconn->begin_reply(req);")
+                    for i in range(out_counter):
+                        f.writeln("*sconn << out_%d;" % i)
+                    f.writeln("sconn->end_reply();")
+                    f.writeln("delete req;")
+                    f.writeln("sconn->release();")
+                    if func.attr != "fast":
+                        f.decr_indent()
+                        f.writeln("};")
+                        f.writeln("sconn->run_async(f);")
             f.writeln("}")
     f.writeln("};")
     f.writeln()
