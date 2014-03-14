@@ -37,6 +37,17 @@ class Marshal: public NoCopy {
     };
 
     struct chunk: public NoCopy {
+
+    private:
+
+        chunk(raw_bytes* dt, size_t rd_idx, size_t wr_idx)
+                : data((raw_bytes *) dt->ref_copy()), read_idx(rd_idx), write_idx(wr_idx), next(nullptr) {
+            assert(write_idx <= data->size);
+            assert(read_idx <= write_idx);
+        }
+
+    public:
+
         raw_bytes* data;
         size_t read_idx;
         size_t write_idx;
@@ -46,13 +57,6 @@ class Marshal: public NoCopy {
         chunk(const void* p, size_t n): data(new raw_bytes(p, n)), read_idx(0), write_idx(n), next(nullptr) {}
         ~chunk() { data->release(); }
 
-    private:
-        chunk(raw_bytes* dt, size_t rd_idx, size_t wr_idx)
-                : data((raw_bytes *) dt->ref_copy()), read_idx(rd_idx), write_idx(wr_idx), next(nullptr) {
-            assert(write_idx <= data->size);
-            assert(read_idx <= write_idx);
-        }
-    public:
         // NOTE: This function is only intended for Marshal::read_from_marshal.
         chunk* shared_copy() const {
             return new chunk(data, read_idx, write_idx);
@@ -173,6 +177,14 @@ class Marshal: public NoCopy {
         }
     };
 
+    chunk* head_;
+    chunk* tail_;
+    i32 write_cnt_;
+    size_t content_size_;
+
+    // for debugging purpose
+    size_t content_size_slow() const;
+
 public:
 
     struct bookmark: public NoCopy {
@@ -183,18 +195,6 @@ public:
             delete[] ptr;
         }
     };
-
-private:
-
-    chunk* head_;
-    chunk* tail_;
-    i32 write_cnt_;
-    size_t content_size_;
-
-    // for debugging purpose
-    size_t content_size_slow() const;
-
-public:
 
     Marshal(): head_(nullptr), tail_(nullptr), write_cnt_(0), content_size_(0) { }
     ~Marshal();
@@ -269,6 +269,26 @@ inline rpc::Marshal& operator <<(rpc::Marshal& m, const rpc::v64& v) {
     char buf[9];
     size_t bsize = base::SparseInt::dump(v.get(), buf);
     verify(m.write(buf, bsize) == bsize);
+    return m;
+}
+
+inline rpc::Marshal& operator <<(rpc::Marshal& m, const uint8_t& u) {
+    verify(m.write(&u, sizeof(u)) == sizeof(u));
+    return m;
+}
+
+inline rpc::Marshal& operator <<(rpc::Marshal& m, const uint16_t& u) {
+    verify(m.write(&u, sizeof(u)) == sizeof(u));
+    return m;
+}
+
+inline rpc::Marshal& operator <<(rpc::Marshal& m, const uint32_t& u) {
+    verify(m.write(&u, sizeof(u)) == sizeof(u));
+    return m;
+}
+
+inline rpc::Marshal& operator <<(rpc::Marshal& m, const uint64_t& u) {
+    verify(m.write(&u, sizeof(u)) == sizeof(u));
     return m;
 }
 
@@ -392,6 +412,26 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, rpc::v64& v) {
     verify(m.read(buf, bsize) == bsize);
     i64 val = base::SparseInt::load_i64(buf);
     v.set(val);
+    return m;
+}
+
+inline rpc::Marshal& operator >>(rpc::Marshal& m, uint8_t& u) {
+    verify(m.read(&u, sizeof(u)) == sizeof(u));
+    return m;
+}
+
+inline rpc::Marshal& operator >>(rpc::Marshal& m, uint16_t& u) {
+    verify(m.read(&u, sizeof(u)) == sizeof(u));
+    return m;
+}
+
+inline rpc::Marshal& operator >>(rpc::Marshal& m, uint32_t& u) {
+    verify(m.read(&u, sizeof(u)) == sizeof(u));
+    return m;
+}
+
+inline rpc::Marshal& operator >>(rpc::Marshal& m, uint64_t& u) {
+    verify(m.read(&u, sizeof(u)) == sizeof(u));
     return m;
 }
 

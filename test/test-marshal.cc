@@ -9,6 +9,42 @@
 using namespace rpc;
 using namespace std;
 
+TEST(marshal, uint_types) {
+    Marshal m;
+    {
+        uint8_t u = numeric_limits<uint8_t>::max();
+        uint8_t v = 0;
+        m << u;
+        EXPECT_EQ(m.content_size(), sizeof(uint8_t));
+        m >> v;
+        EXPECT_EQ(u, v);
+    }
+    {
+        uint16_t u = numeric_limits<uint16_t>::max();
+        uint16_t v = 0;
+        m << u;
+        EXPECT_EQ(m.content_size(), sizeof(uint16_t));
+        m >> v;
+        EXPECT_EQ(u, v);
+    }
+    {
+        uint32_t u = numeric_limits<uint32_t>::max();
+        uint32_t v = 0;
+        m << u;
+        EXPECT_EQ(m.content_size(), sizeof(uint32_t));
+        m >> v;
+        EXPECT_EQ(u, v);
+    }
+    {
+        uint64_t u = numeric_limits<uint64_t>::max();
+        uint64_t v = 0;
+        m << u;
+        EXPECT_EQ(m.content_size(), sizeof(uint64_t));
+        m >> v;
+        EXPECT_EQ(u, v);
+    }
+}
+
 TEST(marshal, content_size) {
     Marshal m;
     rpc::i32 a = 4;
