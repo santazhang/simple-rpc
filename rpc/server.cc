@@ -16,6 +16,47 @@ using namespace std;
 namespace rpc {
 
 
+#ifdef RPC_STATISTICS
+
+static const int g_stat_server_batching_size = 1000;
+static int g_stat_server_batching[g_stat_server_batching_size];
+static int g_stat_server_batching_idx;
+static uint64_t g_stat_server_batching_report_time = 0;
+static const uint64_t g_stat_server_batching_report_interval = 1000 * 1000 * 1000;
+
+static void stat_server_batching(size_t batch) {
+    g_stat_server_batching_idx = (g_stat_server_batching_idx + 1) % g_stat_server_batching_size;
+    g_stat_server_batching[g_stat_server_batching_idx]++;
+    uint64_t now = base::rdtsc();
+    if (now - g_stat_server_batching_report_time > g_stat_server_batching_report_interval) {
+        // do report
+        int min = numeric_limits<int>::max();
+        int max = 0;
+        int sum_count = 0;
+        int sum = 0;
+        for (int i = 0; i < g_stat_server_batching_size; i++) {
+            if (g_stat_server_batching[i] == 0) {
+                continue;
+            }
+            if (g_stat_server_batching[i] > max) {
+                max = g_stat_server_batching[i];
+            }
+            if (g_stat_server_batching[i] < min) {
+                min = g_stat_server_batching[i];
+            }
+            sum += g_stat_server_batching[i];
+            sum_count++;
+            g_stat_server_batching[i] = 0;
+        }
+        double avg = double(sum) / sum_count;
+        Log::info("SERVER BATCHING: min=%d, avg=%.1lf, max=%d", min, avg, max);
+        g_stat_server_batching_report_time = now;
+    }
+}
+
+#endif // RPC_STATISTICS
+
+
 std::unordered_set<i32> ServerConnection::rpc_id_missing_s;
 SpinLock ServerConnection::rpc_id_missing_l_s;
 
@@ -94,6 +135,10 @@ void ServerConnection::handle_read() {
             break;
         }
     }
+
+#ifdef RPC_STATISTICS
+    stat_server_batching(complete_requests.size());
+#endif // RPC_STATISTICS
 
     for (auto& req: complete_requests) {
 
