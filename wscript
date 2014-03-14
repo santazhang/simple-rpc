@@ -19,6 +19,11 @@ def configure(conf):
     _enable_cxx11(conf)
     _enable_debug(conf)
     _extra_warnings(conf)
+
+    if os.getenv("RPC_STATISTICS") in ["true", "1"]:
+        conf.env.append_value("CXXFLAGS", "-DRPC_STATISTICS")
+        Logs.pprint("PINK", "RPC statistics enabled")
+
     conf.env.LIB_PTHREAD = 'pthread'
     conf.env.USES += " PTHREAD"
     conf.env.INCLUDES_BASE = os.path.join(os.getcwd(), "../base-utils")
