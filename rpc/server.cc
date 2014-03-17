@@ -26,7 +26,7 @@ static const uint64_t g_stat_server_batching_report_interval = 1000 * 1000 * 100
 
 static void stat_server_batching(size_t batch) {
     g_stat_server_batching_idx = (g_stat_server_batching_idx + 1) % g_stat_server_batching_size;
-    g_stat_server_batching[g_stat_server_batching_idx]++;
+    g_stat_server_batching[g_stat_server_batching_idx] = batch;
     uint64_t now = base::rdtsc();
     if (now - g_stat_server_batching_report_time > g_stat_server_batching_report_interval) {
         // do report
