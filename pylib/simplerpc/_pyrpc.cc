@@ -22,7 +22,15 @@ public:
 
 static PyObject* _pyrpc_init_server(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
-    Server* svr = new Server;
+    unsigned long n_threads;
+    if (!PyArg_ParseTuple(args, "k", &n_threads))
+        return nullptr;
+    PollMgr* poll_mgr = new PollMgr(1);
+    ThreadPool* thrpool = new ThreadPool(n_threads);
+    Log_debug("created rpc::Server with %d worker threads", n_threads);
+    Server* svr = new Server(poll_mgr, thrpool);
+    thrpool->release();
+    poll_mgr->release();
     return Py_BuildValue("k", svr);
 }
 

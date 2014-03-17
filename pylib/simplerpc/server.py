@@ -42,8 +42,8 @@ class MarshalWrap(object):
 
 
 class Server(object):
-    def __init__(self):
-        self.id = _pyrpc.init_server()
+    def __init__(self, n_threads=1):
+        self.id = _pyrpc.init_server(n_threads)
         self.func_ids = {} # rpc_id => func_ptr
 
     def __del__(self):
