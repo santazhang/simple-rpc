@@ -81,6 +81,8 @@ static void* client_proc(void*) {
         if (fu->get_error_code() != 0) {
             return;
         }
+        // run do_work() in thread pool, otherwise the client threads
+        // will not be used, since all work is done inside io thread (callback)
         thrpool->run_async([&do_work] {
             do_work();
         });
@@ -107,13 +109,13 @@ int main(int argc, char **argv) {
     if (argc < 2) {
         printf("usage: perftest OPTIONS\n");
         printf("                -c|-s ip:port\n");
-        printf("                -b    byte_size\n");
+        printf("                -b    byte_size         (client only)\n");
         printf("                -e    epoll_instances\n");
-        printf("                -f    fast_requests\n");
-        printf("                -n    seconds\n");
-        printf("                -o    outgoing_requests\n");
-        printf("                -t    client_threads\n");
-        printf("                -w    worker_threads\n");
+        printf("                -f    fast_requests     (client only)\n");
+        printf("                -n    seconds           (client only)\n");
+        printf("                -o    outgoing_requests (clinet only)\n");
+        printf("                -t    client_threads    (client only)\n");
+        printf("                -w    worker_threads    (server only)\n");
         exit(1);
     }
 
@@ -158,14 +160,17 @@ int main(int argc, char **argv) {
         Log::info("server will start at     %s", svr_addr);
     } else {
         Log::info("client will connect to   %s", svr_addr);
+        Log::info("packet byte size:        %d", byte_size);
     }
-    Log::info("packet byte size:        %d", byte_size);
     Log::info("epoll instances:         %d", epoll_instances);
-    Log::info("fast reqeust:            %s", fast_requests ? "true" : "false");
-    Log::info("running seconds:         %d", seconds);
-    Log::info("outgoing requests:       %d", outgoing_requests);
-    Log::info("client threads:          %d", client_threads);
-    Log::info("worker threads:          %d", worker_threads);
+    if (is_client) {
+        Log::info("fast reqeust:            %s", fast_requests ? "true" : "false");
+        Log::info("running seconds:         %d", seconds);
+        Log::info("outgoing requests:       %d", outgoing_requests);
+        Log::info("client threads:          %d", client_threads);
+    } else {
+        Log::info("worker threads:          %d", worker_threads);
+    }
 
     request_str = string(byte_size, 'x');
     poll = new PollMgr(epoll_instances);
