@@ -10,3 +10,4 @@ script:
     - ./waf configure
     - ./waf
     - ./build/unittest
+    - ./test/timeout -t 60 python ./test/pyunittest.py
