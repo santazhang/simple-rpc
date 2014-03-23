@@ -1,0 +1,12 @@
+script:
+    - mkdir -p travis_checkout
+    - cd travis_checkout
+    - git clone https://github.com/santazhang/base-utils.git
+    - git clone https://github.com/santazhang/simple-rpc.git
+    - cd base-utils
+    - ./waf configure
+    - ./waf
+    - cd ../simple-rpc
+    - ./waf configure
+    - ./waf
+    - ./build/unittest
