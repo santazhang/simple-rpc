@@ -102,7 +102,7 @@ def _enable_debug(conf):
         conf.env.append_value("CXXFLAGS", "-Wall -pthread -O3 -ggdb -fno-omit-frame-pointer -DNDEBUG".split())
 
 def _extra_warnings(conf):
-    warning_flags = "-Wextra -Wpedantic -Wformat=2 -Wno-unused-parameter -Wshadow -Wwrite-strings -Wredundant-decls -Wmissing-include-dirs -Wno-format-nonliteral"
+    warning_flags = "-Wextra -pedantic -Wformat=2 -Wno-unused-parameter -Wshadow -Wwrite-strings -Wredundant-decls -Wmissing-include-dirs -Wno-format-nonliteral"
     if sys.platform == "darwin":
         warning_flags += " -Wno-gnu -Wstrict-prototypes -Wold-style-definition -Wnested-externs"
     conf.env.append_value("CXXFLAGS", warning_flags.split())
