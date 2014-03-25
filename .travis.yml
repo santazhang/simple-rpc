@@ -11,3 +11,7 @@ script:
     - ./waf
     - ./build/unittest
     - ./test/timeout -t 60 python ./test/pyunittest.py
+
+after_success:
+    - sudo apt-get -qq install valgrind
+    - valgrind --leak-check=full --show-reachable=yes ./build/unittest
