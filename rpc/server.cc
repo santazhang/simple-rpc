@@ -49,8 +49,30 @@ static void stat_server_batching(size_t batch) {
             g_stat_server_batching[i] = 0;
         }
         double avg = double(sum) / sum_count;
-        Log::info("SERVER BATCHING: min=%d, avg=%.1lf, max=%d", min, avg, max);
+        Log::info("* SERVER BATCHING: min=%d avg=%.1lf max=%d", min, avg, max);
         g_stat_server_batching_report_time = now;
+    }
+}
+
+// rpc_id -> <count, cumulative>
+static unordered_map<i32, pair<Counter, Counter>> g_stat_rpc_counter;
+static uint64_t g_stat_server_rpc_counting_report_time = 0;
+static const uint64_t g_stat_server_rpc_counting_report_interval = 1000 * 1000 * 1000;
+
+static void stat_server_rpc_counting(i32 rpc_id) {
+    g_stat_rpc_counter[rpc_id].first.next();
+
+    uint64_t now = base::rdtsc();
+    if (now - g_stat_server_rpc_counting_report_time > g_stat_server_rpc_counting_report_interval) {
+        // do report
+        for (auto& it: g_stat_rpc_counter) {
+            i32 counted_rpc_id = it.first;
+            i64 count = it.second.first.peek_next();
+            it.second.first.reset();
+            i64 cumulative = it.second.second.next(count);
+            Log::info("* RPC COUNT: id=%#08x count=%ld cumulative=%ld", counted_rpc_id, count, cumulative);
+        }
+        g_stat_server_rpc_counting_report_time = now;
     }
 }
 
@@ -152,6 +174,10 @@ void ServerConnection::handle_read() {
 
         i32 rpc_id;
         req->m >> rpc_id;
+
+#ifdef RPC_STATISTICS
+        stat_server_rpc_counting(rpc_id);
+#endif // RPC_STATISTICS
 
         auto it = server_->handlers_.find(rpc_id);
         if (it != server_->handlers_.end()) {
