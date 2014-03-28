@@ -69,7 +69,8 @@ static void stat_server_rpc_counting(i32 rpc_id) {
             i32 counted_rpc_id = it.first;
             i64 count = it.second.first.peek_next();
             it.second.first.reset();
-            i64 cumulative = it.second.second.next(count);
+            it.second.second.next(count);
+            i64 cumulative = it.second.second.peek_next();
             Log::info("* RPC COUNT: id=%#08x count=%ld cumulative=%ld", counted_rpc_id, count, cumulative);
         }
         g_stat_server_rpc_counting_report_time = now;
