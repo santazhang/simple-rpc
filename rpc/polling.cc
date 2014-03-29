@@ -66,18 +66,16 @@ public:
     }
 
     ~PollThread() {
-        l_.lock();
-        unordered_set<Pollable*> poll_set_copy = poll_set_;
-        l_.unlock();
-
-        // NOTE: do NOT clear poll_set_, as when doing this->remove(it)
-        // the code will check if the Pollable is still in poll_set_
-        for (auto& it: poll_set_copy) {
-            this->remove(it);
-        }
-
         stop_flag_ = true;
         Pthread_join(th_, nullptr);
+
+        // when stopping, release anything registered in pollmgr
+        for (auto& it: poll_set_) {
+            this->remove(it);
+        }
+        for (auto& it: pending_remove_) {
+            it->release();
+        }
     }
 
     void add(Pollable*);
@@ -198,11 +196,6 @@ void PollMgr::PollThread::poll_loop() {
 
             poll->release();
         }
-    }
-
-    // when stopping, release anything registered in pollmgr
-    for (auto& it: poll_set_) {
-        it->release();
     }
 
     close(poll_fd_);

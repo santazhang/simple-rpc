@@ -185,7 +185,8 @@ public:
 
     void close_and_release() {
         close();
-        release();
+        int r = release();
+        Log::debug("client release -> %d", r);
     }
 
     int fd() {
