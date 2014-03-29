@@ -355,10 +355,20 @@ void PollMgr::PollThread::update_mode(Pollable* poll, int new_mode) {
     l_.unlock();
 }
 
+static inline uint32_t hash_fd(uint32_t key) {
+    uint32_t c2 = 0x27d4eb2d; // a prime or an odd constant
+    key = (key ^ 61) ^ (key >> 16);
+    key = key + (key << 3);
+    key = key ^ (key >> 4);
+    key = key * c2;
+    key = key ^ (key >> 15);
+    return key;
+}
+
 void PollMgr::add(Pollable* poll) {
     int fd = poll->fd();
     if (fd >= 0) {
-        int tid = fd % n_threads_;
+        int tid = hash_fd(fd) % n_threads_;
         poll_threads_[tid].add(poll);
     }
 }
@@ -366,7 +376,7 @@ void PollMgr::add(Pollable* poll) {
 void PollMgr::remove(Pollable* poll) {
     int fd = poll->fd();
     if (fd >= 0) {
-        int tid = fd % n_threads_;
+        int tid = hash_fd(fd) % n_threads_;
         poll_threads_[tid].remove(poll);
     }
 }
@@ -374,7 +384,7 @@ void PollMgr::remove(Pollable* poll) {
 void PollMgr::update_mode(Pollable* poll, int new_mode) {
     int fd = poll->fd();
     if (fd >= 0) {
-        int tid = fd % n_threads_;
+        int tid = hash_fd(fd) % n_threads_;
         poll_threads_[tid].update_mode(poll, new_mode);
     }
 }
