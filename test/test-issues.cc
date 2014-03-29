@@ -43,16 +43,20 @@ TEST(issue, 7) {
     Future* fu = clnt->begin_request(rpc_id);
     clnt->end_request();
     fu->timed_wait(0.1);
+    fu->release();
     fu = clnt2->begin_request(rpc_id);
     clnt2->end_request();
     fu->timed_wait(0.1);
+    fu->release();
     fu = clnt3->begin_request(rpc_id);
     clnt3->end_request();
     fu->timed_wait(0.1);
+    fu->release();
     fu = clnt4->begin_request(rpc_id);
     clnt4->end_request();
     // wait a little bit to make sure RPC got sent instead of cancelled
     fu->timed_wait(0.1);
+    fu->release();
     clnt->close_and_release();
     clnt2->close_and_release();
     clnt3->close_and_release();
