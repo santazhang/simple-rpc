@@ -30,7 +30,39 @@ using base::Mutex;
 using base::ScopedLock;
 using base::CondVar;
 using base::Log;
-using base::RefCounted;
+
+//using base::RefCounted;
+
+/**
+ * Note: All sub class of RefCounted *MUST* have protected destructor!
+ * This prevents accidentally deleting the object.
+ * You are only allowed to cleanup with release() call.
+ * This is thread safe.
+ */
+class RefCounted: public NoCopy {
+    volatile int refcnt_;
+protected:
+    virtual ~RefCounted() = 0;
+public:
+    RefCounted(): refcnt_(1) {}
+    int ref_count() {
+        return refcnt_;
+    }
+    virtual RefCounted* ref_copy() {
+        __sync_add_and_fetch(&refcnt_, 1);
+        return this;
+    }
+    virtual int release() {
+        int r = __sync_sub_and_fetch(&refcnt_, 1);
+        verify(r >= 0);
+        if (r == 0) {
+            delete this;
+        }
+        return r;
+    }
+};
+inline RefCounted::~RefCounted() {}
+
 using base::Queue;
 using base::Counter;
 using base::Timer;

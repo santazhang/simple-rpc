@@ -132,7 +132,19 @@ class Client: public Pollable {
     void invalidate_pending_futures();
 
     // prevent direct usage, use close_and_release() instead
-    using RefCounted::release;
+    //using RefCounted::release;
+
+    virtual RefCounted* ref_copy() {
+        Log::debug("Client::ref_copy");
+        base::print_stack_trace();
+        return this->RefCounted::ref_copy();
+    }
+    virtual int release() {
+        base::print_stack_trace();
+        int r =  this->RefCounted::release();
+        Log::debug("Client::release -> %d", r);
+        return r;
+    }
 
 protected:
 
