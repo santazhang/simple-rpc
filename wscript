@@ -1,5 +1,5 @@
 APPNAME="simple-rpc"
-VERSION="0.1.3"
+VERSION="0.2"
 
 def options(opt):
     opt.load("compiler_cxx")
