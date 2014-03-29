@@ -173,8 +173,7 @@ public:
 
     void close_and_release() {
         close();
-        int r = release();
-        Log::debug("client release -> %d", r);
+        release();
     }
 
     int fd() {
