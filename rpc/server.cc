@@ -536,10 +536,10 @@ int Server::start(const char* bind_addr) {
             udp_sock_ = -1;
         }
 
+        freeaddrinfo(udp_result);
         if (udp_rp == nullptr) {
             // failed to bind
             Log_error("rpc::Server: bind(): %s (UDP)", strerror(errno));
-            freeaddrinfo(udp_result);
             // close the TCP socket opened
             close(server_sock_);
             server_sock_ = -1;

@@ -174,6 +174,7 @@ int Client::connect(const char* addr) {
     udp_sa_ = (struct sockaddr *) malloc(rp->ai_addrlen);
     memcpy(udp_sa_, rp->ai_addr, rp->ai_addrlen);
     udp_salen_ = rp->ai_addrlen;
+    freeaddrinfo(result);
 
     return 0;
 }
