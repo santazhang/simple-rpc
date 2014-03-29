@@ -36,6 +36,7 @@ TEST(future, wait_timeout) {
     Future* fu = clnt->async_sleep(2.3, fu_attr);
     double wait_sec = 1.0;
     fu->timed_wait(wait_sec);
+    fu->release();
     t.stop();
     Log::debug("done wait: %lf seconds", t.elapsed());
     EXPECT_LT(fabs(wait_sec - t.elapsed()), 0.1);
