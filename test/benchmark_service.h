@@ -33,16 +33,18 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, point3& o) {
 class BenchmarkService: public rpc::Service {
 public:
     enum {
-        FAST_PRIME = 0x2ee8609b,
-        FAST_DOT_PROD = 0x1defcdef,
-        FAST_ADD = 0x48c5acbe,
-        FAST_NOP = 0x26fbda22,
-        PRIME = 0x1515b9a3,
-        DOT_PROD = 0x62fc6462,
-        ADD = 0x2fbb6f1c,
-        NOP = 0x3fe3a23a,
-        SLEEP = 0x2baab5ad,
-        ADD_LATER = 0x2b8d10c3,
+        FAST_PRIME = 0x38a52c08,
+        FAST_DOT_PROD = 0x11d651fe,
+        FAST_ADD = 0x2d7fdd14,
+        FAST_NOP = 0x557bbcc2,
+        PRIME = 0x1e7fd30d,
+        DOT_PROD = 0x47d5a900,
+        ADD = 0x2489d335,
+        NOP = 0x3ed932e9,
+        SLEEP = 0x32849eaa,
+        ADD_LATER = 0x43157ba5,
+        LOSSY_NOP = 0x2ece9d1c,
+        FAST_LOSSY_NOP = 0x2a0b77eb,
     };
     int __reg_to__(rpc::Server* svr) {
         int ret = 0;
@@ -76,6 +78,13 @@ public:
         if ((ret = svr->reg(ADD_LATER, this, &BenchmarkService::__add_later__wrapper__)) != 0) {
             goto err;
         }
+        svr->enable_udp();
+        if ((ret = svr->reg(LOSSY_NOP, this, &BenchmarkService::__lossy_nop__wrapper__)) != 0) {
+            goto err;
+        }
+        if ((ret = svr->reg(FAST_LOSSY_NOP, this, &BenchmarkService::__fast_lossy_nop__wrapper__)) != 0) {
+            goto err;
+        }
         return 0;
     err:
         svr->unreg(FAST_PRIME);
@@ -88,6 +97,8 @@ public:
         svr->unreg(NOP);
         svr->unreg(SLEEP);
         svr->unreg(ADD_LATER);
+        svr->unreg(LOSSY_NOP);
+        svr->unreg(FAST_LOSSY_NOP);
         return ret;
     }
     // these RPC handler functions need to be implemented by user
@@ -102,6 +113,8 @@ public:
     virtual void nop(const std::string&);
     virtual void sleep(const double& sec);
     virtual void add_later(const rpc::i32& a, const rpc::i32& b, rpc::i32* sum, rpc::DeferredReply* defer);
+    virtual void lossy_nop(const rpc::i32& dummy, const rpc::i32& dummy2);
+    virtual void fast_lossy_nop();
 private:
     void __fast_prime__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
         rpc::i32 in_0;
@@ -235,6 +248,27 @@ private:
         };
         rpc::DeferredReply* __defer__ = new rpc::DeferredReply(req, sconn, __marshal_reply__, __cleanup__);
         this->add_later(*in_0, *in_1, out_0, __defer__);
+    }
+    void __lossy_nop__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
+        auto f = [=] {
+            rpc::i32 in_0;
+            req->m >> in_0;
+            rpc::i32 in_1;
+            req->m >> in_1;
+            this->lossy_nop(in_0, in_1);
+            sconn->begin_reply(req);
+            sconn->end_reply();
+            delete req;
+            sconn->release();
+        };
+        sconn->run_async(f);
+    }
+    void __fast_lossy_nop__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
+        this->fast_lossy_nop();
+        sconn->begin_reply(req);
+        sconn->end_reply();
+        delete req;
+        sconn->release();
     }
 };
 
@@ -439,6 +473,18 @@ public:
         __fu__->release();
         return __ret__;
     }
+    int lossy_nop(const rpc::i32& dummy, const rpc::i32& dummy2) /* UDP */ {
+        int __ret__ = __cl__->begin_udp_request(BenchmarkService::LOSSY_NOP);
+        __cl__->udp_request() << dummy;
+        __cl__->udp_request() << dummy2;
+        __cl__->end_udp_request();
+        return __ret__;
+    }
+    int fast_lossy_nop() /* UDP */ {
+        int __ret__ = __cl__->begin_udp_request(BenchmarkService::FAST_LOSSY_NOP);
+        __cl__->end_udp_request();
+        return __ret__;
+    }
 };
 
 } // namespace benchmark
@@ -470,6 +516,12 @@ inline void BenchmarkService::add(const rpc::v32& a, const rpc::v32& b, rpc::v32
 
 inline void BenchmarkService::fast_nop(const std::string& str) {
     nop(str);
+}
+
+inline void BenchmarkService::lossy_nop(const rpc::i32& dummy, const rpc::i32& dummy2) {
+}
+
+inline void BenchmarkService::fast_lossy_nop() {
 }
 
 } // namespace benchmark

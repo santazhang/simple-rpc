@@ -108,6 +108,8 @@ public:
 class Client: public Pollable {
     Marshal in_, out_;
 
+    udp_buffer udp_;
+
     /**
      * NOT a refcopy! This is intended to avoid circular reference, which prevents everything from being released correctly.
      */
@@ -152,6 +154,17 @@ public:
     Future* begin_request(i32 rpc_id, const FutureAttr& attr = FutureAttr());
 
     void end_request();
+
+    int begin_udp_request(i32 rpc_id) {
+        // TODO
+        return 0;
+    }
+    udp_buffer& udp_request() {
+        return udp_;
+    }
+    void end_udp_request() {
+        // TODO
+    }
 
     template<class T>
     Client& operator <<(const T& v) {

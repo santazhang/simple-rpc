@@ -262,7 +262,7 @@ int ServerConnection::poll_mode() {
 }
 
 Server::Server(PollMgr* pollmgr /* =... */, ThreadPool* thrpool /* =? */)
-        : server_sock_(-1), status_(NEW) {
+        : server_sock_(-1), udp_(false), udp_sock_(-1), status_(NEW) {
 
     // get rid of eclipse warning
     memset(&loop_th_, 0, sizeof(loop_th_));

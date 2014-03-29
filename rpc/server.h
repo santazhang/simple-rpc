@@ -153,6 +153,9 @@ class Server: public NoCopy {
     ThreadPool* threadpool_;
     int server_sock_;
 
+    bool udp_;
+    int udp_sock_;
+
     Counter sconns_ctr_;
 
     SpinLock sconns_l_;
@@ -171,6 +174,10 @@ public:
 
     Server(PollMgr* pollmgr = nullptr, ThreadPool* thrpool = nullptr);
     virtual ~Server();
+
+    void enable_udp() {
+        udp_ = true;
+    }
 
     int start(const char* bind_addr);
 

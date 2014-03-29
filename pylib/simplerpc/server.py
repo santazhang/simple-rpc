@@ -61,6 +61,9 @@ class Server(object):
             self.func_ids[rpc_id] = rpc_func
         return ret
 
+    def enable_udp(self):
+        _pyrpc.server_enable_udp(self.id)
+
     def reg_svc(self, svc):
         svc.__reg_to__(self)
 

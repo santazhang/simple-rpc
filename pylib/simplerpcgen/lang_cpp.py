@@ -32,11 +32,15 @@ def emit_service_and_proxy(service, f, rpc_table):
                 rpc_code = rpc_table["%s.%s" % (service.name, func.name)]
                 f.writeln("%s = %s," % (func.name.upper(), hex(rpc_code)))
         f.writeln("};")
+        udp_enabled = False
         f.writeln("int __reg_to__(rpc::Server* svr) {")
         with f.indent():
             f.writeln("int ret = 0;")
             for func in service.functions:
-                if func.attr == "raw":
+                if "udp" in func.attrs and not udp_enabled:
+                    f.writeln("svr->enable_udp();")
+                    udp_enabled = True
+                if "raw" in func.attrs:
                     f.writeln("if ((ret = svr->reg(%s, this, &%sService::%s)) != 0) {" % (func.name.upper(), service.name, func.name))
                 else:
                     f.writeln("if ((ret = svr->reg(%s, this, &%sService::__%s__wrapper__)) != 0) {" % (func.name.upper(), service.name, func.name))
@@ -57,7 +61,7 @@ def emit_service_and_proxy(service, f, rpc_table):
                 postfix = " = 0"
             else:
                 postfix = ""
-            if func.attr == "raw":
+            if "raw" in func.attrs:
                 f.writeln("virtual void %s(rpc::Request* req, rpc::ServerConnection* sconn)%s;" % (func.name, postfix))
             else:
                 func_args = []
@@ -71,17 +75,17 @@ def emit_service_and_proxy(service, f, rpc_table):
                         func_args += "%s* %s" % (out_arg.type, out_arg.name),
                     else:
                         func_args += "%s*" % out_arg.type,
-                if func.attr == "defer":
+                if "defer" in func.attrs:
                     func_args += "rpc::DeferredReply* defer",
                 f.writeln("virtual void %s(%s)%s;" % (func.name, ", ".join(func_args), postfix))
     f.writeln("private:")
     with f.indent():
         for func in service.functions:
-            if func.attr == "raw":
+            if "raw" in func.attrs:
                 continue
             f.writeln("void __%s__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {" % func.name)
             with f.indent():
-                if func.attr == "defer":
+                if "defer" in func.attrs:
                     invoke_with = []
                     in_counter = 0
                     out_counter = 0
@@ -116,7 +120,7 @@ def emit_service_and_proxy(service, f, rpc_table):
                     invoke_with += "__defer__",
                     f.writeln("this->%s(%s);" % (func.name, ", ".join(invoke_with)))
                 else: # normal and fast rpc
-                    if func.attr != "fast":
+                    if "fast" not in func.attrs:
                         f.writeln("auto f = [=] {")
                         f.incr_indent()
                     invoke_with = []
@@ -138,7 +142,7 @@ def emit_service_and_proxy(service, f, rpc_table):
                     f.writeln("sconn->end_reply();")
                     f.writeln("delete req;")
                     f.writeln("sconn->release();")
-                    if func.attr != "fast":
+                    if "fast" not in func.attrs:
                         f.decr_indent()
                         f.writeln("};")
                         f.writeln("sconn->run_async(f);")
@@ -177,6 +181,18 @@ def emit_service_and_proxy(service, f, rpc_table):
                     sync_func_params += "%s* out_%d" % (out_arg.type, out_counter),
                     sync_out_params += "out_%d" % out_counter,
                 out_counter += 1
+
+            if "udp" in func.attrs:
+                f.writeln("int %s(%s) /* UDP */ {" % (func.name, ", ".join(sync_func_params)))
+                with f.indent():
+                    f.writeln("int __ret__ = __cl__->begin_udp_request(%sService::%s);" % (service.name, func.name.upper()))
+                    for param in async_call_params:
+                        f.writeln("__cl__->udp_request() << %s;" % param)
+                    f.writeln("__cl__->end_udp_request();")
+                    f.writeln("return __ret__;")
+                f.writeln("}")
+                continue
+
             f.writeln("rpc::Future* async_%s(%sconst rpc::FutureAttr& __fu_attr__ = rpc::FutureAttr()) {" % (func.name, ", ".join(async_func_params + [""])))
             with f.indent():
                 f.writeln("rpc::Future* __fu__ = __cl__->begin_request(%sService::%s, __fu_attr__);" % (service.name, func.name.upper()))
