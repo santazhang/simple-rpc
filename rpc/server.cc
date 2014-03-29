@@ -375,6 +375,10 @@ void Server::server_loop(struct addrinfo* svr_addr) {
 
     close(server_sock_);
     server_sock_ = -1;
+    if (udp_) {
+        close(udp_sock_);
+        udp_sock_ = -1;
+    }
     status_ = STOPPED;
 }
 
@@ -391,7 +395,7 @@ int Server::start(const char* bind_addr) {
     struct addrinfo hints, *result, *rp;
     memset(&hints, 0, sizeof(struct addrinfo));
 
-    hints.ai_family = AF_INET; // ipv4
+    hints.ai_family = AF_UNSPEC; // Allow IPv4 or IPv6
     hints.ai_socktype = SOCK_STREAM; // tcp
     hints.ai_flags = AI_PASSIVE; // server side
 
@@ -429,6 +433,47 @@ int Server::start(const char* bind_addr) {
     const int backlog = SOMAXCONN;
     verify(listen(server_sock_, backlog) == 0);
     verify(set_nonblocking(server_sock_, true) == 0);
+
+    if (udp_) {
+        // http://web.cecs.pdx.edu/~jrb/tcpip/sockets/ipv6.src/udp/udpclient.c
+        struct addrinfo udp_hints, *udp_result, *udp_rp;
+        memset(&udp_hints, 0, sizeof(struct addrinfo));
+        udp_hints.ai_family = AF_UNSPEC; // Allow IPv4 or IPv6
+        udp_hints.ai_socktype = SOCK_DGRAM; // udp
+        udp_hints.ai_protocol = IPPROTO_UDP;
+
+        r = getaddrinfo((host == "0.0.0.0") ? nullptr : host.c_str(), port.c_str(), &udp_hints, &udp_result);
+        if (r != 0) {
+            Log_error("rpc::Server: getaddrinfo(): %s (UDP)", gai_strerror(r));
+            // close the TCP socket opened
+            close(server_sock_);
+            server_sock_ = -1;
+            return EINVAL;
+        }
+
+        for (udp_rp = udp_result; udp_rp != nullptr; udp_rp = udp_rp->ai_next) {
+            udp_sock_ = socket(udp_rp->ai_family, udp_rp->ai_socktype, udp_rp->ai_protocol);
+            if (udp_sock_ == -1) {
+                continue;
+            }
+            if (::bind(udp_sock_, udp_rp->ai_addr, udp_rp->ai_addrlen) == 0) {
+                break;
+            }
+            close(udp_sock_);
+            udp_sock_ = -1;
+        }
+
+        if (udp_rp == nullptr) {
+            // failed to bind
+            Log_error("rpc::Server: bind(): %s (UDP)", strerror(errno));
+            freeaddrinfo(udp_result);
+            // close the TCP socket opened
+            close(server_sock_);
+            server_sock_ = -1;
+            return EINVAL;
+        }
+        Log_info("rpc::Server: started on %s (UDP)", bind_addr);
+    }
 
     status_ = RUNNING;
     Log_info("rpc::Server: started on %s", bind_addr);
