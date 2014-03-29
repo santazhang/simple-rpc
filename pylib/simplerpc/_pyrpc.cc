@@ -34,13 +34,23 @@ static PyObject* _pyrpc_init_server(PyObject* self, PyObject* args) {
     return Py_BuildValue("k", svr);
 }
 
+// ~Server() is potentially blocking, so we run it in a separate thread
+// to prevent blocking Python
+static void* fini_server_helper(void *arg) {
+    Server* svr = (Server *) arg;
+    delete svr;
+    pthread_exit(nullptr);
+    return nullptr;
+}
+
 static PyObject* _pyrpc_fini_server(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
     unsigned long u;
     if (!PyArg_ParseTuple(args, "k", &u))
         return nullptr;
     Server* svr = (Server *) u;
-    delete svr;
+    pthread_t th;
+    Pthread_create(&th, nullptr, fini_server_helper, svr);
     Py_RETURN_NONE;
 }
 
