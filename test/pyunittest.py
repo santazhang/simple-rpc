@@ -167,7 +167,7 @@ class TestMultithread(TestCase):
                         b = r
         s.reg_svc(MyMath())
         s.start("0.0.0.0:8848")
-        n_th = 100
+        n_th = 10
         n_jobs = 200
         start = time.time()
         class MyThread(Thread):
