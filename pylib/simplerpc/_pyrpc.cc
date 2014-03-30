@@ -257,9 +257,9 @@ static PyObject* _pyrpc_client_udp_call(PyObject* self, PyObject* args) {
     Client* clnt = (Client *) u;
     Marshal* m = (Marshal *) m_id;
 
-    int ret = clnt->begin_udp_request(rpc_id);
+    clnt->begin_udp_request(rpc_id);
     clnt->udp_request() << *m;
-    clnt->end_udp_request();
+    int ret = clnt->end_udp_request();
 
     return Py_BuildValue("i", ret);
 }

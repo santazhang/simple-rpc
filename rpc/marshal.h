@@ -22,7 +22,6 @@ void stat_marshal_in(int fd, const void* buf, size_t nbytes, ssize_t ret);
 void stat_marshal_out(int fd, const void* buf, size_t nbytes, ssize_t ret);
 #endif // RPC_STATISTICS
 
-
 struct raw_bytes: public RefCounted {
     char* ptr;
     size_t size;
@@ -42,6 +41,8 @@ struct raw_bytes: public RefCounted {
 
 
 struct chunk: public NoCopy {
+    friend class UdpBuffer;
+
 private:
     chunk(raw_bytes* dt, size_t rd_idx, size_t wr_idx)
             : data((raw_bytes *) dt->ref_copy()), read_idx(rd_idx), write_idx(wr_idx), next(nullptr) {
@@ -191,18 +192,22 @@ public:
 };
 
 
-struct udp_buffer {
-    // TODO
+class UdpBuffer {
+    struct raw_bytes* rb_;
+    struct chunk chnk_;
+    static const size_t max_udp_packet_size = 65507;
+public:
+    UdpBuffer(): rb_(new raw_bytes(max_udp_packet_size)), chnk_(rb_, 0, 0) {}
 };
 
 template <class T>
-inline udp_buffer& operator<< (udp_buffer& udp, const T&) {
+inline UdpBuffer& operator<< (UdpBuffer& udp, const T&) {
     // TODO
     return udp;
 }
 
 template <class T>
-inline udp_buffer& operator>> (udp_buffer& udp, T&) {
+inline UdpBuffer& operator>> (UdpBuffer& udp, T&) {
     // TODO
     return udp;
 }

@@ -34,6 +34,27 @@ public:
     virtual int __reg_to__(Server*) = 0;
 };
 
+class ServerUdpConnection: public Pollable {
+    Server* svr_;
+    int udp_sock_;
+public:
+    ServerUdpConnection(Server* svr, int udp_sock): svr_(svr), udp_sock_(udp_sock) {}
+    virtual int fd() {
+        return udp_sock_;
+    }
+    virtual int poll_mode() {
+        return Pollable::READ;  // always read only
+    }
+    void handle_write() {
+        // will not be called
+        verify(0);
+    }
+    void handle_read();
+    void handle_error() {
+        ::close(udp_sock_);
+    }
+};
+
 class ServerConnection: public Pollable {
 
     friend class Server;
@@ -155,6 +176,8 @@ class Server: public NoCopy {
 
     bool udp_;
     int udp_sock_;
+
+    ServerUdpConnection* udp_conn_;
 
     Counter sconns_ctr_;
 

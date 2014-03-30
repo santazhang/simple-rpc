@@ -108,7 +108,11 @@ public:
 class Client: public Pollable {
     Marshal in_, out_;
 
-    udp_buffer udp_;
+    SpinLock udp_l_;
+    int udp_sock_;
+    UdpBuffer udp_;
+    int udp_salen_;
+    struct sockaddr *udp_sa_;
 
     /**
      * NOT a refcopy! This is intended to avoid circular reference, which prevents everything from being released correctly.
@@ -138,13 +142,11 @@ class Client: public Pollable {
 
 protected:
 
-    virtual ~Client() {
-        invalidate_pending_futures();
-    }
+    virtual ~Client();
 
 public:
 
-    Client(PollMgr* pollmgr): pollmgr_(pollmgr), sock_(-1), status_(NEW), bmark_(nullptr) { }
+    Client(PollMgr* pollmgr): udp_sock_(-1), udp_sa_(nullptr), pollmgr_(pollmgr), sock_(-1), status_(NEW), bmark_(nullptr) { }
 
     /**
      * Start a new request. Must be paired with end_request(), even if nullptr returned.
@@ -155,16 +157,11 @@ public:
 
     void end_request();
 
-    int begin_udp_request(i32 rpc_id) {
-        // TODO
-        return 0;
-    }
-    udp_buffer& udp_request() {
+    void begin_udp_request(i32 rpc_id);
+    UdpBuffer& udp_request() {
         return udp_;
     }
-    void end_udp_request() {
-        // TODO
-    }
+    int end_udp_request();
 
     template<class T>
     Client& operator <<(const T& v) {

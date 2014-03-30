@@ -185,11 +185,10 @@ def emit_service_and_proxy(service, f, rpc_table):
             if "udp" in func.attrs:
                 f.writeln("int %s(%s) /* UDP */ {" % (func.name, ", ".join(sync_func_params)))
                 with f.indent():
-                    f.writeln("int __ret__ = __cl__->begin_udp_request(%sService::%s);" % (service.name, func.name.upper()))
+                    f.writeln("__cl__->begin_udp_request(%sService::%s);" % (service.name, func.name.upper()))
                     for param in async_call_params:
                         f.writeln("__cl__->udp_request() << %s;" % param)
-                    f.writeln("__cl__->end_udp_request();")
-                    f.writeln("return __ret__;")
+                    f.writeln("return __cl__->end_udp_request();")
                 f.writeln("}")
                 continue
 

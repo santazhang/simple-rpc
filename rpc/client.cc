@@ -64,6 +64,13 @@ void Future::notify_ready() {
     }
 }
 
+Client::~Client() {
+    if (udp_sa_ != nullptr) {
+        free(udp_sa_);
+    }
+    invalidate_pending_futures();
+}
+
 void Client::invalidate_pending_futures() {
     list<Future*> futures;
     pending_fu_l_.lock();
@@ -145,6 +152,28 @@ int Client::connect(const char* addr) {
 
     status_ = CONNECTED;
     pollmgr_->add(this);
+
+    // UDP, http://web.cecs.pdx.edu/~jrb/tcpip/sockets/ipv6.src/udp/udpclient.c
+    hints.ai_family = AF_UNSPEC; // Allow IPv4 or IPv6
+    hints.ai_socktype = SOCK_DGRAM; // UDP
+    hints.ai_protocol = IPPROTO_UDP;
+
+    r = getaddrinfo(host.c_str(), port.c_str(), &hints, &result);
+    if (r != 0) {
+        Log_error("rpc::Client: getaddrinfo(): %s", gai_strerror(r));
+        return EINVAL;
+    }
+
+    for (rp = result; rp != nullptr; rp = rp->ai_next) {
+        udp_sock_ = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+        if (udp_sock_ >= -1) {
+            break;
+        }
+    }
+
+    udp_sa_ = (struct sockaddr *) malloc(rp->ai_addrlen);
+    memcpy(udp_sa_, rp->ai_addr, rp->ai_addrlen);
+    udp_salen_ = rp->ai_addrlen;
 
     return 0;
 }
@@ -275,6 +304,20 @@ void Client::end_request() {
 
     out_l_.unlock();
 }
+
+void Client::begin_udp_request(i32 rpc_id) {
+    // TODO
+    udp_l_.lock();
+}
+
+int Client::end_udp_request() {
+    // TODO
+    const char* buf = "TODO";
+    int ret = sendto(udp_sock_, buf, sizeof(buf), 0, udp_sa_, udp_salen_);
+    udp_l_.unlock();
+    return ret;
+}
+
 
 ClientPool::ClientPool(PollMgr* pollmgr /* =? */, int parallel_connections /* =? */)
         : parallel_connections_(parallel_connections) {

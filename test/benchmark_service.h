@@ -33,18 +33,18 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, point3& o) {
 class BenchmarkService: public rpc::Service {
 public:
     enum {
-        FAST_PRIME = 0x38a52c08,
-        FAST_DOT_PROD = 0x11d651fe,
-        FAST_ADD = 0x2d7fdd14,
-        FAST_NOP = 0x557bbcc2,
-        PRIME = 0x1e7fd30d,
-        DOT_PROD = 0x47d5a900,
-        ADD = 0x2489d335,
-        NOP = 0x3ed932e9,
-        SLEEP = 0x32849eaa,
-        ADD_LATER = 0x43157ba5,
-        LOSSY_NOP = 0x2ece9d1c,
-        FAST_LOSSY_NOP = 0x2a0b77eb,
+        FAST_PRIME = 0x36cc6fc5,
+        FAST_DOT_PROD = 0x15c44be0,
+        FAST_ADD = 0x1a597d21,
+        FAST_NOP = 0x4a6d49e3,
+        PRIME = 0x26a736de,
+        DOT_PROD = 0x4b7177ca,
+        ADD = 0x67a5bfb5,
+        NOP = 0x6dbaac4d,
+        SLEEP = 0x4a90cf75,
+        ADD_LATER = 0x3e2acd6c,
+        LOSSY_NOP = 0x322d72ac,
+        FAST_LOSSY_NOP = 0x373653c3,
     };
     int __reg_to__(rpc::Server* svr) {
         int ret = 0;
@@ -474,16 +474,14 @@ public:
         return __ret__;
     }
     int lossy_nop(const rpc::i32& dummy, const rpc::i32& dummy2) /* UDP */ {
-        int __ret__ = __cl__->begin_udp_request(BenchmarkService::LOSSY_NOP);
+        __cl__->begin_udp_request(BenchmarkService::LOSSY_NOP);
         __cl__->udp_request() << dummy;
         __cl__->udp_request() << dummy2;
-        __cl__->end_udp_request();
-        return __ret__;
+        return __cl__->end_udp_request();
     }
     int fast_lossy_nop() /* UDP */ {
-        int __ret__ = __cl__->begin_udp_request(BenchmarkService::FAST_LOSSY_NOP);
-        __cl__->end_udp_request();
-        return __ret__;
+        __cl__->begin_udp_request(BenchmarkService::FAST_LOSSY_NOP);
+        return __cl__->end_udp_request();
     }
 };
 
@@ -519,9 +517,11 @@ inline void BenchmarkService::fast_nop(const std::string& str) {
 }
 
 inline void BenchmarkService::lossy_nop(const rpc::i32& dummy, const rpc::i32& dummy2) {
+    base::Log::debug("got an lossy_nop on UDP, params = %d %d", dummy, dummy2);
 }
 
 inline void BenchmarkService::fast_lossy_nop() {
+    base::Log::debug("got an fast_lossy_nop on UDP");
 }
 
 } // namespace benchmark

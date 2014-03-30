@@ -80,6 +80,16 @@ static void stat_server_rpc_counting(i32 rpc_id) {
 #endif // RPC_STATISTICS
 
 
+void ServerUdpConnection::handle_read() {
+    char buf[10];
+    int ret = recvfrom(udp_sock_, buf, sizeof(buf), MSG_WAITALL, nullptr, nullptr);
+    buf[ret] = '\0';
+
+    // TODO stat_server_rpc_counting();
+    Log_debug("TODO: ServerUdpConnection::handle_read: got msg: %s#", buf);
+}
+
+
 std::unordered_set<i32> ServerConnection::rpc_id_missing_s;
 SpinLock ServerConnection::rpc_id_missing_l_s;
 
@@ -262,7 +272,7 @@ int ServerConnection::poll_mode() {
 }
 
 Server::Server(PollMgr* pollmgr /* =... */, ThreadPool* thrpool /* =? */)
-        : server_sock_(-1), udp_(false), udp_sock_(-1), status_(NEW) {
+        : server_sock_(-1), udp_(false), udp_sock_(-1), udp_conn_(nullptr), status_(NEW) {
 
     // get rid of eclipse warning
     memset(&loop_th_, 0, sizeof(loop_th_));
@@ -298,6 +308,11 @@ Server::~Server() {
 
     for (auto& it: sconns) {
         it->close();
+    }
+
+    if (udp_) {
+        pollmgr_->remove(udp_conn_);
+        udp_conn_->release();
     }
 
     // make sure all open connections are closed
@@ -341,6 +356,11 @@ void* Server::start_server_loop(void* arg) {
 }
 
 void Server::server_loop(struct addrinfo* svr_addr) {
+    if (udp_) {
+        udp_conn_ = new ServerUdpConnection(this, udp_sock_);
+        pollmgr_->add(udp_conn_);
+    }
+
     fd_set fds;
     while (status_ == RUNNING) {
         FD_ZERO(&fds);
