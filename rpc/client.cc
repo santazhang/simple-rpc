@@ -314,7 +314,11 @@ void Client::begin_udp_request(i32 rpc_id) {
 
 int Client::end_udp_request() {
     i32 payload_size = udp_.base().get_and_reset_write_cnt();
-    udp_.base().write_bookmark(udp_bmark_, &payload_size);
+    if (udp_bmark_ != nullptr) {
+        udp_.base().write_bookmark(udp_bmark_, &payload_size);
+        delete udp_bmark_;
+        udp_bmark_ = nullptr;
+    }
 
     int ret = 0;
     size_t size = 0;
