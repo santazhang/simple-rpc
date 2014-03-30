@@ -80,14 +80,67 @@ static void stat_server_rpc_counting(i32 rpc_id) {
 #endif // RPC_STATISTICS
 
 
+// <size> <rpc_id> <arg1> <arg2> ... <argN>
 void ServerUdpConnection::handle_read() {
-    char buf[10];
-    int ret = recvfrom(udp_sock_, buf, sizeof(buf), MSG_WAITALL, nullptr, nullptr);
-    buf[ret] = '\0';
+    int cnt = recvfrom(udp_sock_, udp_buffer_, UdpBuffer::max_udp_packet_size_s, MSG_WAITALL, nullptr, nullptr);
+    Marshal m_in;
+    m_in.write(udp_buffer_, cnt);
 
-    // TODO stat_server_rpc_counting();
-    Log_debug("TODO: ServerUdpConnection::handle_read: got msg: %s#", buf);
+    list<Request*> complete_requests;
+
+    for (;;) {
+        i32 packet_size;
+        int n_peek = m_in.peek(&packet_size, sizeof(i32));
+        if (n_peek == sizeof(i32) && m_in.content_size() >= packet_size + sizeof(i32)) {
+            // consume the packet size
+            verify(m_in.read(&packet_size, sizeof(i32)) == sizeof(i32));
+
+            Request* req = new Request;
+            verify(req->m.read_from_marshal(m_in, packet_size) == (size_t) packet_size);
+
+            req->xid = -1;  // UDP packets does not have valid xid
+            complete_requests.push_back(req);
+
+        } else {
+            // packet not complete or there's no more packet to process
+            break;
+        }
+    }
+
+#ifdef RPC_STATISTICS
+    stat_server_batching(complete_requests.size());
+#endif // RPC_STATISTICS
+
+    for (auto& req: complete_requests) {
+
+        if (req->m.content_size() < sizeof(i32)) {
+            // rpc id not provided, discard
+            delete req;
+            continue;
+        }
+
+        i32 rpc_id;
+        req->m >> rpc_id;
+
+#ifdef RPC_STATISTICS
+        stat_server_rpc_counting(rpc_id);
+#endif // RPC_STATISTICS
+
+        auto it = svr_->udp_handlers_.find(rpc_id);
+        if (it != svr_->udp_handlers_.end()) {
+            // the handler should delete req, and release server_connection refcopy.
+            it->second(req, (ServerUdpConnection *) this->ref_copy());
+        } else {
+            Log_error("rpc::ServerConnection: no handler for rpc_id=0x%08x", rpc_id);
+            delete req;
+        }
+    }
 }
+
+int ServerUdpConnection::run_async(const std::function<void()>& f) {
+    return svr_->threadpool_->run_async(f);
+}
+
 
 
 std::unordered_set<i32> ServerConnection::rpc_id_missing_s;

@@ -83,7 +83,10 @@ def emit_service_and_proxy(service, f, rpc_table):
         for func in service.functions:
             if "raw" in func.attrs:
                 continue
-            f.writeln("void __%s__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {" % func.name)
+            if "udp" in func.attrs:
+                f.writeln("void __%s__wrapper__(rpc::Request* req, rpc::ServerUdpConnection* sconn) {" % func.name)
+            else:
+                f.writeln("void __%s__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {" % func.name)
             with f.indent():
                 if "defer" in func.attrs:
                     invoke_with = []
@@ -136,10 +139,11 @@ def emit_service_and_proxy(service, f, rpc_table):
                         invoke_with += "&out_%d" % out_counter,
                         out_counter += 1
                     f.writeln("this->%s(%s);" % (func.name, ", ".join(invoke_with)))
-                    f.writeln("sconn->begin_reply(req);")
-                    for i in range(out_counter):
-                        f.writeln("*sconn << out_%d;" % i)
-                    f.writeln("sconn->end_reply();")
+                    if "udp" not in func.attrs:
+                        f.writeln("sconn->begin_reply(req);")
+                        for i in range(out_counter):
+                            f.writeln("*sconn << out_%d;" % i)
+                        f.writeln("sconn->end_reply();")
                     f.writeln("delete req;")
                     f.writeln("sconn->release();")
                     if "fast" not in func.attrs:

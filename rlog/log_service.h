@@ -11,8 +11,8 @@ namespace rlog {
 class RLogService: public rpc::Service {
 public:
     enum {
-        LOG = 0x38f4eec6,
-        AGGREGATE_QPS = 0x6c4ff63d,
+        LOG = 0x52874546,
+        AGGREGATE_QPS = 0x3093e065,
     };
     int __reg_to__(rpc::Server* svr) {
         int ret = 0;

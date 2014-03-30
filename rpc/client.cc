@@ -305,15 +305,26 @@ void Client::end_request() {
     out_l_.unlock();
 }
 
+// <size> <rpc_id> <arg1> <arg2> ... <argN>
 void Client::begin_udp_request(i32 rpc_id) {
-    // TODO
     udp_l_.lock();
+    udp_bmark_ = udp_.base().set_bookmark(sizeof(i32)); // will fill packet size later
+    udp_ << rpc_id;
 }
 
 int Client::end_udp_request() {
-    // TODO
-    const char* buf = "TODO";
-    int ret = sendto(udp_sock_, buf, sizeof(buf), 0, udp_sa_, udp_salen_);
+    i32 payload_size = udp_.base().get_and_reset_write_cnt();
+    udp_.base().write_bookmark(udp_bmark_, &payload_size);
+
+    int ret = 0;
+    size_t size = 0;
+    bool overflow = false;
+    char* buf = udp_.get_buf(&size, &overflow);
+    if (overflow) {
+        ret = E2BIG;
+    } else {
+        sendto(udp_sock_, buf, size, 0, udp_sa_, udp_salen_);
+    }
     udp_l_.unlock();
     return ret;
 }

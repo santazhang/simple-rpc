@@ -58,11 +58,11 @@ inline void BenchmarkService::fast_nop(const std::string& str) {
 }
 
 inline void BenchmarkService::lossy_nop(const rpc::i32& dummy, const rpc::i32& dummy2) {
-    base::Log::debug("got an lossy_nop on UDP, params = %d %d", dummy, dummy2);
+    nop("");
 }
 
 inline void BenchmarkService::fast_lossy_nop() {
-    base::Log::debug("got an fast_lossy_nop on UDP");
+    nop("");
 }
 
 } // namespace benchmark

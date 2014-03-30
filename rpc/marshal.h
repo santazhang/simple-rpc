@@ -191,28 +191,6 @@ public:
     }
 };
 
-
-class UdpBuffer {
-    struct raw_bytes* rb_;
-    struct chunk chnk_;
-    static const size_t max_udp_packet_size = 65507;
-public:
-    UdpBuffer(): rb_(new raw_bytes(max_udp_packet_size)), chnk_(rb_, 0, 0) {}
-};
-
-template <class T>
-inline UdpBuffer& operator<< (UdpBuffer& udp, const T&) {
-    // TODO
-    return udp;
-}
-
-template <class T>
-inline UdpBuffer& operator>> (UdpBuffer& udp, T&) {
-    // TODO
-    return udp;
-}
-
-
 // not thread safe, for better performance
 class Marshal: public NoCopy {
     chunk* head_;
@@ -576,5 +554,58 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, std::unordered_map<K, V>& v) {
     }
     return m;
 }
+
+
+class UdpBuffer {
+    Marshal m_;
+    char* buf_;
+
+public:
+    static const size_t max_udp_packet_size_s = 65507;
+
+    UdpBuffer() {
+        buf_ = new char[max_udp_packet_size_s];
+    }
+    ~UdpBuffer() {
+        delete[] buf_;
+    }
+    char* get_buf(size_t* size, bool* overflow) {
+        *overflow = false;
+        *size = 0;
+        if (!m_.empty()) {
+            if (m_.content_size() > max_udp_packet_size_s) {
+                *overflow = true;
+                *size = max_udp_packet_size_s;
+                return nullptr;
+            } else {
+                *size = m_.read(buf_, m_.content_size());
+            }
+        }
+        return buf_;
+    }
+    Marshal& base() {
+        return m_;
+    }
+};
+
+
+// used only in Python extension
+inline UdpBuffer& operator<< (UdpBuffer& udp, Marshal& v) {
+    udp.base().read_from_marshal(v, v.content_size());
+    return udp;
+}
+
+template <class T>
+inline UdpBuffer& operator<< (UdpBuffer& udp, const T& v) {
+    udp.base() << v;
+    return udp;
+}
+
+template <class T>
+inline UdpBuffer& operator>> (UdpBuffer& udp, T& v) {
+    udp.base() >> v;
+    return udp;
+}
+
 
 } // namespace rpc

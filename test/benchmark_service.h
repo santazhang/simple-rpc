@@ -33,18 +33,18 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, point3& o) {
 class BenchmarkService: public rpc::Service {
 public:
     enum {
-        FAST_PRIME = 0x36cc6fc5,
-        FAST_DOT_PROD = 0x15c44be0,
-        FAST_ADD = 0x1a597d21,
-        FAST_NOP = 0x4a6d49e3,
-        PRIME = 0x26a736de,
-        DOT_PROD = 0x4b7177ca,
-        ADD = 0x67a5bfb5,
-        NOP = 0x6dbaac4d,
-        SLEEP = 0x4a90cf75,
-        ADD_LATER = 0x3e2acd6c,
-        LOSSY_NOP = 0x322d72ac,
-        FAST_LOSSY_NOP = 0x373653c3,
+        FAST_PRIME = 0x4f9d82fa,
+        FAST_DOT_PROD = 0x2710cfa7,
+        FAST_ADD = 0x29ae92de,
+        FAST_NOP = 0x625a93e4,
+        PRIME = 0x199b6e02,
+        DOT_PROD = 0x39c06fab,
+        ADD = 0x34b605b5,
+        NOP = 0x1e9ed738,
+        SLEEP = 0x4cca75e6,
+        ADD_LATER = 0x26b2f4bf,
+        LOSSY_NOP = 0x4c6b2e84,
+        FAST_LOSSY_NOP = 0x3344c58b,
     };
     int __reg_to__(rpc::Server* svr) {
         int ret = 0;
@@ -249,24 +249,20 @@ private:
         rpc::DeferredReply* __defer__ = new rpc::DeferredReply(req, sconn, __marshal_reply__, __cleanup__);
         this->add_later(*in_0, *in_1, out_0, __defer__);
     }
-    void __lossy_nop__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
+    void __lossy_nop__wrapper__(rpc::Request* req, rpc::ServerUdpConnection* sconn) {
         auto f = [=] {
             rpc::i32 in_0;
             req->m >> in_0;
             rpc::i32 in_1;
             req->m >> in_1;
             this->lossy_nop(in_0, in_1);
-            sconn->begin_reply(req);
-            sconn->end_reply();
             delete req;
             sconn->release();
         };
         sconn->run_async(f);
     }
-    void __fast_lossy_nop__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {
+    void __fast_lossy_nop__wrapper__(rpc::Request* req, rpc::ServerUdpConnection* sconn) {
         this->fast_lossy_nop();
-        sconn->begin_reply(req);
-        sconn->end_reply();
         delete req;
         sconn->release();
     }
@@ -517,11 +513,11 @@ inline void BenchmarkService::fast_nop(const std::string& str) {
 }
 
 inline void BenchmarkService::lossy_nop(const rpc::i32& dummy, const rpc::i32& dummy2) {
-    base::Log::debug("got an lossy_nop on UDP, params = %d %d", dummy, dummy2);
+    nop("");
 }
 
 inline void BenchmarkService::fast_lossy_nop() {
-    base::Log::debug("got an fast_lossy_nop on UDP");
+    nop("");
 }
 
 } // namespace benchmark

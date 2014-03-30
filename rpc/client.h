@@ -113,6 +113,7 @@ class Client: public Pollable {
     UdpBuffer udp_;
     int udp_salen_;
     struct sockaddr *udp_sa_;
+    Marshal::bookmark* udp_bmark_;
 
     /**
      * NOT a refcopy! This is intended to avoid circular reference, which prevents everything from being released correctly.
@@ -146,7 +147,7 @@ protected:
 
 public:
 
-    Client(PollMgr* pollmgr): udp_sock_(-1), udp_sa_(nullptr), pollmgr_(pollmgr), sock_(-1), status_(NEW), bmark_(nullptr) { }
+    Client(PollMgr* pollmgr): udp_sock_(-1), udp_sa_(nullptr), udp_bmark_(nullptr), pollmgr_(pollmgr), sock_(-1), status_(NEW), bmark_(nullptr) { }
 
     /**
      * Start a new request. Must be paired with end_request(), even if nullptr returned.
