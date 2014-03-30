@@ -47,3 +47,9 @@ class Client(object):
             for ty in rep_types:
                 results += rep_m.read_obj(ty),
         return error_code, results
+
+    def udp_call(self, rpc_id, req_values, req_types, rep_types):
+        req_m = Marshal()
+        for i in range(len(req_values)):
+            req_m.write_obj(req_values[i], req_types[i])
+        return _pyrpc.client_udp_call(self.id, rpc_id, req_m.id)

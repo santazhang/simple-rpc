@@ -22,176 +22,177 @@ void stat_marshal_in(int fd, const void* buf, size_t nbytes, ssize_t ret);
 void stat_marshal_out(int fd, const void* buf, size_t nbytes, ssize_t ret);
 #endif // RPC_STATISTICS
 
-// not thread safe, for better performance
-class Marshal: public NoCopy {
-    struct raw_bytes: public RefCounted {
-        char* ptr;
-        size_t size;
-        static const size_t min_size;
+struct raw_bytes: public RefCounted {
+    char* ptr;
+    size_t size;
+    static const size_t min_size;
 
-        raw_bytes(size_t sz = min_size) {
-            size = std::max(sz, min_size);
-            ptr = new char[size];
+    raw_bytes(size_t sz = min_size) {
+        size = std::max(sz, min_size);
+        ptr = new char[size];
+    }
+    raw_bytes(const void* p, size_t n) {
+        size = std::max(n, min_size);
+        ptr = new char[size];
+        memcpy(ptr, p, n);
+    }
+    ~raw_bytes() { delete[] ptr; }
+};
+
+
+struct chunk: public NoCopy {
+    friend class UdpBuffer;
+
+private:
+    chunk(raw_bytes* dt, size_t rd_idx, size_t wr_idx)
+            : data((raw_bytes *) dt->ref_copy()), read_idx(rd_idx), write_idx(wr_idx), next(nullptr) {
+        assert(write_idx <= data->size);
+        assert(read_idx <= write_idx);
+    }
+
+public:
+
+    raw_bytes* data;
+    size_t read_idx;
+    size_t write_idx;
+    chunk* next;
+
+    chunk(): data(new raw_bytes), read_idx(0), write_idx(0), next(nullptr) {}
+    chunk(const void* p, size_t n): data(new raw_bytes(p, n)), read_idx(0), write_idx(n), next(nullptr) {}
+    ~chunk() { data->release(); }
+
+    // NOTE: This function is only intended for Marshal::read_from_marshal.
+    chunk* shared_copy() const {
+        return new chunk(data, read_idx, write_idx);
+    }
+
+    size_t content_size() const {
+        assert(write_idx <= data->size);
+        assert(read_idx <= write_idx);
+        return write_idx - read_idx;
+    }
+
+    char* set_bookmark() {
+        assert(write_idx <= data->size);
+        assert(read_idx <= write_idx);
+
+        char* p = &data->ptr[write_idx];
+        write_idx++;
+
+        assert(write_idx <= data->size);
+        assert(read_idx <= write_idx);
+        return p;
+    }
+
+    size_t write(const void* p, size_t n) {
+        assert(write_idx <= data->size);
+        assert(read_idx <= write_idx);
+
+        size_t n_write = std::min(n, data->size - write_idx);
+        if (n_write > 0) {
+            memcpy(data->ptr + write_idx, p, n_write);
         }
-        raw_bytes(const void* p, size_t n) {
-            size = std::max(n, min_size);
-            ptr = new char[size];
-            memcpy(ptr, p, n);
+        write_idx += n_write;
+
+        assert(write_idx <= data->size);
+        assert(read_idx <= write_idx);
+        return n_write;
+    }
+
+    size_t read(void* p, size_t n) {
+        assert(write_idx <= data->size);
+        assert(read_idx <= write_idx);
+
+        size_t n_read = std::min(n, write_idx - read_idx);
+        if (n_read > 0) {
+            memcpy(p, data->ptr + read_idx, n_read);
         }
-        ~raw_bytes() { delete[] ptr; }
-    };
+        read_idx += n_read;
 
-    struct chunk: public NoCopy {
+        assert(write_idx <= data->size);
+        assert(read_idx <= write_idx);
+        return n_read;
+    }
 
-    private:
+    size_t peek(void* p, size_t n) const {
+        assert(write_idx <= data->size);
+        assert(read_idx <= write_idx);
 
-        chunk(raw_bytes* dt, size_t rd_idx, size_t wr_idx)
-                : data((raw_bytes *) dt->ref_copy()), read_idx(rd_idx), write_idx(wr_idx), next(nullptr) {
-            assert(write_idx <= data->size);
-            assert(read_idx <= write_idx);
-        }
-
-    public:
-
-        raw_bytes* data;
-        size_t read_idx;
-        size_t write_idx;
-        chunk* next;
-
-        chunk(): data(new raw_bytes), read_idx(0), write_idx(0), next(nullptr) {}
-        chunk(const void* p, size_t n): data(new raw_bytes(p, n)), read_idx(0), write_idx(n), next(nullptr) {}
-        ~chunk() { data->release(); }
-
-        // NOTE: This function is only intended for Marshal::read_from_marshal.
-        chunk* shared_copy() const {
-            return new chunk(data, read_idx, write_idx);
-        }
-
-        size_t content_size() const {
-            assert(write_idx <= data->size);
-            assert(read_idx <= write_idx);
-            return write_idx - read_idx;
-        }
-
-        char* set_bookmark() {
-            assert(write_idx <= data->size);
-            assert(read_idx <= write_idx);
-
-            char* p = &data->ptr[write_idx];
-            write_idx++;
-
-            assert(write_idx <= data->size);
-            assert(read_idx <= write_idx);
-            return p;
-        }
-
-        size_t write(const void* p, size_t n) {
-            assert(write_idx <= data->size);
-            assert(read_idx <= write_idx);
-
-            size_t n_write = std::min(n, data->size - write_idx);
-            if (n_write > 0) {
-                memcpy(data->ptr + write_idx, p, n_write);
-            }
-            write_idx += n_write;
-
-            assert(write_idx <= data->size);
-            assert(read_idx <= write_idx);
-            return n_write;
-        }
-
-        size_t read(void* p, size_t n) {
-            assert(write_idx <= data->size);
-            assert(read_idx <= write_idx);
-
-            size_t n_read = std::min(n, write_idx - read_idx);
-            if (n_read > 0) {
-                memcpy(p, data->ptr + read_idx, n_read);
-            }
-            read_idx += n_read;
-
-            assert(write_idx <= data->size);
-            assert(read_idx <= write_idx);
-            return n_read;
-        }
-
-        size_t peek(void* p, size_t n) const {
-            assert(write_idx <= data->size);
-            assert(read_idx <= write_idx);
-
-            size_t n_peek = std::min(n, write_idx - read_idx);
-            if (n_peek > 0) {
-                memcpy(p, data->ptr + read_idx, n_peek);
-            }
-
-            return n_peek;
+        size_t n_peek = std::min(n, write_idx - read_idx);
+        if (n_peek > 0) {
+            memcpy(p, data->ptr + read_idx, n_peek);
         }
 
-        size_t discard(size_t n) {
-            assert(write_idx <= data->size);
-            assert(read_idx <= write_idx);
+        return n_peek;
+    }
 
-            size_t n_discard = std::min(n, write_idx - read_idx);
-            read_idx += n_discard;
+    size_t discard(size_t n) {
+        assert(write_idx <= data->size);
+        assert(read_idx <= write_idx);
 
-            assert(write_idx <= data->size);
-            assert(read_idx <= write_idx);
-            return n_discard;
-        }
+        size_t n_discard = std::min(n, write_idx - read_idx);
+        read_idx += n_discard;
 
-        int write_to_fd(int fd) {
-            assert(write_idx <= data->size);
-            int cnt = ::write(fd, data->ptr + read_idx, write_idx - read_idx);
+        assert(write_idx <= data->size);
+        assert(read_idx <= write_idx);
+        return n_discard;
+    }
+
+    int write_to_fd(int fd) {
+        assert(write_idx <= data->size);
+        int cnt = ::write(fd, data->ptr + read_idx, write_idx - read_idx);
 
 #ifdef RPC_STATISTICS
-                stat_marshal_out(fd, data->ptr + write_idx, data->size - write_idx, cnt);
+        stat_marshal_out(fd, data->ptr + write_idx, data->size - write_idx, cnt);
+#endif // RPC_STATISTICS
+
+        if (cnt > 0) {
+            read_idx += cnt;
+        }
+
+        assert(write_idx <= data->size);
+        return cnt;
+    }
+
+    int read_from_fd(int fd) {
+        assert(write_idx <= data->size);
+        assert(read_idx <= write_idx);
+
+        int cnt = 0;
+        if (write_idx < data->size) {
+            cnt = ::read(fd, data->ptr + write_idx, data->size - write_idx);
+
+#ifdef RPC_STATISTICS
+            stat_marshal_in(fd, data->ptr + write_idx, data->size - write_idx, cnt);
 #endif // RPC_STATISTICS
 
             if (cnt > 0) {
-                read_idx += cnt;
+                write_idx += cnt;
             }
-
-            assert(write_idx <= data->size);
-            return cnt;
         }
 
-        int read_from_fd(int fd) {
-            assert(write_idx <= data->size);
-            assert(read_idx <= write_idx);
+        assert(write_idx <= data->size);
+        assert(read_idx <= write_idx);
+        return cnt;
+    }
 
-            int cnt = 0;
-            if (write_idx < data->size) {
-                cnt = ::read(fd, data->ptr + write_idx, data->size - write_idx);
+    // check if it is not possible to write to the chunk anymore.
+    bool fully_written() const {
+        assert(write_idx <= data->size);
+        assert(read_idx <= write_idx);
+        return write_idx == data->size;
+    }
 
-#ifdef RPC_STATISTICS
-                stat_marshal_in(fd, data->ptr + write_idx, data->size - write_idx, cnt);
-#endif // RPC_STATISTICS
+    // check if it is not possible to read any data even if retry later
+    bool fully_read() const {
+        assert(write_idx <= data->size);
+        assert(read_idx <= write_idx);
+        return read_idx == data->size;
+    }
+};
 
-                if (cnt > 0) {
-                    write_idx += cnt;
-                }
-            }
-
-            assert(write_idx <= data->size);
-            assert(read_idx <= write_idx);
-            return cnt;
-        }
-
-        // check if it is not possible to write to the chunk anymore.
-        bool fully_written() const {
-            assert(write_idx <= data->size);
-            assert(read_idx <= write_idx);
-            return write_idx == data->size;
-        }
-
-        // check if it is not possible to read any data even if retry later
-        bool fully_read() const {
-            assert(write_idx <= data->size);
-            assert(read_idx <= write_idx);
-            return read_idx == data->size;
-        }
-    };
-
+// not thread safe, for better performance
+class Marshal: public NoCopy {
     chunk* head_;
     chunk* tail_;
     i32 write_cnt_;
@@ -252,6 +253,7 @@ public:
         return cnt;
     }
 };
+
 
 inline rpc::Marshal& operator <<(rpc::Marshal& m, const rpc::i8& v) {
     verify(m.write(&v, sizeof(v)) == sizeof(v));
@@ -552,5 +554,58 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, std::unordered_map<K, V>& v) {
     }
     return m;
 }
+
+
+class UdpBuffer {
+    Marshal m_;
+    char* buf_;
+
+public:
+    static const size_t max_udp_packet_size_s = 65507;
+
+    UdpBuffer() {
+        buf_ = new char[max_udp_packet_size_s];
+    }
+    ~UdpBuffer() {
+        delete[] buf_;
+    }
+    char* get_buf(size_t* size, bool* overflow) {
+        *overflow = false;
+        *size = 0;
+        if (!m_.empty()) {
+            if (m_.content_size() > max_udp_packet_size_s) {
+                *overflow = true;
+                *size = max_udp_packet_size_s;
+                return nullptr;
+            } else {
+                *size = m_.read(buf_, m_.content_size());
+            }
+        }
+        return buf_;
+    }
+    Marshal& base() {
+        return m_;
+    }
+};
+
+
+// used only in Python extension
+inline UdpBuffer& operator<< (UdpBuffer& udp, Marshal& v) {
+    udp.base().read_from_marshal(v, v.content_size());
+    return udp;
+}
+
+template <class T>
+inline UdpBuffer& operator<< (UdpBuffer& udp, const T& v) {
+    udp.base() << v;
+    return udp;
+}
+
+template <class T>
+inline UdpBuffer& operator>> (UdpBuffer& udp, T& v) {
+    udp.base() >> v;
+    return udp;
+}
+
 
 } // namespace rpc

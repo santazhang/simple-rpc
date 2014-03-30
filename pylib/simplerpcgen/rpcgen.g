@@ -28,6 +28,18 @@ def forbid_reserved_names(name):
     if re.match("__([^_]+.*[^_]+|[^_])__$", name):
         raise Exception("bad name '%s', __NAME__ format names are reserved" % name)
 
+def check_rpc_func(attrs, output):
+    if ("defer" in attrs) and ("udp" in attrs):
+        raise Exception("udp functions does not have return value, cannot provide deferred return values")
+    if ("raw" in attrs) and ("defer" in attrs):
+        raise Exception("cannot generate deferred return code stub for raw RPC handler")
+    if ("raw" in attrs) and ("fast" in attrs):
+        raise Exception("cannot generate fast RPC code stub for raw RPC handler")
+    if ("fast" in attrs) and ("defer" in attrs):
+        raise Exception("cannot mark an RPC as both doing fast return and deferred return")
+    if ("udp" in attrs) and len(output) > 0:
+        raise Exception("udp RPC handler cannot have return value")
+
 %%
 
 parser Rpc:
@@ -86,12 +98,22 @@ parser Rpc:
         (service_function {{ functions += service_function, }})*
             {{ return functions }}
 
-    rule service_function: {{ attr = None; abstract = False; input = []; output = [] }}
-        ["fast" {{ attr = "fast" }} | "raw" {{ attr = "raw" }} | "defer" {{ attr = "defer" }}]
-        SYMBOL {{ forbid_reserved_names(SYMBOL) }}
+    rule service_function: {{ abstract = False; input = []; output = [] }}
+        func_attrs SYMBOL {{ forbid_reserved_names(SYMBOL) }}
         "\(" (func_arg_list {{ input = func_arg_list }}) ["\|" (func_arg_list {{ output = func_arg_list }})] "\)"
         ["=" "0" {{ abstract = True }}]
-            {{ return pack(name=SYMBOL, attr=attr, abstract=abstract, input=input, output=output) }}
+            {{ check_rpc_func(attrs=func_attrs, output=output) }}
+            {{ return pack(name=SYMBOL, attrs=func_attrs, abstract=abstract, input=input, output=output) }}
+
+    rule func_attrs: {{ attrs = set() }}
+        (func_attr {{ attrs.add(func_attr,) }})*
+            {{ return attrs }}
+
+    rule func_attr:
+        "fast" {{ return "fast" }}
+        | "raw" {{ return "raw" }}
+        | "defer" {{ return "defer" }}
+        | "udp" {{ return "udp" }}
 
     rule func_arg_list: {{ args = [] }}
         (| func_arg {{ args = [func_arg] }} ("," func_arg {{ args += func_arg, }})*)

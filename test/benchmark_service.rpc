@@ -23,6 +23,9 @@ service Benchmark {
     sleep(double sec);
 
     defer add_later(i32 a, i32 b | i32 sum);
+
+    udp lossy_nop(i32 dummy, i32 dummy2);
+    udp fast fast_lossy_nop();
 };
 
 %%
@@ -52,6 +55,14 @@ inline void BenchmarkService::add(const rpc::v32& a, const rpc::v32& b, rpc::v32
 
 inline void BenchmarkService::fast_nop(const std::string& str) {
     nop(str);
+}
+
+inline void BenchmarkService::lossy_nop(const rpc::i32& dummy, const rpc::i32& dummy2) {
+    nop("");
+}
+
+inline void BenchmarkService::fast_lossy_nop() {
+    nop("");
 }
 
 } // namespace benchmark

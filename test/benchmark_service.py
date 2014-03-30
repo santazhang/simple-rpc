@@ -5,16 +5,18 @@ from simplerpc.future import Future
 point3 = Marshal.reg_type('point3', [('x', 'double'), ('y', 'double'), ('z', 'double')])
 
 class BenchmarkService(object):
-    FAST_PRIME = 0x2ee8609b
-    FAST_DOT_PROD = 0x1defcdef
-    FAST_ADD = 0x48c5acbe
-    FAST_NOP = 0x26fbda22
-    PRIME = 0x1515b9a3
-    DOT_PROD = 0x62fc6462
-    ADD = 0x2fbb6f1c
-    NOP = 0x3fe3a23a
-    SLEEP = 0x2baab5ad
-    ADD_LATER = 0x2b8d10c3
+    FAST_PRIME = 0x4f9d82fa
+    FAST_DOT_PROD = 0x2710cfa7
+    FAST_ADD = 0x29ae92de
+    FAST_NOP = 0x625a93e4
+    PRIME = 0x199b6e02
+    DOT_PROD = 0x39c06fab
+    ADD = 0x34b605b5
+    NOP = 0x1e9ed738
+    SLEEP = 0x4cca75e6
+    ADD_LATER = 0x26b2f4bf
+    LOSSY_NOP = 0x4c6b2e84
+    FAST_LOSSY_NOP = 0x3344c58b
 
     __input_type_info__ = {
         'fast_prime': ['rpc::i32'],
@@ -27,6 +29,8 @@ class BenchmarkService(object):
         'nop': ['std::string'],
         'sleep': ['double'],
         'add_later': ['rpc::i32','rpc::i32'],
+        'lossy_nop': ['rpc::i32','rpc::i32'],
+        'fast_lossy_nop': [],
     }
 
     __output_type_info__ = {
@@ -40,6 +44,8 @@ class BenchmarkService(object):
         'nop': [],
         'sleep': [],
         'add_later': ['rpc::i32'],
+        'lossy_nop': [],
+        'fast_lossy_nop': [],
     }
 
     def __bind_helper__(self, func):
@@ -58,6 +64,9 @@ class BenchmarkService(object):
         server.__reg_func__(BenchmarkService.NOP, self.__bind_helper__(self.nop), ['std::string'], [])
         server.__reg_func__(BenchmarkService.SLEEP, self.__bind_helper__(self.sleep), ['double'], [])
         server.__reg_func__(BenchmarkService.ADD_LATER, self.__bind_helper__(self.add_later), ['rpc::i32','rpc::i32'], ['rpc::i32'])
+        server.enable_udp()
+        server.__reg_func__(BenchmarkService.LOSSY_NOP, self.__bind_helper__(self.lossy_nop), ['rpc::i32','rpc::i32'], [])
+        server.__reg_func__(BenchmarkService.FAST_LOSSY_NOP, self.__bind_helper__(self.fast_lossy_nop), [], [])
 
     def fast_prime(__self__, n):
         raise NotImplementedError('subclass BenchmarkService and implement your own fast_prime function')
@@ -88,6 +97,12 @@ class BenchmarkService(object):
 
     def add_later(__self__, a, b):
         raise NotImplementedError('subclass BenchmarkService and implement your own add_later function')
+
+    def lossy_nop(__self__, dummy, dummy2):
+        raise NotImplementedError('subclass BenchmarkService and implement your own lossy_nop function')
+
+    def fast_lossy_nop(__self__):
+        raise NotImplementedError('subclass BenchmarkService and implement your own fast_lossy_nop function')
 
 class BenchmarkProxy(object):
     def __init__(self, clnt):
@@ -212,4 +227,10 @@ class BenchmarkProxy(object):
             return __result__[1][0]
         elif len(__result__[1]) > 1:
             return __result__[1]
+
+    def udp_lossy_nop(__self__, dummy, dummy2):
+        return __self__.__clnt__.udp_call(BenchmarkService.LOSSY_NOP, [dummy, dummy2], BenchmarkService.__input_type_info__['lossy_nop'])
+
+    def udp_fast_lossy_nop(__self__):
+        return __self__.__clnt__.udp_call(BenchmarkService.FAST_LOSSY_NOP, [], BenchmarkService.__input_type_info__['fast_lossy_nop'])
 

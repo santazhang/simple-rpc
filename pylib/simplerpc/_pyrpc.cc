@@ -50,6 +50,16 @@ static PyObject* _pyrpc_fini_server(PyObject* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
+static PyObject* _pyrpc_server_enable_udp(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+    unsigned long u;
+    if (!PyArg_ParseTuple(args, "k", &u))
+        return nullptr;
+    Server* svr = (Server *) u;
+    svr->enable_udp();
+    Py_RETURN_NONE;
+}
+
 static PyObject* _pyrpc_server_start(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
     const char* addr;
@@ -71,6 +81,8 @@ static PyObject* _pyrpc_server_unreg(PyObject* self, PyObject* args) {
     svr->unreg(rpc_id);
     Py_RETURN_NONE;
 }
+
+// TODO deferred return for Python
 
 static PyObject* _pyrpc_server_reg(PyObject* self, PyObject* args) {
     GILHelper gil_helper;
@@ -231,6 +243,25 @@ static PyObject* _pyrpc_client_sync_call(PyObject* self, PyObject* args) {
 
     unsigned long m_rep_id = (unsigned long) m_rep;
     return Py_BuildValue("(ik)", error_code, m_rep_id);
+}
+
+static PyObject* _pyrpc_client_udp_call(PyObject* self, PyObject* args) {
+    GILHelper gil_helper;
+
+    unsigned long u;
+    int rpc_id;
+    unsigned long m_id;
+    if (!PyArg_ParseTuple(args, "kik", &u, &rpc_id, &m_id))
+        return nullptr;
+
+    Client* clnt = (Client *) u;
+    Marshal* m = (Marshal *) m_id;
+
+    clnt->begin_udp_request(rpc_id);
+    clnt->udp_request() << *m;
+    int ret = clnt->end_udp_request();
+
+    return Py_BuildValue("i", ret);
 }
 
 
@@ -536,6 +567,7 @@ static PyObject* _pyrpc_helper_decr_ref(PyObject* self, PyObject* args) {
 static PyMethodDef _pyrpcMethods[] = {
     {"init_server", _pyrpc_init_server, METH_VARARGS, nullptr},
     {"fini_server", _pyrpc_fini_server, METH_VARARGS, nullptr},
+    {"server_enable_udp", _pyrpc_server_enable_udp, METH_VARARGS, nullptr},
     {"server_start", _pyrpc_server_start, METH_VARARGS, nullptr},
     {"server_unreg", _pyrpc_server_unreg, METH_VARARGS, nullptr},
     {"server_reg", _pyrpc_server_reg, METH_VARARGS, nullptr},
@@ -547,6 +579,7 @@ static PyMethodDef _pyrpcMethods[] = {
     {"client_connect", _pyrpc_client_connect, METH_VARARGS, nullptr},
     {"client_async_call", _pyrpc_client_async_call, METH_VARARGS, nullptr},
     {"client_sync_call", _pyrpc_client_sync_call, METH_VARARGS, nullptr},
+    {"client_udp_call", _pyrpc_client_udp_call, METH_VARARGS, nullptr},
 
     {"init_marshal", _pyrpc_init_marshal, METH_VARARGS, nullptr},
     {"fini_marshal", _pyrpc_fini_marshal, METH_VARARGS, nullptr},

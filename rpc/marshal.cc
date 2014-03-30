@@ -130,7 +130,7 @@ void stat_marshal_out(int fd, const void* buf, size_t nbytes, ssize_t ret) {
  * 8kb minimum chunk size.
  * NOTE: this value directly affects how many read/write syscall will be issued.
  */
-const size_t Marshal::raw_bytes::min_size = 8192;
+const size_t raw_bytes::min_size = 8192;
 
 Marshal::~Marshal() {
     chunk* chnk = head_;

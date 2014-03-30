@@ -64,6 +64,13 @@ void Future::notify_ready() {
     }
 }
 
+Client::~Client() {
+    if (udp_sa_ != nullptr) {
+        free(udp_sa_);
+    }
+    invalidate_pending_futures();
+}
+
 void Client::invalidate_pending_futures() {
     list<Future*> futures;
     pending_fu_l_.lock();
@@ -107,7 +114,7 @@ int Client::connect(const char* addr) {
     struct addrinfo hints, *result, *rp;
     memset(&hints, 0, sizeof(struct addrinfo));
 
-    hints.ai_family = AF_INET; // ipv4
+    hints.ai_family = AF_UNSPEC; // Allow IPv4 or IPv6
     hints.ai_socktype = SOCK_STREAM; // tcp
 
     int r = getaddrinfo(host.c_str(), port.c_str(), &hints, &result);
@@ -145,6 +152,28 @@ int Client::connect(const char* addr) {
 
     status_ = CONNECTED;
     pollmgr_->add(this);
+
+    // UDP, http://web.cecs.pdx.edu/~jrb/tcpip/sockets/ipv6.src/udp/udpclient.c
+    hints.ai_family = AF_UNSPEC; // Allow IPv4 or IPv6
+    hints.ai_socktype = SOCK_DGRAM; // UDP
+    hints.ai_protocol = IPPROTO_UDP;
+
+    r = getaddrinfo(host.c_str(), port.c_str(), &hints, &result);
+    if (r != 0) {
+        Log_error("rpc::Client: getaddrinfo(): %s", gai_strerror(r));
+        return EINVAL;
+    }
+
+    for (rp = result; rp != nullptr; rp = rp->ai_next) {
+        udp_sock_ = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+        if (udp_sock_ >= -1) {
+            break;
+        }
+    }
+
+    udp_sa_ = (struct sockaddr *) malloc(rp->ai_addrlen);
+    memcpy(udp_sa_, rp->ai_addr, rp->ai_addrlen);
+    udp_salen_ = rp->ai_addrlen;
 
     return 0;
 }
@@ -275,6 +304,31 @@ void Client::end_request() {
 
     out_l_.unlock();
 }
+
+// <size> <rpc_id> <arg1> <arg2> ... <argN>
+void Client::begin_udp_request(i32 rpc_id) {
+    udp_l_.lock();
+    udp_bmark_ = udp_.base().set_bookmark(sizeof(i32)); // will fill packet size later
+    udp_ << rpc_id;
+}
+
+int Client::end_udp_request() {
+    i32 payload_size = udp_.base().get_and_reset_write_cnt();
+    udp_.base().write_bookmark(udp_bmark_, &payload_size);
+
+    int ret = 0;
+    size_t size = 0;
+    bool overflow = false;
+    char* buf = udp_.get_buf(&size, &overflow);
+    if (overflow) {
+        ret = E2BIG;
+    } else {
+        sendto(udp_sock_, buf, size, 0, udp_sa_, udp_salen_);
+    }
+    udp_l_.unlock();
+    return ret;
+}
+
 
 ClientPool::ClientPool(PollMgr* pollmgr /* =? */, int parallel_connections /* =? */)
         : parallel_connections_(parallel_connections) {

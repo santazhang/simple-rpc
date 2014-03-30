@@ -34,6 +34,36 @@ public:
     virtual int __reg_to__(Server*) = 0;
 };
 
+class ServerUdpConnection: public Pollable {
+    Server* svr_;
+    int udp_sock_;
+    char* udp_buffer_;
+public:
+    ServerUdpConnection(Server* svr, int udp_sock): svr_(svr), udp_sock_(udp_sock) {
+        udp_buffer_ = new char[UdpBuffer::max_udp_packet_size_s];
+    }
+    ~ServerUdpConnection() {
+        delete[] udp_buffer_;
+    }
+    virtual int fd() {
+        return udp_sock_;
+    }
+    virtual int poll_mode() {
+        return Pollable::READ;  // always read only
+    }
+    void handle_write() {
+        // will not be called
+        verify(0);
+    }
+    void handle_read();
+    void handle_error() {
+        ::close(udp_sock_);
+    }
+
+    // helper function, do some work in background
+    int run_async(const std::function<void()>& f);
+};
+
 class ServerConnection: public Pollable {
 
     friend class Server;
@@ -147,11 +177,18 @@ public:
 class Server: public NoCopy {
 
     friend class ServerConnection;
+    friend class ServerUdpConnection;
 
     std::unordered_map<i32, std::function<void(Request*, ServerConnection*)>> handlers_;
+    std::unordered_map<i32, std::function<void(Request*, ServerUdpConnection*)>> udp_handlers_;
     PollMgr* pollmgr_;
     ThreadPool* threadpool_;
     int server_sock_;
+
+    bool udp_;
+    int udp_sock_;
+
+    ServerUdpConnection* udp_conn_;
 
     Counter sconns_ctr_;
 
@@ -171,6 +208,10 @@ public:
 
     Server(PollMgr* pollmgr = nullptr, ThreadPool* thrpool = nullptr);
     virtual ~Server();
+
+    void enable_udp() {
+        udp_ = true;
+    }
 
     int start(const char* bind_addr);
 
@@ -206,6 +247,35 @@ public:
         }
 
         handlers_[rpc_id] = [svc, svc_func] (Request* req, ServerConnection* sconn) {
+            (svc->*svc_func)(req, sconn);
+        };
+
+        return 0;
+    }
+
+   /**
+    * The svc_func need to do this:
+    *
+    *  {
+    *     // process request
+    *     ..
+    *
+    *     // no reply
+    *
+    *     // cleanup resource
+    *     delete request;
+    *     server_connection->release();
+    *  }
+    */
+    template<class S>
+    int reg(i32 rpc_id, S* svc, void (S::*svc_func)(Request*, ServerUdpConnection*)) {
+
+        // disallow duplicate rpc_id
+        if (udp_handlers_.find(rpc_id) != udp_handlers_.end()) {
+            return EEXIST;
+        }
+
+        udp_handlers_[rpc_id] = [svc, svc_func] (Request* req, ServerUdpConnection* sconn) {
             (svc->*svc_func)(req, sconn);
         };
 
