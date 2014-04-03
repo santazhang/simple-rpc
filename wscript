@@ -40,7 +40,7 @@ def build(bld):
     _depend("pylib/simplerpcgen/rpcgen.py", "pylib/simplerpcgen/rpcgen.g", "pylib/yapps/main.py pylib/simplerpcgen/rpcgen.g")
     _depend("rlog/log_service.h", "rlog/log_service.rpc", "bin/rpcgen rlog/log_service.rpc")
     _depend("test/benchmark_service.h test/benchmark_service.py", "test/benchmark_service.rpc", "bin/rpcgen --cpp --python test/benchmark_service.rpc")
-    _depend("test/test_service.py", "test/test_service.rpc", "bin/rpcgen --python test/test_service.rpc")
+    _depend("test/test_service.h test/test_service.py", "test/test_service.rpc", "bin/rpcgen --cpp --python test/test_service.rpc")
 
     bld.stlib(source=bld.path.ant_glob("rpc/*.cc"), target="simplerpc", includes="rpc", use=bld.env.USES)
     bld.stlib(
@@ -63,6 +63,7 @@ def build(bld):
         bld.program(source=source, target=target, includes=includes, use=use)
 
     _prog("test/rpcbench.cc test/benchmark_service.cc", "rpcbench")
+    _prog("test/floodtest.cc test/test_service.cc", "floodtest")
     _prog(bld.path.ant_glob("rlog/*.cc", excl="rlog/rlog.cc"), "rlogserver")
 
     test_src = bld.path.ant_glob("test/test*.cc") + bld.path.ant_glob("rlog/*.cc", excl="rlog/log_server.cc") + ["test/benchmark_service.cc"]
