@@ -35,7 +35,7 @@ TEST(integration, sync_test) {
     vector<BenchmarkProxy*> clients;
     vector<Server*> servers;
 
-    int first_port = find_open_port();
+    int first_port = 1987;
     for (int i = 0; i < n_servers; ++i) {
         int port = first_port + i;
         auto server = new Server(poll_mgr, thr_pool);

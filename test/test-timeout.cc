@@ -13,7 +13,7 @@ TEST(future, wait_timeout) {
     ThreadPool* thrpool = new ThreadPool;
 
     // start the server
-    int svc_port = find_open_port();
+    int svc_port = 1987;
     EXPECT_NEQ(svc_port, -1);
     Server* svr = new Server(poll, thrpool);
     BenchmarkService bench_svc;
