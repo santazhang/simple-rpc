@@ -105,7 +105,7 @@ int Client::connect(const char* addr) {
 
     struct addrinfo hints;
     memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_family = AF_UNSPEC; // Allow IPv4 or IPv6
+    hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM; // tcp
 
     sock_ = open_socket(addr, &hints,
@@ -125,7 +125,7 @@ int Client::connect(const char* addr) {
     verify(set_nonblocking(sock_, true) == 0);
 
     memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_family = AF_UNSPEC; // Allow IPv4 or IPv6
+    hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_DGRAM; // UDP
     hints.ai_protocol = IPPROTO_UDP;
 

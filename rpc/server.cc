@@ -468,7 +468,7 @@ int Server::start(const char* bind_addr) {
     struct addrinfo hints, *result, *rp;
     memset(&hints, 0, sizeof(struct addrinfo));
 
-    hints.ai_family = AF_UNSPEC; // Allow IPv4 or IPv6
+    hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM; // tcp
     hints.ai_flags = AI_PASSIVE; // server side
 
@@ -511,7 +511,7 @@ int Server::start(const char* bind_addr) {
         // http://web.cecs.pdx.edu/~jrb/tcpip/sockets/ipv6.src/udp/udpclient.c
         struct addrinfo udp_hints;
         memset(&udp_hints, 0, sizeof(struct addrinfo));
-        udp_hints.ai_family = AF_UNSPEC; // Allow IPv4 or IPv6
+        udp_hints.ai_family = AF_INET;
         udp_hints.ai_socktype = SOCK_DGRAM; // udp
         udp_hints.ai_protocol = IPPROTO_UDP;
 
