@@ -101,4 +101,18 @@ int udp_connect(const char* addr, struct sockaddr** p_addr /* =? */, socklen_t* 
     return open_socket(addr, &hints, nullptr, p_addr, p_len);
 }
 
+int udp_bind(const char* addr) {
+    // http://web.cecs.pdx.edu/~jrb/tcpip/sockets/ipv6.src/udp/udpclient.c
+    struct addrinfo udp_hints;
+    memset(&udp_hints, 0, sizeof(struct addrinfo));
+    udp_hints.ai_family = AF_INET;
+    udp_hints.ai_socktype = SOCK_DGRAM; // udp
+    udp_hints.ai_protocol = IPPROTO_UDP;
+
+    return open_socket(addr, &udp_hints,
+                        [] (int sock, const struct sockaddr* sock_addr, socklen_t sock_len) {
+                            return ::bind(sock, sock_addr, sock_len) == 0;
+                        });
+}
+
 }

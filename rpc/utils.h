@@ -48,4 +48,6 @@ int open_socket(const char* addr, const struct addrinfo* hints,
 int tcp_connect(const char* addr);
 int udp_connect(const char* addr, struct sockaddr** p_addr = nullptr, socklen_t* p_len = nullptr);
 
+int udp_bind(const char* addr);
+
 }

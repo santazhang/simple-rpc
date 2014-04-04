@@ -508,18 +508,7 @@ int Server::start(const char* bind_addr) {
     verify(set_nonblocking(server_sock_, true) == 0);
 
     if (udp_) {
-        // http://web.cecs.pdx.edu/~jrb/tcpip/sockets/ipv6.src/udp/udpclient.c
-        struct addrinfo udp_hints;
-        memset(&udp_hints, 0, sizeof(struct addrinfo));
-        udp_hints.ai_family = AF_INET;
-        udp_hints.ai_socktype = SOCK_DGRAM; // udp
-        udp_hints.ai_protocol = IPPROTO_UDP;
-
-        udp_sock_ = open_socket(bind_addr, &udp_hints,
-                                [] (int sock, const struct sockaddr* sock_addr, socklen_t sock_len) {
-                                    return ::bind(sock, sock_addr, sock_len) == 0;
-                                });
-
+        udp_sock_ = udp_bind(bind_addr);
         if (udp_sock_ == -1) {
             // failed to bind
             Log_error("rpc::Server: bind(): %s (UDP)", strerror(errno));
