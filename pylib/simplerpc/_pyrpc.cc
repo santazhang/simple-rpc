@@ -121,7 +121,7 @@ static PyObject* _pyrpc_server_reg(PyObject* self, PyObject* args) {
 
         sconn->begin_reply(req, error_code);
         if (output_m != nullptr) {
-            *sconn << *output_m;
+            sconn->write_marshal(*output_m);
         }
         sconn->end_reply();
 
