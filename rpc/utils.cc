@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <limits.h>
+
 #include "utils.h"
 
 using namespace std;
@@ -83,7 +85,7 @@ int open_socket(const char* addr, const struct addrinfo* hints,
     string str_addr(addr);
     size_t idx = str_addr.find(":");
     if (idx == string::npos) {
-        Log_error("open_socket(): bad bind address: %s", addr);
+        Log_error("open_socket(): bad address: %s", addr);
         return -1;
     }
     string host = str_addr.substr(0, idx);
@@ -123,8 +125,13 @@ int open_socket(const char* addr, const struct addrinfo* hints,
 }
 
 std::string get_host_name() {
-    char buffer[1024];
-    if (gethostname(buffer, 1024) != 0) {
+#ifdef __APPLE__
+    const int hostname_max = _POSIX_HOST_NAME_MAX + 1;
+#else
+    const int hostname_max = HOST_NAME_MAX + 1;
+#endif // __APPLE__
+    char buffer[hostname_max];
+    if (gethostname(buffer, hostname_max) != 0) {
         Log_error("Failed to get hostname.");
         return "";
     }
