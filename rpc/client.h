@@ -111,7 +111,7 @@ class Client: public Pollable {
     SpinLock udp_l_;
     int udp_sock_;
     UdpBuffer udp_;
-    int udp_salen_;
+    socklen_t udp_salen_;
     struct sockaddr *udp_sa_;
     Marshal::bookmark* udp_bmark_;
 

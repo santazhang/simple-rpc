@@ -102,79 +102,45 @@ void Client::close() {
 
 int Client::connect(const char* addr) {
     verify(status_ != CONNECTED);
-    string addr_str(addr);
-    size_t idx = addr_str.find(":");
-    if (idx == string::npos) {
-        Log_error("rpc::Client: bad connect address: %s", addr);
-        return EINVAL;
-    }
-    string host = addr_str.substr(0, idx);
-    string port = addr_str.substr(idx + 1);
 
-    struct addrinfo hints, *result, *rp;
+    struct addrinfo hints;
     memset(&hints, 0, sizeof(struct addrinfo));
-
     hints.ai_family = AF_UNSPEC; // Allow IPv4 or IPv6
     hints.ai_socktype = SOCK_STREAM; // tcp
 
-    int r = getaddrinfo(host.c_str(), port.c_str(), &hints, &result);
-    if (r != 0) {
-        Log_error("rpc::Client: getaddrinfo(): %s", gai_strerror(r));
-        return EINVAL;
-    }
+    sock_ = open_socket(addr, &hints,
+                        [] (int sock, const struct sockaddr* sock_addr, socklen_t sock_len) {
+                            const int yes = 1;
+                            verify(setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == 0);
+                            verify(setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(yes)) == 0);
+                            return ::connect(sock, sock_addr, sock_len) == 0;
+                        });
 
-    for (rp = result; rp != nullptr; rp = rp->ai_next) {
-        sock_ = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-        if (sock_ == -1) {
-            continue;
-        }
-
-        const int yes = 1;
-        verify(setsockopt(sock_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == 0);
-        verify(setsockopt(sock_, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(yes)) == 0);
-
-        if (::connect(sock_, rp->ai_addr, rp->ai_addrlen) == 0) {
-            break;
-        }
-        ::close(sock_);
-        sock_ = -1;
-    }
-    freeaddrinfo(result);
-
-    if (rp == nullptr) {
+    if (sock_ == -1) {
         // failed to connect
         Log_error("rpc::Client: connect(%s): %s", addr, strerror(errno));
         return ENOTCONN;
     }
 
     verify(set_nonblocking(sock_, true) == 0);
-    Log_debug("rpc::Client: connected to %s", addr);
 
-    status_ = CONNECTED;
-    pollmgr_->add(this);
-
-    // UDP, http://web.cecs.pdx.edu/~jrb/tcpip/sockets/ipv6.src/udp/udpclient.c
+    memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = AF_UNSPEC; // Allow IPv4 or IPv6
     hints.ai_socktype = SOCK_DGRAM; // UDP
     hints.ai_protocol = IPPROTO_UDP;
 
-    r = getaddrinfo(host.c_str(), port.c_str(), &hints, &result);
-    if (r != 0) {
-        Log_error("rpc::Client: getaddrinfo(): %s", gai_strerror(r));
-        return EINVAL;
+    udp_sock_ = open_socket(addr, &hints, nullptr, &udp_sa_, &udp_salen_);
+    if (udp_sock_ == -1) {
+        // failed to connect
+        Log_error("rpc::Client: connect(%s): %s (UDP)", addr, strerror(errno));
+        ::close(sock_);
+        sock_ = -1;
+        return ENOTCONN;
     }
 
-    for (rp = result; rp != nullptr; rp = rp->ai_next) {
-        udp_sock_ = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-        if (udp_sock_ >= -1) {
-            break;
-        }
-    }
-
-    udp_sa_ = (struct sockaddr *) malloc(rp->ai_addrlen);
-    memcpy(udp_sa_, rp->ai_addr, rp->ai_addrlen);
-    udp_salen_ = rp->ai_addrlen;
-    freeaddrinfo(result);
+    Log_debug("rpc::Client: connected to %s", addr);
+    status_ = CONNECTED;
+    pollmgr_->add(this);
 
     return 0;
 }

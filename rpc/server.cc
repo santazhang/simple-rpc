@@ -509,43 +509,27 @@ int Server::start(const char* bind_addr) {
 
     if (udp_) {
         // http://web.cecs.pdx.edu/~jrb/tcpip/sockets/ipv6.src/udp/udpclient.c
-        struct addrinfo udp_hints, *udp_result, *udp_rp;
+        struct addrinfo udp_hints;
         memset(&udp_hints, 0, sizeof(struct addrinfo));
         udp_hints.ai_family = AF_UNSPEC; // Allow IPv4 or IPv6
         udp_hints.ai_socktype = SOCK_DGRAM; // udp
         udp_hints.ai_protocol = IPPROTO_UDP;
 
-        r = getaddrinfo((host == "0.0.0.0") ? nullptr : host.c_str(), port.c_str(), &udp_hints, &udp_result);
-        if (r != 0) {
-            Log_error("rpc::Server: getaddrinfo(): %s (UDP)", gai_strerror(r));
-            // close the TCP socket opened
-            close(server_sock_);
-            server_sock_ = -1;
-            return EINVAL;
-        }
+        udp_sock_ = open_socket(bind_addr, &udp_hints,
+                                [] (int sock, const struct sockaddr* sock_addr, socklen_t sock_len) {
+                                    return ::bind(sock, sock_addr, sock_len) == 0;
+                                });
 
-        for (udp_rp = udp_result; udp_rp != nullptr; udp_rp = udp_rp->ai_next) {
-            udp_sock_ = socket(udp_rp->ai_family, udp_rp->ai_socktype, udp_rp->ai_protocol);
-            if (udp_sock_ == -1) {
-                continue;
-            }
-            if (::bind(udp_sock_, udp_rp->ai_addr, udp_rp->ai_addrlen) == 0) {
-                break;
-            }
-            close(udp_sock_);
-            udp_sock_ = -1;
-        }
-
-        freeaddrinfo(udp_result);
-        if (udp_rp == nullptr) {
+        if (udp_sock_ == -1) {
             // failed to bind
             Log_error("rpc::Server: bind(): %s (UDP)", strerror(errno));
             // close the TCP socket opened
             close(server_sock_);
             server_sock_ = -1;
             return EINVAL;
+        } else {
+            Log_info("rpc::Server: started on %s (UDP)", bind_addr);
         }
-        Log_info("rpc::Server: started on %s (UDP)", bind_addr);
     }
 
     status_ = RUNNING;
