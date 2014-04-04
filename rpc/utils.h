@@ -45,4 +45,7 @@ int open_socket(const char* addr, const struct addrinfo* hints,
                 std::function<bool(int, const struct sockaddr*, socklen_t)> filter = nullptr,
                 struct sockaddr** p_addr = nullptr, socklen_t* p_len = nullptr);
 
+int tcp_connect(const char* addr);
+int udp_connect(const char* addr, struct sockaddr** p_addr = nullptr, socklen_t* p_len = nullptr);
+
 }

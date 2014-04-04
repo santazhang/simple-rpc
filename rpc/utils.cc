@@ -10,6 +10,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <limits.h>
+#include <netinet/tcp.h>
 
 #include "utils.h"
 
@@ -74,6 +75,30 @@ int open_socket(const char* addr, const struct addrinfo* hints,
 
     freeaddrinfo(result);
     return sock;
+}
+
+int tcp_connect(const char* addr) {
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM; // tcp
+
+    return open_socket(addr, &hints,
+                        [] (int sock, const struct sockaddr* sock_addr, socklen_t sock_len) {
+                            const int yes = 1;
+                            verify(setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == 0);
+                            verify(setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(yes)) == 0);
+                            return ::connect(sock, sock_addr, sock_len) == 0;
+                        });
+}
+
+int udp_connect(const char* addr, struct sockaddr** p_addr /* =? */, socklen_t* p_len /* =? */) {
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM; // UDP
+    hints.ai_protocol = IPPROTO_UDP;
+    return open_socket(addr, &hints, nullptr, p_addr, p_len);
 }
 
 }
