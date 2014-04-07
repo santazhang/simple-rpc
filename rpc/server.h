@@ -34,19 +34,64 @@ public:
     virtual int __reg_to__(Server*) = 0;
 };
 
-class ServerUdpConnection: public Pollable {
-    Server* svr_;
-    int udp_sock_;
-    char* udp_buffer_;
+class ServerConnection: public Pollable {
+    friend class Server;
+
+    virtual Marshal* output_buffer() = 0;
+    virtual void close() = 0;
+
+protected:
+
+    Server* server_;
+    int sock_;
+
 public:
-    ServerUdpConnection(Server* svr, int udp_sock): svr_(svr), udp_sock_(udp_sock) {
+    ServerConnection(Server* server, int sock): server_(server), sock_(sock) {}
+    virtual ~ServerConnection() {}
+    virtual int fd() {
+        return sock_;
+    }
+
+    // helper function, do some work in background
+    int run_async(const std::function<void()>& f);
+
+    virtual void begin_reply(Request* req, i32 error_code = 0) = 0;
+
+    virtual void end_reply() = 0;
+
+    void write_marshal(Marshal& m) {
+        Marshal* buf = this->output_buffer();
+        buf->read_from_marshal(m, m.content_size());
+    }
+
+    template<class T>
+    ServerConnection& operator <<(const T& v) {
+        Marshal* buf = this->output_buffer();
+        *buf << v;
+        return *this;
+    }
+};
+
+class ServerUdpConnection: public ServerConnection {
+    char* udp_buffer_;
+
+    virtual void close() {
+        // will not be called
+        verify(0);
+    }
+
+    virtual Marshal* output_buffer() {
+        // will not be called
+        verify(0);
+        return nullptr;
+    }
+
+public:
+    ServerUdpConnection(Server* svr, int udp_sock): ServerConnection(svr, udp_sock) {
         udp_buffer_ = new char[UdpBuffer::max_udp_packet_size_s];
     }
     ~ServerUdpConnection() {
         delete[] udp_buffer_;
-    }
-    virtual int fd() {
-        return udp_sock_;
     }
     virtual int poll_mode() {
         return Pollable::READ;  // always read only
@@ -57,28 +102,37 @@ public:
     }
     void handle_read();
     void handle_error() {
-        ::close(udp_sock_);
+        ::close(sock_);
     }
 
-    // helper function, do some work in background
-    int run_async(const std::function<void()>& f);
+    virtual void begin_reply(Request* req, i32 error_code = 0) {
+        // no reply, should not be called
+        verify(0);
+    }
+
+    virtual void end_reply() {
+        // no reply, should not be called
+        verify(0);
+    }
 };
 
-class ServerConnection: public Pollable {
+class ServerTcpConnection: public ServerConnection {
 
     friend class Server;
 
     Marshal in_, out_;
     SpinLock out_l_;
 
-    Server* server_;
-    int socket_;
-
     Marshal::bookmark* bmark_;
 
     enum {
         CONNECTED, CLOSED
     } status_;
+
+
+    virtual Marshal* output_buffer() {
+        return &out_;
+    }
 
     /**
      * Only to be called by:
@@ -94,11 +148,11 @@ class ServerConnection: public Pollable {
 protected:
 
     // Protected destructor as required by RefCounted.
-    ~ServerConnection();
+    ~ServerTcpConnection();
 
 public:
 
-    ServerConnection(Server* server, int socket);
+    ServerTcpConnection(Server* server, int socket);
 
     /**
      * Start a reply message. Must be paired with end_reply().
@@ -117,24 +171,6 @@ public:
     void begin_reply(Request* req, i32 error_code = 0);
 
     void end_reply();
-
-    // helper function, do some work in background
-    int run_async(const std::function<void()>& f);
-
-    template<class T>
-    ServerConnection& operator <<(const T& v) {
-        this->out_ << v;
-        return *this;
-    }
-
-    ServerConnection& operator <<(Marshal& m) {
-        this->out_.read_from_marshal(m, m.content_size());
-        return *this;
-    }
-
-    int fd() {
-        return socket_;
-    }
 
     int poll_mode();
     void handle_write();
@@ -177,10 +213,10 @@ public:
 class Server: public NoCopy {
 
     friend class ServerConnection;
+    friend class ServerTcpConnection;
     friend class ServerUdpConnection;
 
     std::unordered_map<i32, std::function<void(Request*, ServerConnection*)>> handlers_;
-    std::unordered_map<i32, std::function<void(Request*, ServerUdpConnection*)>> udp_handlers_;
     PollMgr* pollmgr_;
     ThreadPool* threadpool_;
     int server_sock_;
@@ -247,35 +283,6 @@ public:
         }
 
         handlers_[rpc_id] = [svc, svc_func] (Request* req, ServerConnection* sconn) {
-            (svc->*svc_func)(req, sconn);
-        };
-
-        return 0;
-    }
-
-   /**
-    * The svc_func need to do this:
-    *
-    *  {
-    *     // process request
-    *     ..
-    *
-    *     // no reply
-    *
-    *     // cleanup resource
-    *     delete request;
-    *     server_connection->release();
-    *  }
-    */
-    template<class S>
-    int reg(i32 rpc_id, S* svc, void (S::*svc_func)(Request*, ServerUdpConnection*)) {
-
-        // disallow duplicate rpc_id
-        if (udp_handlers_.find(rpc_id) != udp_handlers_.end()) {
-            return EEXIST;
-        }
-
-        udp_handlers_[rpc_id] = [svc, svc_func] (Request* req, ServerUdpConnection* sconn) {
             (svc->*svc_func)(req, sconn);
         };
 

@@ -9,6 +9,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <limits.h>
+#include <netinet/tcp.h>
+
 #include "utils.h"
 
 using namespace std;
@@ -27,54 +30,6 @@ int set_nonblocking(int fd, bool nonblocking) {
     return ret;
 }
 
-int find_open_port() {
-    int fd = socket(AF_INET, SOCK_STREAM, 0);
-
-    addrinfo *local_addr;
-
-    addrinfo hints;
-    bzero(&hints, sizeof(hints));
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;
-
-    if (getaddrinfo("0.0.0.0", nullptr, nullptr, &local_addr) != 0) {
-        Log_error("Failed to getaddrinfo");
-        return -1;
-    }
-
-    int port = -1;
-
-    for (int i = 1024; i < 65000; ++i) {
-        ((sockaddr_in*)local_addr->ai_addr)->sin_port = i;
-        if (::bind(fd, local_addr->ai_addr, local_addr->ai_addrlen) != 0) {
-            continue;
-        }
-
-        sockaddr_in addr;
-        socklen_t addrlen;
-        memset(&addr, 0, sizeof(addr));
-        if (getsockname(fd, (sockaddr*)&addr, &addrlen) != 0) {
-            Log_error("Failed to get socket address");
-            return -1;
-        }
-
-        port = i;
-        break;
-    }
-
-    freeaddrinfo(local_addr);
-    ::close(fd);
-
-    if (port != -1) {
-        Log_info("Found open port: %d", port);
-        return port;
-    }
-
-    Log_error("Failed to find open port.");
-    return -1;
-}
-
 int open_socket(const char* addr, const struct addrinfo* hints,
                 std::function<bool(int, const struct sockaddr*, socklen_t)> filter /* =? */,
                 struct sockaddr** p_addr /* =? */, socklen_t* p_len /* =? */) {
@@ -83,7 +38,7 @@ int open_socket(const char* addr, const struct addrinfo* hints,
     string str_addr(addr);
     size_t idx = str_addr.find(":");
     if (idx == string::npos) {
-        Log_error("open_socket(): bad bind address: %s", addr);
+        Log_error("open_socket(): bad address: %s", addr);
         return -1;
     }
     string host = str_addr.substr(0, idx);
@@ -122,13 +77,42 @@ int open_socket(const char* addr, const struct addrinfo* hints,
     return sock;
 }
 
-std::string get_host_name() {
-    char buffer[1024];
-    if (gethostname(buffer, 1024) != 0) {
-        Log_error("Failed to get hostname.");
-        return "";
-    }
-    return std::string(buffer);
+int tcp_connect(const char* addr) {
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM; // tcp
+
+    return open_socket(addr, &hints,
+                        [] (int sock, const struct sockaddr* sock_addr, socklen_t sock_len) {
+                            const int yes = 1;
+                            verify(setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == 0);
+                            verify(setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(yes)) == 0);
+                            return ::connect(sock, sock_addr, sock_len) == 0;
+                        });
+}
+
+int udp_connect(const char* addr, struct sockaddr** p_addr /* =? */, socklen_t* p_len /* =? */) {
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM; // UDP
+    hints.ai_protocol = IPPROTO_UDP;
+    return open_socket(addr, &hints, nullptr, p_addr, p_len);
+}
+
+int udp_bind(const char* addr) {
+    // http://web.cecs.pdx.edu/~jrb/tcpip/sockets/ipv6.src/udp/udpclient.c
+    struct addrinfo udp_hints;
+    memset(&udp_hints, 0, sizeof(struct addrinfo));
+    udp_hints.ai_family = AF_INET;
+    udp_hints.ai_socktype = SOCK_DGRAM; // udp
+    udp_hints.ai_protocol = IPPROTO_UDP;
+
+    return open_socket(addr, &udp_hints,
+                        [] (int sock, const struct sockaddr* sock_addr, socklen_t sock_len) {
+                            return ::bind(sock, sock_addr, sock_len) == 0;
+                        });
 }
 
 }

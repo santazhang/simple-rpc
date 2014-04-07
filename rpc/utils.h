@@ -41,12 +41,13 @@ using base::insert_into_map;
 
 int set_nonblocking(int fd, bool nonblocking);
 
-int find_open_port();
-
 int open_socket(const char* addr, const struct addrinfo* hints,
                 std::function<bool(int, const struct sockaddr*, socklen_t)> filter = nullptr,
                 struct sockaddr** p_addr = nullptr, socklen_t* p_len = nullptr);
 
-std::string get_host_name();
+int tcp_connect(const char* addr);
+int udp_connect(const char* addr, struct sockaddr** p_addr = nullptr, socklen_t* p_len = nullptr);
+
+int udp_bind(const char* addr);
 
 }

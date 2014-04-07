@@ -1,11 +1,6 @@
 #include <string>
 
 #include <errno.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <netinet/tcp.h>
 
 #include "client.h"
 
@@ -103,39 +98,17 @@ void Client::close() {
 int Client::connect(const char* addr) {
     verify(status_ != CONNECTED);
 
-    struct addrinfo hints;
-    memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_family = AF_UNSPEC; // Allow IPv4 or IPv6
-    hints.ai_socktype = SOCK_STREAM; // tcp
-
-    sock_ = open_socket(addr, &hints,
-                        [] (int sock, const struct sockaddr* sock_addr, socklen_t sock_len) {
-                            const int yes = 1;
-                            verify(setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == 0);
-                            verify(setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(yes)) == 0);
-                            return ::connect(sock, sock_addr, sock_len) == 0;
-                        });
-
+    sock_ = tcp_connect(addr);
     if (sock_ == -1) {
-        // failed to connect
         Log_error("rpc::Client: connect(%s): %s", addr, strerror(errno));
-        return ENOTCONN;
+        goto err_out;
     }
-
     verify(set_nonblocking(sock_, true) == 0);
 
-    memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_family = AF_UNSPEC; // Allow IPv4 or IPv6
-    hints.ai_socktype = SOCK_DGRAM; // UDP
-    hints.ai_protocol = IPPROTO_UDP;
-
-    udp_sock_ = open_socket(addr, &hints, nullptr, &udp_sa_, &udp_salen_);
+    udp_sock_ = udp_connect(addr, &udp_sa_, &udp_salen_);
     if (udp_sock_ == -1) {
-        // failed to connect
         Log_error("rpc::Client: connect(%s): %s (UDP)", addr, strerror(errno));
-        ::close(sock_);
-        sock_ = -1;
-        return ENOTCONN;
+        goto err_out;
     }
 
     Log_debug("rpc::Client: connected to %s", addr);
@@ -143,6 +116,16 @@ int Client::connect(const char* addr) {
     pollmgr_->add(this);
 
     return 0;
+
+err_out:
+
+    if (sock_ != -1) {
+        ::close(sock_);
+    }
+    if (udp_sock_ != -1) {
+        ::close(udp_sock_);
+    }
+    return ENOTCONN;
 }
 
 void Client::handle_error() {

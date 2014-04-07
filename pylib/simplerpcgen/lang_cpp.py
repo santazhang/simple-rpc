@@ -83,10 +83,7 @@ def emit_service_and_proxy(service, f, rpc_table):
         for func in service.functions:
             if "raw" in func.attrs:
                 continue
-            if "udp" in func.attrs:
-                f.writeln("void __%s__wrapper__(rpc::Request* req, rpc::ServerUdpConnection* sconn) {" % func.name)
-            else:
-                f.writeln("void __%s__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {" % func.name)
+            f.writeln("void __%s__wrapper__(rpc::Request* req, rpc::ServerConnection* sconn) {" % func.name)
             with f.indent():
                 if "defer" in func.attrs:
                     invoke_with = []

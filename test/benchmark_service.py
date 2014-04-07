@@ -5,18 +5,18 @@ from simplerpc.future import Future
 point3 = Marshal.reg_type('point3', [('x', 'double'), ('y', 'double'), ('z', 'double')])
 
 class BenchmarkService(object):
-    FAST_PRIME = 0x4f9d82fa
-    FAST_DOT_PROD = 0x2710cfa7
-    FAST_ADD = 0x29ae92de
-    FAST_NOP = 0x625a93e4
-    PRIME = 0x199b6e02
-    DOT_PROD = 0x39c06fab
-    ADD = 0x34b605b5
-    NOP = 0x1e9ed738
-    SLEEP = 0x4cca75e6
-    ADD_LATER = 0x26b2f4bf
-    LOSSY_NOP = 0x4c6b2e84
-    FAST_LOSSY_NOP = 0x3344c58b
+    FAST_PRIME = 0x5b9365eb
+    FAST_DOT_PROD = 0x4a92c615
+    FAST_ADD = 0x484806bf
+    FAST_NOP = 0x4f29b7a5
+    PRIME = 0x1f96b90f
+    DOT_PROD = 0x3a2fd47a
+    ADD = 0x5135fabc
+    NOP = 0x3823ed06
+    SLEEP = 0x39d768e9
+    ADD_LATER = 0x64e0a594
+    LOSSY_NOP = 0x5323ea07
+    FAST_LOSSY_NOP = 0x6223e760
 
     __input_type_info__ = {
         'fast_prime': ['rpc::i32'],

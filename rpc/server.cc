@@ -80,9 +80,15 @@ static void stat_server_rpc_counting(i32 rpc_id) {
 #endif // RPC_STATISTICS
 
 
+
+int ServerConnection::run_async(const std::function<void()>& f) {
+    return server_->threadpool_->run_async(f);
+}
+
+
 // <size> <rpc_id> <arg1> <arg2> ... <argN>
 void ServerUdpConnection::handle_read() {
-    int cnt = recvfrom(udp_sock_, udp_buffer_, UdpBuffer::max_udp_packet_size_s, MSG_WAITALL, nullptr, nullptr);
+    int cnt = recvfrom(sock_, udp_buffer_, UdpBuffer::max_udp_packet_size_s, MSG_WAITALL, nullptr, nullptr);
     Marshal m_in;
     m_in.write(udp_buffer_, cnt);
 
@@ -126,8 +132,8 @@ void ServerUdpConnection::handle_read() {
         stat_server_rpc_counting(rpc_id);
 #endif // RPC_STATISTICS
 
-        auto it = svr_->udp_handlers_.find(rpc_id);
-        if (it != svr_->udp_handlers_.end()) {
+        auto it = server_->handlers_.find(rpc_id);
+        if (it != server_->handlers_.end()) {
             // the handler should delete req, and release server_connection refcopy.
             it->second(req, (ServerUdpConnection *) this->ref_copy());
         } else {
@@ -137,32 +143,25 @@ void ServerUdpConnection::handle_read() {
     }
 }
 
-int ServerUdpConnection::run_async(const std::function<void()>& f) {
-    return svr_->threadpool_->run_async(f);
-}
 
 
+std::unordered_set<i32> ServerTcpConnection::rpc_id_missing_s;
+SpinLock ServerTcpConnection::rpc_id_missing_l_s;
 
-std::unordered_set<i32> ServerConnection::rpc_id_missing_s;
-SpinLock ServerConnection::rpc_id_missing_l_s;
 
-
-ServerConnection::ServerConnection(Server* server, int socket)
-        : server_(server), socket_(socket), bmark_(nullptr), status_(CONNECTED) {
+ServerTcpConnection::ServerTcpConnection(Server* server, int socket)
+        : ServerConnection(server, socket), bmark_(nullptr), status_(CONNECTED) {
     // increase number of open connections
     server_->sconns_ctr_.next(1);
 }
 
-ServerConnection::~ServerConnection() {
+ServerTcpConnection::~ServerTcpConnection() {
     // decrease number of open connections
     server_->sconns_ctr_.next(-1);
 }
 
-int ServerConnection::run_async(const std::function<void()>& f) {
-    return server_->threadpool_->run_async(f);
-}
 
-void ServerConnection::begin_reply(Request* req, i32 error_code /* =... */) {
+void ServerTcpConnection::begin_reply(Request* req, i32 error_code /* =... */) {
     out_l_.lock();
     v32 v_error_code = error_code;
     v64 v_reply_xid = req->xid;
@@ -173,7 +172,7 @@ void ServerConnection::begin_reply(Request* req, i32 error_code /* =... */) {
     *this << v_error_code;
 }
 
-void ServerConnection::end_reply() {
+void ServerTcpConnection::end_reply() {
     // set reply size in packet
     if (bmark_ != nullptr) {
         i32 reply_size = out_.get_and_reset_write_cnt();
@@ -189,12 +188,12 @@ void ServerConnection::end_reply() {
     out_l_.unlock();
 }
 
-void ServerConnection::handle_read() {
+void ServerTcpConnection::handle_read() {
     if (status_ == CLOSED) {
         return;
     }
 
-    int bytes_read = in_.read_from_fd(socket_);
+    int bytes_read = in_.read_from_fd(sock_);
     if (bytes_read == 0) {
         return;
     }
@@ -266,24 +265,24 @@ void ServerConnection::handle_read() {
     }
 }
 
-void ServerConnection::handle_write() {
+void ServerTcpConnection::handle_write() {
     if (status_ == CLOSED) {
         return;
     }
 
     out_l_.lock();
-    out_.write_to_fd(socket_);
+    out_.write_to_fd(sock_);
     if (out_.empty()) {
         server_->pollmgr_->update_mode(this, Pollable::READ);
     }
     out_l_.unlock();
 }
 
-void ServerConnection::handle_error() {
+void ServerTcpConnection::handle_error() {
     this->close();
 }
 
-void ServerConnection::close() {
+void ServerTcpConnection::close() {
     bool should_release = false;
 
     if (status_ == CONNECTED) {
@@ -302,10 +301,10 @@ void ServerConnection::close() {
         server_->pollmgr_->remove(this);
         server_->sconns_l_.unlock();
 
-        Log_debug("rpc::ServerConnection: closed on fd=%d", socket_);
+        Log_debug("rpc::ServerConnection: closed on fd=%d", sock_);
 
         status_ = CLOSED;
-        ::close(socket_);
+        ::close(sock_);
     }
 
     // this call might actually DELETE this object, so we put it at the end of function
@@ -314,7 +313,7 @@ void ServerConnection::close() {
     }
 }
 
-int ServerConnection::poll_mode() {
+int ServerTcpConnection::poll_mode() {
     int mode = Pollable::READ;
     out_l_.lock();
     if (!out_.empty()) {
@@ -439,7 +438,7 @@ void Server::server_loop(struct addrinfo* svr_addr) {
             verify(set_nonblocking(clnt_socket, true) == 0);
 
             sconns_l_.lock();
-            ServerConnection* sconn = new ServerConnection(this, clnt_socket);
+            ServerConnection* sconn = new ServerTcpConnection(this, clnt_socket);
             sconns_.insert(sconn);
             pollmgr_->add(sconn);
             sconns_l_.unlock();
@@ -468,7 +467,7 @@ int Server::start(const char* bind_addr) {
     struct addrinfo hints, *result, *rp;
     memset(&hints, 0, sizeof(struct addrinfo));
 
-    hints.ai_family = AF_UNSPEC; // Allow IPv4 or IPv6
+    hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM; // tcp
     hints.ai_flags = AI_PASSIVE; // server side
 
@@ -508,18 +507,7 @@ int Server::start(const char* bind_addr) {
     verify(set_nonblocking(server_sock_, true) == 0);
 
     if (udp_) {
-        // http://web.cecs.pdx.edu/~jrb/tcpip/sockets/ipv6.src/udp/udpclient.c
-        struct addrinfo udp_hints;
-        memset(&udp_hints, 0, sizeof(struct addrinfo));
-        udp_hints.ai_family = AF_UNSPEC; // Allow IPv4 or IPv6
-        udp_hints.ai_socktype = SOCK_DGRAM; // udp
-        udp_hints.ai_protocol = IPPROTO_UDP;
-
-        udp_sock_ = open_socket(bind_addr, &udp_hints,
-                                [] (int sock, const struct sockaddr* sock_addr, socklen_t sock_len) {
-                                    return ::bind(sock, sock_addr, sock_len) == 0;
-                                });
-
+        udp_sock_ = udp_bind(bind_addr);
         if (udp_sock_ == -1) {
             // failed to bind
             Log_error("rpc::Server: bind(): %s (UDP)", strerror(errno));
