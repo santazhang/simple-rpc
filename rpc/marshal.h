@@ -14,6 +14,7 @@
 #include <unistd.h>
 
 #include "utils.h"
+#include "buffer.h"
 
 namespace rpc {
 
@@ -21,24 +22,6 @@ namespace rpc {
 void stat_marshal_in(int fd, const void* buf, size_t nbytes, ssize_t ret);
 void stat_marshal_out(int fd, const void* buf, size_t nbytes, ssize_t ret);
 #endif // RPC_STATISTICS
-
-struct raw_bytes: public RefCounted {
-    char* ptr;
-    size_t size;
-    static const size_t min_size;
-
-    raw_bytes(size_t sz = min_size) {
-        size = std::max(sz, min_size);
-        ptr = new char[size];
-    }
-    raw_bytes(const void* p, size_t n) {
-        size = std::max(n, min_size);
-        ptr = new char[size];
-        memcpy(ptr, p, n);
-    }
-    ~raw_bytes() { delete[] ptr; }
-};
-
 
 struct chunk: public NoCopy {
     friend class UdpBuffer;
