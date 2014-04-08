@@ -9,8 +9,7 @@ namespace rpc {
 class Buffer {
 public:
     virtual ~Buffer() {}
-    virtual size_t content_size() = 0;
-
+    virtual size_t content_size() const = 0;
     virtual size_t write(const void* p, size_t n) = 0;
     virtual size_t read(void* p, size_t n) = 0;
     virtual size_t peek(void* p, size_t n) const = 0;
@@ -35,10 +34,15 @@ struct raw_bytes: public RefCounted {
 };
 
 
-#ifdef RPC_STATISTICS
-void stat_marshal_in(int fd, const void* buf, size_t nbytes, ssize_t ret);
-void stat_marshal_out(int fd, const void* buf, size_t nbytes, ssize_t ret);
-#endif // RPC_STATISTICS
+struct bookmark: public NoCopy {
+    size_t size;
+    char** ptr;
+
+    ~bookmark() {
+        delete[] ptr;
+    }
+};
+
 
 struct chunk: public NoCopy {
     friend class UdpBuffer;
@@ -138,43 +142,8 @@ public:
         return n_discard;
     }
 
-    int write_to_fd(int fd) {
-        assert(write_idx <= data->size);
-        int cnt = ::write(fd, data->ptr + read_idx, write_idx - read_idx);
-
-#ifdef RPC_STATISTICS
-        stat_marshal_out(fd, data->ptr + write_idx, data->size - write_idx, cnt);
-#endif // RPC_STATISTICS
-
-        if (cnt > 0) {
-            read_idx += cnt;
-        }
-
-        assert(write_idx <= data->size);
-        return cnt;
-    }
-
-    int read_from_fd(int fd) {
-        assert(write_idx <= data->size);
-        assert(read_idx <= write_idx);
-
-        int cnt = 0;
-        if (write_idx < data->size) {
-            cnt = ::read(fd, data->ptr + write_idx, data->size - write_idx);
-
-#ifdef RPC_STATISTICS
-            stat_marshal_in(fd, data->ptr + write_idx, data->size - write_idx, cnt);
-#endif // RPC_STATISTICS
-
-            if (cnt > 0) {
-                write_idx += cnt;
-            }
-        }
-
-        assert(write_idx <= data->size);
-        assert(read_idx <= write_idx);
-        return cnt;
-    }
+    int write_to_fd(int fd);
+    int read_from_fd(int fd);
 
     // check if it is not possible to write to the chunk anymore.
     bool fully_written() const {
@@ -188,6 +157,63 @@ public:
         assert(write_idx <= data->size);
         assert(read_idx <= write_idx);
         return read_idx == data->size;
+    }
+};
+
+
+// not thread safe, for better performance
+class UnboundedBuffer: public Buffer {
+    MakeNoCopy(UnboundedBuffer);
+
+    chunk* head_;
+    chunk* tail_;
+    i32 write_cnt_;
+    size_t content_size_;
+
+    // for debugging purpose
+    size_t content_size_slow() const;
+
+public:
+
+    UnboundedBuffer(): head_(nullptr), tail_(nullptr), write_cnt_(0), content_size_(0) { }
+    ~UnboundedBuffer();
+
+    bool empty() const {
+        assert(content_size_ == content_size_slow());
+        return content_size_ == 0;
+    }
+    size_t content_size() const {
+        assert(content_size_ == content_size_slow());
+        return content_size_;
+    }
+
+    size_t write(const void* p, size_t n);
+    size_t read(void* p, size_t n);
+    size_t peek(void* p, size_t n) const;
+
+    size_t read_from_fd(int fd);
+
+    // NOTE: This function is only used *internally* to chop a slice of marshal object.
+    // Use case 1: In C++ server io thread, when a compelete packet is received, read it off
+    //             into a Marshal object and hand over to worker threads.
+    // Use case 2: In Python extension, buffer message in Marshal object, and send to network.
+    size_t read_from_marshal(UnboundedBuffer& m, size_t n);
+
+    size_t write_to_fd(int fd);
+
+    bookmark* set_bookmark(size_t n);
+    void write_bookmark(bookmark* bm, const void* p) {
+        const char* pc = (const char *) p;
+        assert(bm != nullptr && bm->ptr != nullptr && p != nullptr);
+        for (size_t i = 0; i < bm->size; i++) {
+            *(bm->ptr[i]) = pc[i];
+        }
+    }
+
+    i32 get_and_reset_write_cnt() {
+        i32 cnt = write_cnt_;
+        write_cnt_ = 0;
+        return cnt;
     }
 };
 
