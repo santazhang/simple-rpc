@@ -355,14 +355,14 @@ void PollMgr::PollThread::update_mode(Pollable* poll, int new_mode) {
     l_.unlock();
 }
 
-static inline uint32_t hash_fd(uint32_t key) {
-    uint32_t c2 = 0x27d4eb2d; // a prime or an odd constant
-    key = (key ^ 61) ^ (key >> 16);
-    key = key + (key << 3);
-    key = key ^ (key >> 4);
-    key = key * c2;
-    key = key ^ (key >> 15);
-    return key;
+// from MurmurHash3
+static inline uint32_t hash_fd(uint32_t h) {
+    h ^= h >> 16;
+    h *= 0x85ebca6b;
+    h ^= h >> 13;
+    h *= 0xc2b2ae35;
+    h ^= h >> 16;
+    return h;
 }
 
 void PollMgr::add(Pollable* poll) {
