@@ -32,7 +32,7 @@ struct agg_qps_record {
 
 class RLogServiceImpl: public RLogService {
 public:
-    RLogServiceImpl(): last_qps_report_tm_(-1) { }
+    RLogServiceImpl();
 
     void log(const rpc::i32& level, const std::string& source, const rpc::i64& msg_id, const std::string& message);
     void aggregate_qps(const std::string& metric_name, const rpc::i32& increment);
@@ -41,11 +41,12 @@ private:
     std::map<std::string, rpc::i64> done_;
     std::map<std::string, std::set<log_piece> > buffer_;
     std::map<std::string, std::list<agg_qps_record> > agg_qps_;
+    std::map<std::string, double> last_qps_tm_;
+
+    double qps_interval_;
 
     rpc::Mutex l_;
     rpc::Mutex agg_qps_l_;
-
-    double last_qps_report_tm_;
 };
 
 }

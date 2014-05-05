@@ -37,6 +37,9 @@ void RLog::init(const char* my_ident /* =? */, const char* rlog_addr /* =? */) {
         }
 
         if (rlog_addr == nullptr) {
+            rlog_addr = getenv("RLOG_SERVER");
+        }
+        if (rlog_addr == nullptr) {
             rlog_addr = getenv("RLOGSERVER");
         }
         if (poll_s == nullptr) {

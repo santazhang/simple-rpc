@@ -12,6 +12,15 @@ using namespace rlog;
 
 namespace rlog {
 
+RLogServiceImpl::RLogServiceImpl() {
+    qps_interval_ = 1.0;
+    char* s = getenv("QPS_INTERVAL");
+    if (s != nullptr) {
+        qps_interval_ = strtod(s, nullptr);
+        Log::info("qps interval set to %lf", qps_interval_);
+    }
+}
+
 void RLogServiceImpl::log(const i32& level, const std::string& source, const i64& msg_id, const std::string& message) {
     log_piece piece;
     piece.msg_id = msg_id;
@@ -58,7 +67,7 @@ void RLogServiceImpl::aggregate_qps(const std::string& metric_name, const rpc::i
     }
 
     // report aggregate qps every 1sec
-    if (now - last_qps_report_tm_ > 1) {
+    if (now - last_qps_tm_[metric_name] >= qps_interval_) {
         const int report_intervals[] = {1, 5, 15, 30, 60};
         ostringstream qps_ostr;
         for (size_t i = 0; i < arraysize(report_intervals); i++) {
@@ -76,7 +85,7 @@ void RLogServiceImpl::aggregate_qps(const std::string& metric_name, const rpc::i
                 qps_ostr << " " << report_interval << ":" << qps;
             }
         }
-        last_qps_report_tm_ = now;
+        last_qps_tm_[metric_name] = now;
         if (qps_ostr.str().length() > 0) {
             Log_info("qps '%s':%s", metric_name.c_str(), qps_ostr.str().c_str());
         }
