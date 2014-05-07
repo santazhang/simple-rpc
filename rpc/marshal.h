@@ -30,15 +30,6 @@ class Marshal: public NoCopy {
 
 public:
 
-    struct bookmark: public NoCopy {
-        size_t size;
-        char** ptr;
-
-        ~bookmark() {
-            delete[] ptr;
-        }
-    };
-
     Marshal(): head_(nullptr), tail_(nullptr), write_cnt_(0), content_size_(0) { }
     ~Marshal();
 

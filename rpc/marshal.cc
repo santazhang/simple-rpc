@@ -225,7 +225,7 @@ size_t Marshal::write_to_fd(int fd) {
     return n_write;
 }
 
-Marshal::bookmark* Marshal::set_bookmark(size_t n) {
+bookmark* Marshal::set_bookmark(size_t n) {
     verify(write_cnt_ == 0);
 
     bookmark* bm = new bookmark;

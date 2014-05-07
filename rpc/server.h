@@ -123,7 +123,7 @@ class ServerTcpConnection: public ServerConnection {
     Marshal in_, out_;
     SpinLock out_l_;
 
-    Marshal::bookmark* bmark_;
+    bookmark* bmark_;
 
     enum {
         CONNECTED, CLOSED

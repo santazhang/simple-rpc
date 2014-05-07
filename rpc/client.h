@@ -113,7 +113,7 @@ class Client: public Pollable {
     UdpBuffer udp_;
     socklen_t udp_salen_;
     struct sockaddr *udp_sa_;
-    Marshal::bookmark* udp_bmark_;
+    bookmark* udp_bmark_;
 
     /**
      * NOT a refcopy! This is intended to avoid circular reference, which prevents everything from being released correctly.
@@ -125,7 +125,7 @@ class Client: public Pollable {
         NEW, CONNECTED, CLOSED
     } status_;
 
-    Marshal::bookmark* bmark_;
+    bookmark* bmark_;
 
     Counter xid_counter_;
     std::unordered_map<i64, Future*> pending_fu_;
