@@ -53,7 +53,7 @@ public:
     }
 
     // helper function, do some work in background
-    int run_async(const std::function<void()>& f);
+    int run_async(const std::function<void()>& f, int queuing_channel = -1);
 
     virtual void begin_reply(Request* req, i32 error_code = 0) = 0;
 
@@ -198,8 +198,8 @@ public:
         sconn_ = nullptr;
     }
 
-    int run_async(const std::function<void()>& f) {
-        return sconn_->run_async(f);
+    int run_async(const std::function<void()>& f, int queuing_channel = -1) {
+        return sconn_->run_async(f, queuing_channel);
     }
 
     void reply() {

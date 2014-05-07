@@ -81,8 +81,8 @@ static void stat_server_rpc_counting(i32 rpc_id) {
 
 
 
-int ServerConnection::run_async(const std::function<void()>& f) {
-    return server_->threadpool_->run_async(f);
+int ServerConnection::run_async(const std::function<void()>& f, int queuing_channel /* =? */) {
+    return server_->threadpool_->run_async(f, queuing_channel);
 }
 
 
