@@ -86,6 +86,52 @@ int ServerConnection::run_async(const std::function<void()>& f, int queuing_chan
 }
 
 
+
+class ServerUdpConnection: public ServerConnection {
+    char* udp_buffer_;
+
+    virtual void close() {
+        // will not be called
+        verify(0);
+    }
+
+    virtual Marshal* output_buffer() {
+        // will not be called
+        verify(0);
+        return nullptr;
+    }
+
+public:
+    ServerUdpConnection(Server* svr, int udp_sock): ServerConnection(svr, udp_sock) {
+        udp_buffer_ = new char[UdpBuffer::max_udp_packet_size_s];
+    }
+    ~ServerUdpConnection() {
+        delete[] udp_buffer_;
+    }
+    virtual int poll_mode() {
+        return Pollable::READ;  // always read only
+    }
+    void handle_write() {
+        // will not be called
+        verify(0);
+    }
+    void handle_read();
+    void handle_error() {
+        ::close(sock_);
+    }
+
+    virtual void begin_reply(Request* req, i32 error_code = 0) {
+        // no reply, should not be called
+        verify(0);
+    }
+
+    virtual void end_reply() {
+        // no reply, should not be called
+        verify(0);
+    }
+};
+
+
 // <size> <rpc_id> <arg1> <arg2> ... <argN>
 void ServerUdpConnection::handle_read() {
     int cnt = recvfrom(sock_, udp_buffer_, UdpBuffer::max_udp_packet_size_s, MSG_WAITALL, nullptr, nullptr);
@@ -143,6 +189,69 @@ void ServerUdpConnection::handle_read() {
     }
 }
 
+
+
+class ServerTcpConnection: public ServerConnection {
+
+    friend class Server;
+
+    Marshal in_, out_;
+    SpinLock out_l_;
+
+    bookmark* bmark_;
+
+    enum {
+        CONNECTED, CLOSED
+    } status_;
+
+
+    virtual Marshal* output_buffer() {
+        return &out_;
+    }
+
+    /**
+     * Only to be called by:
+     * 1: ~Server(), which is called when destroying Server
+     * 2: handle_error(), which is called by PollMgr
+     */
+    void close();
+
+    // used to surpress multiple "no handler for rpc_id=..." errro
+    static std::unordered_set<i32> rpc_id_missing_s;
+    static SpinLock rpc_id_missing_l_s;
+
+protected:
+
+    // Protected destructor as required by RefCounted.
+    ~ServerTcpConnection();
+
+public:
+
+    ServerTcpConnection(Server* server, int socket);
+
+    /**
+     * Start a reply message. Must be paired with end_reply().
+     *
+     * Reply message format:
+     * <size> <xid> <error_code> <ret1> <ret2> ... <retN>
+     * NOTE: size does not include size itself (<xid>..<retN>).
+     *
+     * User only need to fill <ret1>..<retN>.
+     *
+     * Currently used errno:
+     * 0: everything is fine
+     * ENOENT: method not found
+     * EINVAL: invalid packet (field missing)
+     */
+    void begin_reply(Request* req, i32 error_code = 0);
+
+    void end_reply();
+
+    int poll_mode();
+    void handle_write();
+    void handle_read();
+    void handle_error();
+};
 
 
 std::unordered_set<i32> ServerTcpConnection::rpc_id_missing_s;
