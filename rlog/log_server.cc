@@ -37,8 +37,6 @@ int main(int argc, char* argv[]) {
     Pthread_mutex_init(&g_stop_mutex, nullptr);
     Pthread_cond_init(&g_stop_cond, nullptr);
 
-    Log::set_level(Log::INFO);
-
     RLogService* log_service = new RLogServiceImpl;
     Server* server = new Server;
     server->reg(log_service);

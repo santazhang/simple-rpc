@@ -29,35 +29,40 @@ public:
     static void debug(const char* fmt, ...) {
         va_list args;
         va_start(args, fmt);
-        log_v(rpc::Log::DEBUG, fmt, args);
+        const int level_debug = 4;
+        log_v(level_debug, fmt, args);
         va_end(args);
     }
 
     static void info(const char* fmt, ...) {
         va_list args;
         va_start(args, fmt);
-        log_v(rpc::Log::INFO, fmt, args);
+        const int level_info = 3;
+        log_v(level_info, fmt, args);
         va_end(args);
     }
 
     static void warn(const char* fmt, ...) {
         va_list args;
         va_start(args, fmt);
-        log_v(rpc::Log::WARN, fmt, args);
+        const int level_warn = 2;
+        log_v(level_warn, fmt, args);
         va_end(args);
     }
 
     static void error(const char* fmt, ...) {
         va_list args;
         va_start(args, fmt);
-        log_v(rpc::Log::ERROR, fmt, args);
+        const int level_error = 1;
+        log_v(level_error, fmt, args);
         va_end(args);
     }
 
     static void fatal(const char* fmt, ...) {
         va_list args;
         va_start(args, fmt);
-        log_v(rpc::Log::FATAL, fmt, args);
+        const int level_fatal = 0;
+        log_v(level_fatal, fmt, args);
         va_end(args);
     }
 
