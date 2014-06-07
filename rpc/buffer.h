@@ -163,7 +163,7 @@ public:
 
 // not thread safe, for better performance
 class UnboundedBuffer: public Buffer {
-    MakeNoCopy(UnboundedBuffer);
+    MAKE_NOCOPY(UnboundedBuffer);
 
     chunk* head_;
     chunk* tail_;
