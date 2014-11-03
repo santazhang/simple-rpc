@@ -4,6 +4,12 @@ namespace test;
 struct empty_struct {
 };
 
+struct Person {
+    i32 id;
+    string name;
+    string email;
+};
+
 service Empty {
 };
 

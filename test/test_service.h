@@ -19,6 +19,26 @@ inline rpc::Marshal& operator >>(rpc::Marshal& m, empty_struct& o) {
     return m;
 }
 
+struct Person {
+    rpc::i32 id;
+    std::string name;
+    std::string email;
+};
+
+inline rpc::Marshal& operator <<(rpc::Marshal& m, const Person& o) {
+    m << o.id;
+    m << o.name;
+    m << o.email;
+    return m;
+}
+
+inline rpc::Marshal& operator >>(rpc::Marshal& m, Person& o) {
+    m >> o.id;
+    m >> o.name;
+    m >> o.email;
+    return m;
+}
+
 struct complex_struct {
     std::map<std::pair<std::string, std::string>, std::vector<std::vector<std::pair<std::string, std::string>>>> d;
     std::set<std::string> s;
@@ -64,7 +84,7 @@ public:
 class MathService: public rpc::Service {
 public:
     enum {
-        GCD = 0x67d710ba,
+        GCD = 0x29b25705,
     };
     int __reg_to__(rpc::Server* svr) {
         int ret = 0;

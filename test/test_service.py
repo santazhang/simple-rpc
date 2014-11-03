@@ -4,6 +4,8 @@ from simplerpc.future import Future
 
 empty_struct = Marshal.reg_type('empty_struct', [])
 
+Person = Marshal.reg_type('Person', [('id', 'rpc::i32'), ('name', 'std::string'), ('email', 'std::string')])
+
 complex_struct = Marshal.reg_type('complex_struct', [('d', 'std::map<std::pair<std::string, std::string>, std::vector<std::vector<std::pair<std::string, std::string>>>>'), ('s', 'std::set<std::string>'), ('e', 'empty_struct')])
 
 class EmptyService(object):
@@ -27,7 +29,7 @@ class EmptyProxy(object):
         self.__clnt__ = clnt
 
 class MathService(object):
-    GCD = 0x67d710ba
+    GCD = 0x29b25705
 
     __input_type_info__ = {
         'gcd': ['rpc::i64','rpc::i64'],
